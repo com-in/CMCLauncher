@@ -1,0 +1,42 @@
+{
+  "name": "craft-launcher",
+  "version": "0.2.0",
+  "description": "An independent Minecraft Java Edition launcher with isolated instances and Modrinth support",
+  "main": "src/main.cjs",
+  "author": "Craft Launcher contributors",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "test": "node --test test/*.test.cjs",
+    "check": "node --check src/main.cjs && node --check src/preload.cjs && node --check src/core.cjs && node --check src/auth.cjs && node --check src/content.cjs && node --check src/renderer/app.js",
+    "smoke": "node scripts/smoke.cjs",
+    "dist": "electron-builder --win portable"
+  },
+  "dependencies": {
+    "adm-zip": "0.6.1",
+    "smol-toml": "^1.9.1"
+  },
+  "devDependencies": {
+    "electron": "44.9.1",
+    "electron-builder": "^26.0.12",
+    "playwright": "^1.56.0"
+  },
+  "build": {
+    "appId": "dev.craftlauncher.desktop",
+    "productName": "Craft Launcher",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "src/**/*",
+      "package.json",
+      "LICENSE"
+    ],
+    "win": {
+      "target": "portable"
+    },
+    "portable": {
+      "artifactName": "Craft-Launcher-${version}-${arch}.exe"
+    }
+  }
+}

@@ -1,0 +1,52 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows10.0.19041.0</TargetFramework>
+    <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
+    <UseWinUI>true</UseWinUI>
+    <WindowsPackageType>None</WindowsPackageType>
+    <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
+    <WindowsAppSdkBootstrapInitialize>false</WindowsAppSdkBootstrapInitialize>
+    <WindowsAppSdkDeploymentManagerInitialize>false</WindowsAppSdkDeploymentManagerInitialize>
+    <EnableMsixTooling>false</EnableMsixTooling>
+    <Platforms>x64</Platforms>
+    <PlatformTarget>x64</PlatformTarget>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <SelfContained>true</SelfContained>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <DebugType>none</DebugType>
+    <DebugSymbols>false</DebugSymbols>
+    <AssemblyName>CMCLauncher</AssemblyName>
+    <Product>CMC Launcher</Product>
+    <Title>CMC Launcher</Title>
+    <RootNamespace>CraftLauncher.WinUI</RootNamespace>
+    <Version>0.5.0</Version>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>assets/cmc-logo.ico</ApplicationIcon>
+    <DefineConstants>$(DefineConstants);DISABLE_XAML_GENERATED_MAIN</DefineConstants>
+  </PropertyGroup>
+  <ItemGroup>
+    <Content Update="assets/cmc-logo.png" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <None Update="assets/cmc-logo.ico" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <None Update="clientid.local.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <PackageReference Include="Markdig" Version="1.4.2" />
+    <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.8.260921001" />
+    <Compile Include="../native/Models.cs" Link="Core/Models.cs" />
+    <Compile Include="../native/GameMemory.cs" Link="Core/GameMemory.cs" />
+    <Compile Include="../native/JavaManager.cs" Link="Core/JavaManager.cs" />
+    <Compile Include="../native/WorldArchive.cs" Link="Core/WorldArchive.cs" />
+    <Compile Include="../native/LauncherCore.cs" Link="Core/LauncherCore.cs" />
+    <Compile Include="../native/ContentManager.cs" Link="Core/ContentManager.cs" />
+    <Compile Include="../native/ModrinthService.cs" Link="Core/ModrinthService.cs" />
+    <Compile Include="../native/MicrosoftAuth.cs" Link="Core/MicrosoftAuth.cs" />
+    <Compile Include="../native/GlobalUsings.cs" Link="Core/GlobalUsings.cs" />
+  </ItemGroup>
+  <Target Name="PublishWinUIResources" AfterTargets="Publish">
+    <ItemGroup>
+      <WinUIResource Include="$(TargetDir)*.pri;$(TargetDir)*.xbf" />
+    </ItemGroup>
+    <Copy SourceFiles="@(WinUIResource)" DestinationFolder="$(PublishDir)" />
+    <Exec WorkingDirectory="$(PublishDir)" Command="powershell.exe -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildProjectDirectory)\..\scripts\organize-winui-languages.ps1&quot; -PublishDir ." />
+  </Target>
+</Project>

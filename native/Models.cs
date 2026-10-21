@@ -1,0 +1,160 @@
+using System.IO;
+using System.Text.Json;
+using System.Text.Json.Nodes;
+using System.Security.Cryptography;
+using System.Text;
+
+namespace CraftLauncher;
+
+public sealed class Settings
+{
+    public string JavaPath { get; set; } = "";
+    public List<JavaInstallation> JavaInstallations { get; set; } = [];
+    public List<string> IgnoredJavaPaths { get; set; } = [];
+    public int MemoryMb { get; set; } = 4096;
+    public bool AutoMemory { get; set; } = true;
+    public string MicrosoftClientId { get; set; } = "";
+    public string Proxy { get; set; } = "";
+    public string Theme { get; set; } = "dark";
+    public string ColorPreset { get; set; } = "craft";
+    public Dictionary<string, string> CustomLightColors { get; set; } = new();
+    public Dictionary<string, string> CustomDarkColors { get; set; } = new();
+    public string GameLanguage { get; set; } = "auto";
+    public string MinecraftRoot { get; set; } = "";
+    public bool StartMaximized { get; set; }
+    public bool ExpandProjectIntroduction { get; set; } = true;
+}
+public sealed class JavaInstallation
+{
+    public string Path { get; set; } = "";
+    public string Version { get; set; } = "";
+    public int Major { get; set; }
+    public string Vendor { get; set; } = "";
+    public string Architecture { get; set; } = "";
+}
+public sealed class Instance
+{
+    public string Id { get; set; } = Guid.NewGuid().ToString();
+    public string Name { get; set; } = "新世界";
+    public string Description { get; set; } = "";
+    public string? IconPath { get; set; }
+    public string? StorageRoot { get; set; }
+    public string GameVersion { get; set; } = "";
+    public string Loader { get; set; } = "vanilla";
+    public string? LoaderVersion { get; set; }
+    public string? ImportRoot { get; set; }
+    public string? Directory { get; set; }
+    public string? VersionId { get; set; }
+    public DateTime? LastPlayed { get; set; }
+    public override string ToString() => $"{Name}  ·  {GameVersion} / {Loader}";
+}
+public sealed record GameRelease(string Id, string Type)
+{
+    static readonly HashSet<string> AprilVersions = new(StringComparer.OrdinalIgnoreCase)
+    { "2.0", "15w14a", "1.RV-Pre1", "3D Shareware v1.34", "20w14infinite", "22w13oneblockatatime", "23w13a_or_b", "24w14potato", "25w14craftmine", "26w14a" };
+    public string Category => AprilVersions.Contains(Id) ? "愚人节" : Type == "release" ? "正式版" : "快照";
+}
+public sealed class Account
+{
+    public string Type { get; set; } = "offline";
+    public string Name { get; set; } = "";
+    public string Uuid { get; set; } = "";
+    public string? Secret { get; set; }
+    public override string ToString() => $"{Name} · {(Type == "microsoft" ? "Microsoft" : "离线身份")}";
+    public static Account Offline(string name)
+    {
+        if (!System.Text.RegularExpressions.Regex.IsMatch(name, "^[A-Za-z0-9_]{3,16}$")) throw new Exception("玩家名须为 3–16 位字母、数字或下划线");
+        var bytes = MD5.HashData(Encoding.UTF8.GetBytes("OfflinePlayer:" + name));
+        bytes[6] = (byte)((bytes[6] & 15) | 48); bytes[8] = (byte)((bytes[8] & 63) | 128);
+        return new() { Name = name, Uuid = Convert.ToHexString(bytes).ToLowerInvariant() };
+    }
+}
+public sealed class Configuration
+{
+    public Settings Settings { get; set; } = new();
+    public List<Instance> Instances { get; set; } = [];
+    public List<Account> Accounts { get; set; } = [];
+    public string? SelectedAccount { get; set; }
+    public string? SelectedInstanceId { get; set; }
+}
+public sealed class Store
+{
+    readonly SemaphoreSlim saveLock = new(1, 1);
+    public static readonly JsonSerializerOptions JsonOptions = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase, PropertyNameCaseInsensitive = true, WriteIndented = true };
+    public string Root { get; }
+    public string Library => Path.Combine(Root, "library");
+    public string MinecraftRoot => string.IsNullOrWhiteSpace(Config.Settings.MinecraftRoot) ? Library : Path.GetFullPath(Config.Settings.MinecraftRoot);
+    public string StorageDirectory(Instance instance) => instance.ImportRoot ?? instance.StorageRoot ?? Library;
+    public Configuration Config { get; }
+    public Store(string? root = null)
+    {
+        Root = root ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "CraftLauncher.Native");
+        System.IO.Directory.CreateDirectory(Library);
+        var file = Path.Combine(Root, "settings.json");
+        Config = File.Exists(file) ? JsonSerializer.Deserialize<Configuration>(File.ReadAllText(file), JsonOptions) ?? throw new Exception("配置为空") : new();
+    }
+    public async Task Save()
+    {
+        await saveLock.WaitAsync();
+        try { await AtomicJson(Path.Combine(Root, "settings.json"), JsonSerializer.SerializeToNode(Config, JsonOptions)!); }
+        finally { saveLock.Release(); }
+    }
+    public string GameDirectory(Instance instance)
+    {
+        if (instance.ImportRoot != null && instance.VersionId != null &&
+            (instance.Directory == null || string.Equals(Path.GetFullPath(instance.Directory), Path.GetFullPath(instance.ImportRoot), StringComparison.OrdinalIgnoreCase)))
+        {
+            var isolated = SafePath(instance.ImportRoot, "versions/" + instance.VersionId);
+            if (new[] { "mods", "saves", "options.txt" }.Any(name => System.IO.Directory.Exists(Path.Combine(isolated, name)) || File.Exists(Path.Combine(isolated, name)))) return isolated;
+        }
+        var storage = StorageDirectory(instance);
+        var legacy = SafePath(storage, "instances/" + instance.Id);
+        return instance.Directory ?? (System.IO.Directory.Exists(legacy) ? legacy : SafePath(storage, "versions/" + instance.Id));
+    }
+    public void PrepareIsolatedInstance(Instance instance)
+    {
+        if (instance.Directory != null || instance.ImportRoot != null) return;
+        instance.StorageRoot ??= MinecraftRoot;
+        var name = instance.Name.Trim();
+        var path = SafePath(StorageDirectory(instance), "versions/" + name);
+        if (System.IO.Directory.Exists(path) || Config.Instances.Any(i => string.Equals(GameDirectory(i), path, StringComparison.OrdinalIgnoreCase)))
+            path = SafePath(StorageDirectory(instance), "versions/" + name + "-" + instance.Id);
+        instance.Directory = path;
+    }
+    public void EnsureUniqueInstanceName(Instance instance)
+    {
+        var name = instance.Name.Trim();
+        if (name.Length == 0) throw new Exception("请填写实例名称");
+        if (Config.Instances.Any(existing => string.Equals(existing.Name.Trim(), name, StringComparison.OrdinalIgnoreCase)))
+            throw new Exception("已有同名游戏版本，请更换名称后再下载：" + name);
+        if (instance.ImportRoot == null && instance.Directory == null)
+        {
+            var path = SafePath(instance.StorageRoot ?? MinecraftRoot, "versions/" + name);
+            if (System.IO.Directory.Exists(path)) throw new Exception("游戏目录中已存在同名版本：" + name);
+        }
+    }
+    public static async Task AtomicJson(string file, JsonNode value)
+    {
+        System.IO.Directory.CreateDirectory(Path.GetDirectoryName(file)!);
+        var temp = file + "." + Guid.NewGuid() + ".tmp";
+        try { await File.WriteAllTextAsync(temp, value.ToJsonString(JsonOptions)); File.Move(temp, file, true); }
+        finally { if (File.Exists(temp)) File.Delete(temp); }
+    }
+    public static string SafePath(string root, string relative)
+    {
+        var parts = relative.Replace('\\', '/').Split('/');
+        if (string.IsNullOrWhiteSpace(relative) || Path.IsPathRooted(relative) || parts.Any(p => p is ".." or "." || p.Length == 0 || p.EndsWith('.') || p.EndsWith(' ') || p.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0 || System.Text.RegularExpressions.Regex.IsMatch(p, @"^(CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])(\.|$)", System.Text.RegularExpressions.RegexOptions.IgnoreCase))) throw new Exception("文件路径不安全");
+        var full = Path.GetFullPath(Path.Combine(root, Path.Combine(parts)));
+        if (!full.StartsWith(Path.GetFullPath(root).TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)) throw new Exception("路径越过实例目录");
+        // Refuse junctions and symlinks along write/read paths.
+        for (var cursor = full; cursor != null && cursor.Length >= Path.GetFullPath(root).Length; cursor = Path.GetDirectoryName(cursor))
+            if ((File.Exists(cursor) || System.IO.Directory.Exists(cursor)) && File.GetAttributes(cursor).HasFlag(FileAttributes.ReparsePoint)) throw new Exception("内容路径包含符号链接或目录联接");
+        return full;
+    }
+}
+public static class J
+{
+    public static string S(this JsonNode? node, string key, string fallback = "") => node?[key]?.ToString() ?? fallback;
+    public static IEnumerable<JsonNode> Items(this JsonNode? node) => node is JsonArray array ? array.OfType<JsonNode>() : [];
+    public static int Int(this JsonNode? node, string key, int fallback = 0) => int.TryParse(node.S(key), out var n) ? n : fallback;
+}
