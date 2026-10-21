@@ -9,7 +9,7 @@ const translations = {
     brandAria: 'CMC Launcher home', menuOpen: 'Open menu', menuClose: 'Close menu', navAria: 'Main navigation',
     navFeatures: 'Features', navAbout: 'About', navDownload: 'Download', languageButton: '中文', languageAria: 'Switch to Chinese',
     heroTitleA: 'Your world,', heroTitleB: 'your next adventure.', heroDescription: 'A Windows launcher for Minecraft Java Edition.',
-    heroCta: 'View releases', heroBrowse: 'Explore features', shotAlt: 'CMC Launcher 0.5.0 release home screen',
+    heroCta: 'View releases', heroBrowse: 'Explore features', shotAlt: 'CMC Launcher 0.5.1 release home screen',
     shotCaption: 'Release build · English game language', scrollCue: 'Scroll to explore', featuresTitleA: 'More time for', featuresTitleB: 'your next adventure.',
     feature1Title: 'Manage your instances', feature1Copy: 'Organize Minecraft versions and modpacks, then switch between the worlds you play.',
     feature2Title: 'Game versions and community content', feature2Copy: 'Browse Minecraft versions and community projects, including mods, modpacks, and content packs.',
@@ -18,7 +18,7 @@ const translations = {
     about1Title: 'Built for Minecraft Java Edition', about1Copy: 'A focused place to explore game versions and community content.',
     about2Title: 'A familiar Windows experience', about2Copy: 'Built with WinUI 3, with light, dark, and custom themes.',
     about3Title: 'Open source', about3Copy: 'Explore the code, follow development, or contribute to the project.',
-    downloadTitle: 'Ready for your next world?', downloadDescription: 'CMC Launcher 0.5.0 · Windows x64',
+    downloadTitle: 'Ready for your next world?', downloadDescription: 'CMC Launcher 0.5.1 · Windows x64',
     releaseState: 'No official release published yet', releaseLink: 'View GitHub releases',
     footerNote: 'Made for Minecraft Java Edition. Minecraft is a trademark of Mojang Studios.', githubProject: 'GitHub project'
   },
@@ -28,7 +28,7 @@ const translations = {
     brandAria: 'CMC Launcher 首页', menuOpen: '打开菜单', menuClose: '关闭菜单', navAria: '主导航',
     navFeatures: '功能', navAbout: '关于', navDownload: '下载', languageButton: 'EN', languageAria: 'Switch to English',
     heroTitleA: '你的世界，', heroTitleB: '由此开始。', heroDescription: '一个为 Minecraft Java Edition 打造的 Windows 启动器。',
-    heroCta: '查看发行版', heroBrowse: '看看它能做什么', shotAlt: 'CMC Launcher 0.5.0 发布版主页界面',
+    heroCta: '查看发行版', heroBrowse: '看看它能做什么', shotAlt: 'CMC Launcher 0.5.1 发布版主页界面',
     shotCaption: '发布版截图 · 游戏语言为 English', scrollCue: '继续探索', featuresTitleA: '把时间留给', featuresTitleB: '下一次冒险。',
     feature1Title: '实例，按你的方式管理', feature1Copy: '整理 Minecraft 版本与整合包实例，按需切换游玩内容。',
     feature2Title: '游戏下载与社区内容', feature2Copy: '获取 Minecraft 游戏版本与社区资源，支持 Mod、整合包和常见内容包。',
@@ -37,7 +37,7 @@ const translations = {
     about1Title: '为 Minecraft Java Edition 打造', about1Copy: '从游戏版本到社区内容，为日常游玩提供一个专注的入口。',
     about2Title: '熟悉的 Windows 体验', about2Copy: '以 WinUI 3 构建，支持浅色、深色与自定义主题。',
     about3Title: '开源协作', about3Copy: '查看源码、跟进项目进展，或参与后续开发。',
-    downloadTitle: '准备好，进入你的世界。', downloadDescription: 'CMC Launcher 0.5.0 · Windows x64',
+    downloadTitle: '准备好，进入你的世界。', downloadDescription: 'CMC Launcher 0.5.1 · Windows x64',
     releaseState: 'GitHub 暂无正式 Release', releaseLink: '查看发行版',
     footerNote: '为 Minecraft Java Edition 打造。Minecraft 是 Mojang Studios 的商标。', githubProject: 'GitHub 项目'
   }

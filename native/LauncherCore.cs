@@ -25,7 +25,7 @@ public sealed class LauncherCore : IDisposable
         if (proxy.Length > 0 && (!Uri.TryCreate(proxy, UriKind.Absolute, out var uri) || uri.Scheme is not ("http" or "https" or "socks5"))) throw new Exception("代理地址应为 http://127.0.0.1:7890 等格式");
         http.Dispose();
         http = new HttpClient(new ReachableProxyHandler(proxy.Length > 0 ? new WebProxy(proxy) : HttpClient.DefaultProxy)) { Timeout = TimeSpan.FromMinutes(3) };
-        http.DefaultRequestHeaders.UserAgent.ParseAdd("CMCLauncher/0.5.0");
+        http.DefaultRequestHeaders.UserAgent.ParseAdd("CMCLauncher/0.5.1");
     }
     public HttpClient Http => http;
     sealed class ReachableProxyHandler(IWebProxy proxy) : HttpMessageHandler
