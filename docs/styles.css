@@ -9,7 +9,7 @@
   --blue-dark: #045bc6;
   --green: #74ca31;
   --content: 1120px;
-  font-family: 'DM Sans', 'Noto Sans SC', 'Segoe UI', sans-serif;
+  font-family: 'DM Sans', 'Segoe UI', sans-serif;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -34,8 +34,6 @@ button { font: inherit; }
 .top-download { padding: 10px 15px; border: 1px solid #d7e2ef; border-radius: 5px; color: var(--blue-dark); font-size: 13px; font-weight: 600; transition: background 150ms ease, border-color 150ms ease; }
 .top-download:hover { border-color: var(--blue); background: #f0f7ff; }
 .top-download span { margin-left: 10px; }
-.language-toggle { min-height: 36px; min-width: 48px; padding: 0 9px; border: 1px solid transparent; border-radius: 5px; background: transparent; color: #526174; font-size: 12px; font-weight: 600; cursor: pointer; transition: color 150ms ease, background 150ms ease, border-color 150ms ease; }
-.language-toggle:hover, .language-toggle:focus-visible { color: var(--blue-dark); background: #f0f7ff; border-color: #d7e2ef; }
 .menu-toggle { display: none; }
 
 .hero { min-height: 660px; padding: 64px 28px 28px; display: flex; flex-direction: column; align-items: center; position: relative; overflow: hidden; }
@@ -113,7 +111,6 @@ h1, h2, h3, p, figure { margin-top: 0; }
   .brand { font-size: 14px; }
   .brand img { width: 28px; height: 28px; }
   .top-download { margin-left: auto; margin-right: 12px; padding: 8px 10px; font-size: 11px; }
-  .language-toggle { order: 3; min-width: 43px; min-height: 34px; padding: 0 7px; font-size: 11px; }
   .menu-toggle { order: 4; width: 34px; height: 34px; padding: 9px 6px; display: flex; flex-direction: column; justify-content: center; gap: 5px; border: 0; background: transparent; }
   .menu-toggle span { width: 20px; height: 1.5px; background: var(--ink); }
   .topbar nav { position: absolute; top: 61px; left: 0; right: 0; padding: 0 20px; display: grid; gap: 0; background: #fff; border-bottom: 1px solid var(--line); max-height: 0; overflow: hidden; transition: max-height 200ms ease, padding 200ms ease; }
