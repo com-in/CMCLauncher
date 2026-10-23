@@ -1,0 +1,65 @@
+using System.Diagnostics;
+using Microsoft.UI;
+using Microsoft.UI.Windowing;
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media;
+using Microsoft.UI.Xaml.Media.Imaging;
+using Microsoft.UI.Xaml.Media.Animation;
+using Windows.Storage.Pickers;
+using WinRT.Interop;
+using System.Text.Json.Nodes;
+using Windows.UI.ViewManagement;
+
+namespace CraftLauncher.WinUI;
+
+public sealed partial class MainWindow
+{
+    bool lightTheme;
+    readonly List<Border> themeCards = new();
+    readonly UISettings systemUi = new();
+
+    void SystemThemeChanged(UISettings sender, object args) => DispatcherQueue.TryEnqueue(() => { if (store.Config.Settings.Theme == "system") ApplyTheme(); });
+    void ApplyTheme()
+    {
+        LocalizeStaticChrome();
+        var systemBackground = systemUi.GetColorValue(UIColorType.Background);
+        lightTheme = store.Config.Settings.Theme == "light" || (store.Config.Settings.Theme == "system" && systemBackground.R + systemBackground.G + systemBackground.B > 382);
+        if (Content is FrameworkElement themedRoot) themedRoot.RequestedTheme = lightTheme ? ElementTheme.Light : ElementTheme.Dark;
+        RefreshPaletteBrushes();
+        var bg = lightTheme ? "#F6F8F4" : "#181922"; var sidebar = lightTheme ? "#EAF0E4" : "#20212D"; var text = lightTheme ? "#303145" : "#F0F0FA"; var muted = lightTheme ? "#69745F" : "#ACADBD"; var accent = lightTheme ? "#416D37" : "#91A9F0";
+        WindowBackground.Color = Brush(bg).Color; Sidebar.Background = Brush(sidebar); Sidebar.BorderBrush = new SolidColorBrush(RawColor(lightTheme ? "#E4E3ED" : "#30313E")); SidebarNote.Foreground = Brush(muted); Eyebrow.Foreground = Brush(accent); PageTitle.Foreground = Brush(text); PageSubtitle.Foreground = Brush(muted); StatusText.Foreground = Brush(muted); TaskManagerButton.Foreground = Brush(text);
+        StatusText.Visibility = Visibility.Collapsed; if (launchStatusText != null) launchStatusText.Foreground = Brush(muted);
+        if (Content is FrameworkElement root) root.RequestedTheme = lightTheme ? ElementTheme.Light : ElementTheme.Dark;
+        SyncNavigation();
+        TaskDrawer.PaneBackground = Brush(sidebar);
+        TaskCountBadge.Background = Brush(PrimaryColor); TaskCountText.Foreground = new SolidColorBrush(Colors.White);
+        CustomTitleBar.Background = Brush(bg); TitleBrandBackground.Background = Brush(sidebar);
+        TitleLabel.Foreground = Brush(text);
+        foreach (var card in themeCards) { card.Background = Brush(lightTheme ? "#FFFFFF" : "#242530"); card.BorderBrush = Brush(lightTheme ? "#E4E3ED" : "#3A3B4B"); }
+        if (AppWindowTitleBar.IsCustomizationSupported())
+        {
+            var bar = AppWindow.TitleBar;
+            bar.BackgroundColor = Brush(bg).Color; bar.ForegroundColor = Brush(text).Color;
+            bar.ButtonBackgroundColor = Colors.Transparent; bar.ButtonForegroundColor = Brush(text).Color;
+            bar.ButtonHoverBackgroundColor = Brush(lightTheme ? "#E4E8E0" : "#303240").Color;
+            bar.ButtonHoverForegroundColor = Brush(text).Color;
+            bar.ButtonPressedBackgroundColor = Brush(lightTheme ? "#D5DCD0" : "#404354").Color;
+            bar.ButtonPressedForegroundColor = Brush(text).Color;
+            bar.InactiveBackgroundColor = Brush(bg).Color; bar.InactiveForegroundColor = Brush(muted).Color;
+            bar.ButtonInactiveBackgroundColor = Colors.Transparent; bar.ButtonInactiveForegroundColor = Brush(muted).Color;
+        }
+    }
+    void UpdateTitleBarInset()
+    {
+        var scale = CustomTitleBar.XamlRoot?.RasterizationScale ?? 1;
+        CaptionButtonInset.Width = Math.Max(138, AppWindow.TitleBar.RightInset / scale);
+    }
+    SolidColorBrush Brush(string hex)
+    {
+        var brush = new SolidColorBrush(PaletteColor(hex));
+        paletteBrushes.Add((new WeakReference<SolidColorBrush>(brush), hex));
+        return brush;
+    }
+    string PrimaryColor => lightTheme ? "#416D37" : "#536DBD";
+}

@@ -1,4 +1,4 @@
-﻿using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 
 namespace CraftLauncher.WinUI;
@@ -94,7 +94,6 @@ public sealed partial class MainWindow
                             if (project.Type != "modpack" && destination == null) return;
                             await Run(async ct =>
                             {
-                                EnsureEditable();
                                 if (project.Type == "modpack") { var instance = await modrinth.InstallProjectPack(project.Id, ct, version.Id, ResolveModpackName); store.Config.Instances.Add(instance); selected = instance; store.Config.SelectedInstanceId = instance.Id; await store.Save(); }
                                 else if (destination is { } location)
                                 {

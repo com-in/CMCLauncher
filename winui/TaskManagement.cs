@@ -7,6 +7,9 @@ namespace CraftLauncher.WinUI;
 
 public sealed partial class MainWindow
 {
+    CancellationTokenSource? task;
+    readonly List<Button> taskButtons = new();
+
     sealed class WorkItem
     {
         internal string Name = "", Stage = "", State = "进行中";
@@ -118,4 +121,65 @@ public sealed partial class MainWindow
         return totalHours > 0 ? $"{totalHours:00}:{elapsed.Minutes:00}:{elapsed.Seconds:00}" : $"{elapsed.Minutes:00}:{elapsed.Seconds:00}";
     }
     static string ByteSize(double bytes) => bytes >= 1024 * 1024 * 1024 ? $"{bytes / (1024 * 1024 * 1024):0.0} GiB" : bytes >= 1024 * 1024 ? $"{bytes / (1024 * 1024):0.0} MiB" : bytes >= 1024 ? $"{bytes / 1024:0.0} KiB" : $"{bytes:0} B";
+    void UpdateDownloadProgress(double? value)
+    {
+        if (activeWork != null && !launching) { activeWork.Progress = value; RefreshTaskMetrics(); }
+    }
+    async Task Run(Func<CancellationToken, Task> operation, string? name = null)
+    {
+        if (task != null) throw new Exception("已有任务进行中，请稍候或取消当前任务");
+
+        using var cancellation = new CancellationTokenSource();
+        var work = new WorkItem
+        {
+            Name = name ?? PageTitle.Text,
+            Stage = launching ? "准备启动" : "正在准备…",
+            Launch = launching
+        };
+        task = cancellation;
+        activeWork = work;
+
+        try
+        {
+            SetTaskButtonsEnabled(false);
+            RefreshTaskMetrics();
+            if (TaskDrawer.IsPaneOpen) Tasks();
+            UpdateDownloadProgress(null);
+
+            await operation(cancellation.Token);
+            work.State = "已完成";
+            AddLog(work.Name + "：操作完成");
+        }
+        catch (OperationCanceledException)
+        {
+            work.State = "已取消";
+            AddLog(work.Name + "：已取消");
+            throw;
+        }
+        catch (Exception ex)
+        {
+            work.State = "失败";
+            work.Stage = ex.Message;
+            AddLog(work.Name + "：失败 · " + ex.Message);
+            throw;
+        }
+        finally
+        {
+            work.Clock.Stop();
+            work.CompletedElapsed = work.Clock.Elapsed;
+            recentWork.Insert(0, work);
+            if (recentWork.Count > 12) recentWork.RemoveAt(recentWork.Count - 1);
+
+            activeWork = null;
+            task = null;
+            SetTaskButtonsEnabled(true);
+            RefreshTaskMetrics();
+            if (TaskDrawer.IsPaneOpen) Tasks();
+        }
+    }
+
+    void SetTaskButtonsEnabled(bool enabled)
+    {
+        foreach (var button in taskButtons) button.IsEnabled = enabled;
+    }
 }

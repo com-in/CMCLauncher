@@ -200,7 +200,6 @@ public sealed partial class MainWindow
     }
     async Task SetMinecraftFolder(string path)
     {
-        EnsureEditable();
         await Run(async ct =>
         {
             var root = Path.GetFullPath(path); Directory.CreateDirectory(root);
