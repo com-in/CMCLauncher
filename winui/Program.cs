@@ -24,6 +24,9 @@ internal static class Program
     [STAThread]
     static int Main(string[] args)
     {
+#if SINGLE_FILE
+        ExtractCompanionFiles();
+#endif
         if (args.Length >= 2 && args[0] == "--cleanup-mui") return CleanupWorker(args);
         PrepareMuiResources();
         StartMuiCleanupWorker();
@@ -144,6 +147,22 @@ internal static class Program
             }
         }
     }
+#if SINGLE_FILE
+    static void ExtractCompanionFiles()
+    {
+        var exeDir = Path.GetDirectoryName(Environment.ProcessPath) ?? AppContext.BaseDirectory;
+        var marker = Path.Combine(exeDir, ".companion-extracted");
+        if (File.Exists(marker)) return;
+        foreach (var (relativePath, data) in CompanionData.Files)
+        {
+            var destination = Path.Combine(exeDir, relativePath);
+            var directory = Path.GetDirectoryName(destination);
+            if (directory is not null) Directory.CreateDirectory(directory);
+            File.WriteAllBytes(destination, data);
+        }
+        File.WriteAllText(marker, DateTime.UtcNow.ToString("O"));
+    }
+#endif
 }
 public sealed partial class CraftApp : Application
 {
