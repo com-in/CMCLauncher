@@ -27,9 +27,11 @@
     <DefineConstants>$(DefineConstants);DISABLE_XAML_GENERATED_MAIN</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
+    <EmbeddedResource Include="clientid.local.json" LogicalName="CMCLauncher.MicrosoftClient" Condition="Exists('clientid.local.json')" />
     <Content Update="assets/cmc-logo.png" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Update="assets/grass-block.png" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="assets/loaders/*.png" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <None Update="assets/cmc-logo.ico" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
-    <None Update="clientid.local.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <PackageReference Include="Markdig" Version="1.4.2" />
     <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.8.260921001" />
     <Compile Include="../native/Models.cs" Link="Core/Models.cs" />
@@ -37,6 +39,7 @@
     <Compile Include="../native/JavaManager.cs" Link="Core/JavaManager.cs" />
     <Compile Include="../native/WorldArchive.cs" Link="Core/WorldArchive.cs" />
     <Compile Include="../native/LauncherCore.cs" Link="Core/LauncherCore.cs" />
+    <Compile Include="../native/CertificatePolicy.cs" Link="Core/CertificatePolicy.cs" />
     <Compile Include="../native/ContentManager.cs" Link="Core/ContentManager.cs" />
     <Compile Include="../native/ModrinthService.cs" Link="Core/ModrinthService.cs" />
     <Compile Include="../native/MicrosoftAuth.cs" Link="Core/MicrosoftAuth.cs" />

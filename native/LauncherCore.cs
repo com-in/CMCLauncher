@@ -18,36 +18,55 @@ public sealed class LauncherCore : IDisposable
     public event Action<string>? Log;
     public event Action<double?>? DownloadProgress;
     public event Action<long>? DownloadBytes;
+    const int DownloadBufferSize = 256 * 1024;
+    const int ProgressIntervalMs = 500;
+    public static int DownloadConcurrency(Settings settings) => Math.Clamp(settings.DownloadThreads, 1, 256);
+    public Task DownloadMany<T>(IEnumerable<T> items, Func<T, CancellationToken, Task> download, CancellationToken ct = default)
+        => Parallel.ForEachAsync(items, new ParallelOptions { MaxDegreeOfParallelism = DownloadConcurrency(store.Config.Settings), CancellationToken = ct }, (item, token) => new ValueTask(download(item, token)));
     public LauncherCore(Store store, HttpMessageHandler? handler = null) { this.store = store; if (handler == null) ConfigureNetwork(); else { http.Dispose(); http = new HttpClient(handler); } }
     public void ConfigureNetwork()
     {
         var proxy = store.Config.Settings.Proxy;
         if (proxy.Length > 0 && (!Uri.TryCreate(proxy, UriKind.Absolute, out var uri) || uri.Scheme is not ("http" or "https" or "socks5"))) throw new Exception("代理地址应为 http://127.0.0.1:7890 等格式");
         http.Dispose();
-        http = new HttpClient(new ReachableProxyHandler(proxy.Length > 0 ? new WebProxy(proxy) : HttpClient.DefaultProxy)) { Timeout = TimeSpan.FromMinutes(3) };
+        var selectedProxy = proxy.Length > 0 ? new WebProxy(proxy) : HttpClient.DefaultProxy;
+        http = new HttpClient(new ReachableProxyHandler(selectedProxy, store.Config.Settings.IgnoreSslErrors, authority => Log?.Invoke("TLS connection rejected: compromised CA public key · " + authority)), disposeHandler: true) { Timeout = TimeSpan.FromMinutes(3) };
         http.DefaultRequestHeaders.UserAgent.ParseAdd("CMCLauncher/0.5.1");
     }
     public HttpClient Http => http;
-    sealed class ReachableProxyHandler(IWebProxy proxy) : HttpMessageHandler
+    sealed class ReachableProxyHandler(IWebProxy proxy, bool ignoreSslErrors, Action<string> blocked) : HttpMessageHandler
     {
-        readonly HttpMessageInvoker proxied = new(new HttpClientHandler { Proxy = proxy, UseProxy = true });
-        readonly HttpMessageInvoker direct = new(new HttpClientHandler { UseProxy = false });
+        readonly HttpMessageInvoker proxied = new(CreateTransportHandler(proxy, true, ignoreSslErrors, blocked));
+        readonly HttpMessageInvoker direct = new(CreateTransportHandler(null, false, ignoreSslErrors, blocked));
+        readonly SemaphoreSlim probeLock = new(1, 1);
+        readonly Dictionary<string, (bool Reachable, DateTime Expires)> proxyReachability = new(StringComparer.OrdinalIgnoreCase);
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
         {
             var target = request.RequestUri!;
             var endpoint = proxy.IsBypassed(target) ? null : proxy.GetProxy(target);
             if (endpoint == null || endpoint == target) return await direct.SendAsync(request, ct);
-            using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
-            timeout.CancelAfter(TimeSpan.FromSeconds(1));
             bool reachable;
+            var key = endpoint!.AbsoluteUri;
+            await probeLock.WaitAsync(ct);
             try
             {
-                using var socket = new System.Net.Sockets.TcpClient();
-                await socket.ConnectAsync(endpoint.Host, endpoint.Port, timeout.Token);
-                reachable = true;
+                if (proxyReachability.TryGetValue(key, out var cached) && cached.Expires > DateTime.UtcNow) reachable = cached.Reachable;
+                else
+                {
+                    using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
+                    timeout.CancelAfter(TimeSpan.FromSeconds(1));
+                    try
+                    {
+                        using var socket = new System.Net.Sockets.TcpClient();
+                        await socket.ConnectAsync(endpoint.Host, endpoint.Port, timeout.Token);
+                        reachable = true;
+                    }
+                    catch (OperationCanceledException) when (!ct.IsCancellationRequested) { reachable = false; }
+                    catch (System.Net.Sockets.SocketException) { reachable = false; }
+                    proxyReachability[key] = (reachable, DateTime.UtcNow.AddSeconds(reachable ? 30 : 3));
+                }
             }
-            catch (OperationCanceledException) when (!ct.IsCancellationRequested) { reachable = false; }
-            catch (System.Net.Sockets.SocketException) { reachable = false; }
+            finally { probeLock.Release(); }
             return await (reachable ? proxied : direct).SendAsync(request, ct);
         }
         protected override void Dispose(bool disposing)
@@ -55,6 +74,12 @@ public sealed class LauncherCore : IDisposable
             if (disposing) { proxied.Dispose(); direct.Dispose(); }
             base.Dispose(disposing);
         }
+    }
+    static SocketsHttpHandler CreateTransportHandler(IWebProxy? proxy, bool useProxy, bool ignoreSslErrors, Action<string> blocked)
+    {
+        var handler = new SocketsHttpHandler { Proxy = proxy, UseProxy = useProxy, MaxConnectionsPerServer = 256, PooledConnectionLifetime = TimeSpan.FromMinutes(10) };
+        handler.SslOptions.RemoteCertificateValidationCallback = (_, certificate, chain, errors) => CertificatePolicy.Validate(certificate, chain, errors, ignoreSslErrors, blocked);
+        return handler;
     }
     public async Task<JsonNode> Json(string url, CancellationToken ct = default)
     {
@@ -67,9 +92,10 @@ public sealed class LauncherCore : IDisposable
         async Task<bool> Valid()
         {
             if (!File.Exists(target)) return false;
-            if (size.HasValue && new FileInfo(target).Length != size) return false;
+            var info = new FileInfo(target);
+            if (size.HasValue && info.Length != size) return false;
             if (string.IsNullOrWhiteSpace(hash)) return true;
-            await using var stream = File.OpenRead(target);
+            await using var stream = new FileStream(target, FileMode.Open, FileAccess.Read, FileShare.Read, DownloadBufferSize, FileOptions.Asynchronous | FileOptions.SequentialScan);
             var bytes = algorithm == "sha512" ? await SHA512.HashDataAsync(stream, ct) : algorithm == "sha256" ? await SHA256.HashDataAsync(stream, ct) : await SHA1.HashDataAsync(stream, ct);
             return Convert.ToHexString(bytes).Equals(hash, StringComparison.OrdinalIgnoreCase);
         }
@@ -84,15 +110,15 @@ public sealed class LauncherCore : IDisposable
             var progressClock = Stopwatch.StartNew();
             DownloadProgress?.Invoke(total > 0 ? 0 : null);
             await using (var source = await response.Content.ReadAsStreamAsync(ct))
-            await using (var output = File.Create(temp))
+            await using (var output = new FileStream(temp, FileMode.CreateNew, FileAccess.Write, FileShare.None, DownloadBufferSize, FileOptions.Asynchronous | FileOptions.SequentialScan))
             {
-                var buffer = new byte[65536]; long length = 0; long pendingBytes = 0; int count;
+                var buffer = new byte[DownloadBufferSize]; long length = 0; long pendingBytes = 0; int count;
                 while ((count = await source.ReadAsync(buffer, ct)) > 0)
                 {
                     length += count; if (length > (size ?? 2L * 1024 * 1024 * 1024)) throw new Exception("下载内容超过大小上限");
                     await output.WriteAsync(buffer.AsMemory(0, count), ct);
                     pendingBytes += count;
-                    if (progressClock.ElapsedMilliseconds >= 150)
+                    if (progressClock.ElapsedMilliseconds >= ProgressIntervalMs)
                     {
                         DownloadProgress?.Invoke(total > 0 ? Math.Min(99, 100.0 * length / total.Value) : null);
                         DownloadBytes?.Invoke(pendingBytes); pendingBytes = 0;
@@ -104,7 +130,7 @@ public sealed class LauncherCore : IDisposable
             }
             if (!string.IsNullOrWhiteSpace(hash))
             {
-                await using var stream = File.OpenRead(temp);
+                await using var stream = new FileStream(temp, FileMode.Open, FileAccess.Read, FileShare.Read, DownloadBufferSize, FileOptions.Asynchronous | FileOptions.SequentialScan);
                 var bytes = algorithm == "sha512" ? await SHA512.HashDataAsync(stream, ct) : algorithm == "sha256" ? await SHA256.HashDataAsync(stream, ct) : await SHA1.HashDataAsync(stream, ct);
                 if (!Convert.ToHexString(bytes).Equals(hash, StringComparison.OrdinalIgnoreCase)) throw new Exception("文件哈希校验失败");
             }
@@ -181,6 +207,12 @@ public sealed class LauncherCore : IDisposable
     }
     public async Task<List<string>> LoaderBuilds(string gameVersion, string loader, CancellationToken ct)
     {
+        if (loader == "fabric")
+        {
+            var versions = await Json($"https://meta.fabricmc.net/v2/versions/loader/{Uri.EscapeDataString(gameVersion)}", ct);
+            return versions.Items().OrderByDescending(item => item["loader"].S("stable") == "true")
+                .Select(item => item["loader"].S("version")).Where(value => value.Length > 0).Distinct().ToList();
+        }
         var url = loader switch
         {
             "forge" => "https://maven.minecraftforge.net/net/minecraftforge/forge/maven-metadata.xml",
@@ -225,6 +257,7 @@ public sealed class LauncherCore : IDisposable
         var java = await JavaManager.Match(store, JavaManager.RequiredMajor(instance.GameVersion, baseProfile["javaVersion"].Int("majorVersion")), ct);
         var start = new ProcessStartInfo(java) { UseShellExecute = false, RedirectStandardOutput = true, RedirectStandardError = true, CreateNoWindow = true };
         start.ArgumentList.Add("-jar"); start.ArgumentList.Add(installer); start.ArgumentList.Add("--installClient"); start.ArgumentList.Add(storage);
+        Log?.Invoke("执行加载器安装命令 · " + java + " -jar " + installer + " --installClient " + storage);
         using var process = Process.Start(start) ?? throw new Exception("无法启动加载器安装器");
         var output = new Queue<string>();
         async Task ReadOutput(StreamReader reader)
@@ -236,18 +269,39 @@ public sealed class LauncherCore : IDisposable
         catch (OperationCanceledException) { if (!process.HasExited) process.Kill(true); throw; }
         await Task.WhenAll(stdout, stderr);
         if (process.ExitCode != 0) { string details; lock (output) details = string.Join(Environment.NewLine, output); throw new Exception($"{instance.Loader} 安装失败：{details}"); }
-        var groupPrefix = instance.Loader == "forge" ? "net.minecraftforge:forge:" : "net.neoforged:neoforge:";
-        foreach (var file in Directory.EnumerateDirectories(Store.SafePath(storage, "versions"))
+        var profileId = await FindLoaderProfile(storage, instance.Loader, instance.GameVersion, ct, build);
+        if (profileId != null)
+        {
+            instance.VersionId = profileId; instance.LoaderVersion = instance.Loader == "forge" ? build[prefix.Length..] : build; return instance;
+        }
+        throw new Exception($"{instance.Loader} 安装器已结束，但没有找到 Minecraft {instance.GameVersion} 的版本档案");
+    }
+    public static async Task<string?> FindLoaderProfile(string storage, string loader, string gameVersion, CancellationToken ct, string? build = null)
+    {
+        var prefixes = loader switch
+        {
+            "forge" => new[] { "net.minecraftforge:forge:", "net.minecraftforge:fmlloader:" },
+            "neoforge" => new[] { "net.neoforged:neoforge:" },
+            _ => throw new Exception("仅支持查找 Forge 与 NeoForge 版本档案")
+        };
+        var versions = Store.SafePath(storage, "versions");
+        if (!Directory.Exists(versions)) return null;
+        foreach (var file in Directory.EnumerateDirectories(versions)
             .Where(dir => !File.GetAttributes(dir).HasFlag(FileAttributes.ReparsePoint))
             .Select(dir => Store.SafePath(dir, Path.GetFileName(dir) + ".json")).Where(File.Exists).OrderByDescending(File.GetLastWriteTimeUtc))
         {
-            JsonNode profile; try { profile = JsonNode.Parse(await File.ReadAllTextAsync(file, ct))!; } catch { continue; }
-            if (profile.S("inheritsFrom") == instance.GameVersion && profile["libraries"].Items().Any(lib => lib.S("name").StartsWith(groupPrefix, StringComparison.Ordinal)))
-            {
-                instance.VersionId = Path.GetFileNameWithoutExtension(file); instance.LoaderVersion = instance.Loader == "forge" ? build[prefix.Length..] : build; return instance;
-            }
+            ct.ThrowIfCancellationRequested();
+            JsonNode profile;
+            try { profile = JsonNode.Parse(await File.ReadAllTextAsync(file, ct))!; }
+            catch (OperationCanceledException) { throw; }
+            catch (System.Text.Json.JsonException) { continue; }
+            catch (IOException) { continue; }
+            if (profile.S("inheritsFrom") == gameVersion && profile["libraries"].Items().Any(lib => prefixes.Any(prefix =>
+                build == null ? lib.S("name").StartsWith(prefix, StringComparison.Ordinal)
+                : lib.S("name") == prefix + build || lib.S("name").StartsWith(prefix + build + ":", StringComparison.Ordinal))))
+                return Path.GetFileNameWithoutExtension(file);
         }
-        throw new Exception($"{instance.Loader} 安装器已结束，但没有找到 Minecraft {instance.GameVersion} 的版本档案");
+        return null;
     }
     public async Task DownloadGame(Instance instance, CancellationToken ct)
     {
@@ -256,33 +310,40 @@ public sealed class LauncherCore : IDisposable
         var jarId = version.S("jar", instance.GameVersion); var jar = Store.SafePath(storage, $"versions/{jarId}/{jarId}.jar");
         if (version["downloads"]?["client"] is JsonNode client) await Download(client.S("url"), jar, client.S("sha1"), size: client.Int("size"), ct: ct);
         var libraries = version["libraries"].Items().Where(l => Allowed(l["rules"])).ToList(); int done = 0;
-        foreach (var lib in libraries)
+        var nativeFiles = new string?[libraries.Count];
+        await DownloadMany(libraries.Select((lib, index) => (lib, index)), async (item, token) =>
         {
-            ct.ThrowIfCancellationRequested(); Status?.Invoke($"下载游戏依赖 {++done}/{libraries.Count}");
-            var artifact = lib["downloads"]?["artifact"];
+            var (lib, index) = item; var artifact = lib["downloads"]?["artifact"];
             if (artifact != null || lib["downloads"] == null)
             {
                 var relative = artifact?.S("path") ?? Maven(lib.S("name")); var target = Store.SafePath(storage, "libraries/" + relative);
-                await Download(artifact?.S("url") ?? lib.S("url", "https://libraries.minecraft.net/").TrimEnd('/') + "/" + relative, target, artifact?.S("sha1"), size: artifact?["size"]?.GetValue<long>(), ct: ct);
+                await Download(artifact?.S("url") ?? lib.S("url", "https://libraries.minecraft.net/").TrimEnd('/') + "/" + relative, target, artifact?.S("sha1"), size: artifact?["size"]?.GetValue<long>(), ct: token);
             }
             var classifier = lib["natives"]?.S("windows").Replace("\u0024{arch}", Environment.Is64BitProcess ? "64" : "32");
             if (classifier is { Length: > 0 } && lib["downloads"]?["classifiers"]?[classifier] is JsonNode native)
             {
-                var target = Store.SafePath(storage, "libraries/" + native.S("path")); await Download(native.S("url"), target, native.S("sha1"), size: native.Int("size"), ct: ct);
-                using var archive = ZipFile.OpenRead(target); await Extract(archive, natives, exclusions: ["META-INF/"], ct: ct);
+                var target = Store.SafePath(storage, "libraries/" + native.S("path")); await Download(native.S("url"), target, native.S("sha1"), size: native.Int("size"), ct: token);
+                nativeFiles[index] = target;
             }
+            var completed = Interlocked.Increment(ref done); Status?.Invoke($"下载游戏依赖 {completed}/{libraries.Count}");
+        }, ct);
+        foreach (var nativeFile in nativeFiles)
+        {
+            ct.ThrowIfCancellationRequested();
+            if (nativeFile == null) continue;
+            using var archive = ZipFile.OpenRead(nativeFile); await Extract(archive, natives, exclusions: ["META-INF/"], ct: ct);
         }
         if (version["assetIndex"] is JsonNode asset)
         {
             var indexPath = Store.SafePath(storage, "assets/indexes/" + asset.S("id") + ".json"); await Download(asset.S("url"), indexPath, asset.S("sha1"), size: asset.Int("size"), ct: ct);
             var index = JsonNode.Parse(await File.ReadAllTextAsync(indexPath, ct))!; var objects = index["objects"]!.AsObject().ToArray(); int finished = 0;
-            await Parallel.ForEachAsync(objects, new ParallelOptions { MaxDegreeOfParallelism = 8, CancellationToken = ct }, async (pair, token) =>
+            await DownloadMany(objects, async (pair, token) =>
             {
                 var value = pair.Value!; var hash = value.S("hash"); if (!Regex.IsMatch(hash, "^[a-f0-9]{40}$")) throw new Exception("资源哈希不合法");
                 var relative = hash[..2] + "/" + hash; var target = Store.SafePath(storage, "assets/objects/" + relative);
                 await Download("https://resources.download.minecraft.net/" + relative, target, hash, size: value.Int("size"), ct: token);
                 var progress = Interlocked.Increment(ref finished); if (progress % 100 == 0 || progress == objects.Length) Status?.Invoke($"下载游戏资源 {progress}/{objects.Length}");
-            });
+            }, ct);
         }
         if (version["logging"]?["client"]?["file"] is JsonNode log) await Download(log.S("url"), Store.SafePath(storage, "assets/log_configs/" + log.S("id")), log.S("sha1"), size: log.Int("size"), ct: ct);
         await ContentManager.Language(game, store.Config.Settings.GameLanguage);
@@ -350,24 +411,32 @@ public sealed class LauncherCore : IDisposable
         progress?.Report((15, "校验与下载游戏客户端"));
         if (version["downloads"]?["client"] is JsonNode client) await Download(client.S("url"), jar, client.S("sha1"), size: client.Int("size"), ct: ct);
         else if (!File.Exists(jar)) throw new Exception("本地版本缺少客户端 JAR");
-        var classpath = new List<string>(); var libraries = version["libraries"].Items().Where(l => Allowed(l["rules"])).ToList(); int done = 0;
+        var libraries = version["libraries"].Items().Where(l => Allowed(l["rules"])).ToList(); int done = 0;
+        var classpathParts = new string?[libraries.Count]; var nativeFiles = new string?[libraries.Count];
         progress?.Report((20, "校验与下载游戏依赖"));
-        foreach (var lib in libraries)
+        await DownloadMany(libraries.Select((lib, index) => (lib, index)), async (item, token) =>
         {
-            ct.ThrowIfCancellationRequested(); Status?.Invoke($"游戏依赖 {++done}/{libraries.Count} · {lib.S("name")}");
+            var (lib, index) = item;
             var artifact = lib["downloads"]?["artifact"];
             if (artifact != null || lib["downloads"] == null)
             {
                 var relative = artifact?.S("path") ?? Maven(lib.S("name")); var file = Store.SafePath(storage, "libraries/" + relative);
-                await Download(artifact?.S("url") ?? lib.S("url", "https://libraries.minecraft.net/").TrimEnd('/') + "/" + relative, file, artifact?.S("sha1"), size: artifact?["size"]?.GetValue<long>(), ct: ct); classpath.Add(file);
+                await Download(artifact?.S("url") ?? lib.S("url", "https://libraries.minecraft.net/").TrimEnd('/') + "/" + relative, file, artifact?.S("sha1"), size: artifact?["size"]?.GetValue<long>(), ct: token); classpathParts[index] = file;
             }
             var classifier = lib["natives"]?.S("windows").Replace("${arch}", Environment.Is64BitProcess ? "64" : "32");
             if (classifier is { Length: > 0 } && lib["downloads"]?["classifiers"]?[classifier] is JsonNode native)
             {
-                var file = Store.SafePath(storage, "libraries/" + native.S("path")); await Download(native.S("url"), file, native.S("sha1"), size: native.Int("size"), ct: ct);
-                using var zip = ZipFile.OpenRead(file); await Extract(zip, natives, exclusions: ["META-INF/"], ct: ct);
+                var file = Store.SafePath(storage, "libraries/" + native.S("path")); await Download(native.S("url"), file, native.S("sha1"), size: native.Int("size"), ct: token); nativeFiles[index] = file;
             }
-            progress?.Report((20 + 30.0 * done / libraries.Count, $"游戏依赖 {done}/{libraries.Count}"));
+            var completed = Interlocked.Increment(ref done); Status?.Invoke($"游戏依赖 {completed}/{libraries.Count} · {lib.S("name")}");
+            progress?.Report((20 + 30.0 * completed / libraries.Count, $"游戏依赖 {completed}/{libraries.Count}"));
+        }, ct);
+        var classpath = classpathParts.Where(file => file != null).Select(file => file!).ToList();
+        foreach (var nativeFile in nativeFiles)
+        {
+            ct.ThrowIfCancellationRequested();
+            if (nativeFile == null) continue;
+            using var zip = ZipFile.OpenRead(nativeFile); await Extract(zip, natives, exclusions: ["META-INF/"], ct: ct);
         }
         classpath.Add(jar);
         progress?.Report((50, "读取游戏资源索引"));
@@ -377,7 +446,7 @@ public sealed class LauncherCore : IDisposable
             var file = Store.SafePath(storage, "assets/indexes/" + asset.S("id") + ".json"); await Download(asset.S("url"), file, asset.S("sha1"), size: asset.Int("size"), ct: ct);
             index = JsonNode.Parse(await File.ReadAllTextAsync(file, ct));
             var objects = index!["objects"]!.AsObject().ToArray(); int finished = 0;
-            await Parallel.ForEachAsync(objects, new ParallelOptions { MaxDegreeOfParallelism = 8, CancellationToken = ct }, async (pair, token) =>
+            await DownloadMany(objects, async (pair, token) =>
             {
                 var value = pair.Value!; var hash = value.S("hash"); if (!Regex.IsMatch(hash, "^[a-f0-9]{40}$")) throw new Exception("资源哈希不合法");
                 var location = hash[..2] + "/" + hash; var target = Store.SafePath(storage, "assets/objects/" + location);
@@ -393,7 +462,7 @@ public sealed class LauncherCore : IDisposable
                     Status?.Invoke($"游戏资源 {completed}/{objects.Length}");
                     progress?.Report((50 + 40.0 * completed / objects.Length, $"游戏资源 {completed}/{objects.Length}"));
                 }
-            });
+            }, ct);
         }
         progress?.Report((90, "配置游戏语言与启动参数"));
         if (version["logging"]?["client"]?["file"] is JsonNode logFile) await Download(logFile.S("url"), Store.SafePath(storage, "assets/log_configs/" + logFile.S("id")), logFile.S("sha1"), size: logFile.Int("size"), ct: ct);
@@ -401,6 +470,7 @@ public sealed class LauncherCore : IDisposable
         var args = BuildArguments(version, storage, game, natives, classpath, account, credentials, store.Config.Settings, account.Type == "microsoft" ? MicrosoftAuth.ConfiguredClientId : null);
         var start = new ProcessStartInfo(java) { WorkingDirectory = game, UseShellExecute = false, RedirectStandardOutput = true, RedirectStandardError = true, CreateNoWindow = true };
         foreach (var arg in args) start.ArgumentList.Add(arg);
+        Log?.Invoke("执行游戏命令 · " + java + " " + string.Join(" ", args.Select(RedactCommandArgument)) + " · 工作目录=" + game);
         var process = new Process { StartInfo = start, EnableRaisingEvents = true };
         void Output(object _, DataReceivedEventArgs e) { if (e.Data != null) { var text = e.Data; var secret = credentials.S("accessToken"); if (secret.Length > 8) text = text.Replace(secret, "[REDACTED]"); Log?.Invoke(text); } }
         process.OutputDataReceived += Output; process.ErrorDataReceived += Output;
@@ -408,6 +478,7 @@ public sealed class LauncherCore : IDisposable
         progress?.Report((98, "创建游戏进程"));
         if (!process.Start()) throw new Exception("游戏进程启动失败"); process.BeginOutputReadLine(); process.BeginErrorReadLine(); return process;
     }
+    static string RedactCommandArgument(string value) => value.Contains("accessToken", StringComparison.OrdinalIgnoreCase) || value.Length > 40 && value.All(c => char.IsLetterOrDigit(c) || c is '-' or '_') ? "[REDACTED]" : value;
     public static List<string> BuildArguments(JsonNode version, string storage, string game, string natives, List<string> classpath, Account account, JsonNode credentials, Settings settings, string? clientId = null)
     {
         // Flattened profiles may repeat libraries; NeoForge's union filesystem rejects duplicate paths.
@@ -428,6 +499,7 @@ public sealed class LauncherCore : IDisposable
     public static async Task<int> InspectJava(string executable, CancellationToken ct)
     {
         var start = new ProcessStartInfo(executable, "-version") { UseShellExecute = false, RedirectStandardOutput = true, RedirectStandardError = true, CreateNoWindow = true };
+        // This helper has no instance logger; callers record the surrounding action.
         using var p = Process.Start(start) ?? throw new Exception("无法启动 Java");
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct); timeout.CancelAfter(TimeSpan.FromSeconds(10));
         var stderr = p.StandardError.ReadToEndAsync(timeout.Token); var stdout = p.StandardOutput.ReadToEndAsync(timeout.Token);

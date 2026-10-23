@@ -4,6 +4,8 @@ using System.IO.Compression;
 using System.Net;
 using System.Net.Http;
 using System.Security.Cryptography;
+using System.Security.Cryptography.X509Certificates;
+using System.Net.Security;
 using System.Text;
 using System.Text.Json.Nodes;
 using System.Windows;
@@ -72,6 +74,53 @@ internal static class Program
     }
     static async Task CoreTests()
     {
+        var compromised = JsonNode.Parse(await File.ReadAllTextAsync(Path.Combine(AppContext.BaseDirectory, "fixtures/emudhra-2026-10-23.json")))!.AsArray();
+        Check(compromised.Count == 16 && compromised.Select(item => item.S("spki_sha256")).Distinct().Count() == 8, "CA fixture contains eight keys and their sixteen certificate variants");
+        foreach (var item in compromised)
+        {
+            using var certificate = X509Certificate2.CreateFromPem(item.S("pem"));
+            Check(Convert.ToHexString(SHA256.HashData(certificate.RawData)) == item.S("sha256"), "CA certificate fingerprint does not match published incident data");
+            Check(Convert.ToHexString(SHA256.HashData(certificate.PublicKey.ExportSubjectPublicKeyInfo())) == item.S("spki_sha256"), "CA SPKI fingerprint does not match published incident data");
+            Check(CertificatePolicy.BlockedAuthority(certificate) == item.S("name"), "compromised CA or cross-sign not blocked");
+            using var chain = new X509Chain(); chain.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck; chain.ChainPolicy.DisableCertificateDownloads = true; chain.Build(certificate);
+            Check(!CertificatePolicy.Validate(certificate, chain, SslPolicyErrors.None, false), "compromised key accepted as otherwise valid");
+            Check(!CertificatePolicy.Validate(certificate, chain, SslPolicyErrors.RemoteCertificateChainErrors, true), "SSL override bypassed compromised key block");
+        }
+        using (var safeKey = ECDsa.Create())
+        {
+            var request = new CertificateRequest("CN=EM DV TLS CA - G3B", safeKey, HashAlgorithmName.SHA256);
+            using var safeCertificate = request.CreateSelfSigned(DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddDays(1));
+            using var safeChain = new X509Chain(); safeChain.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck; safeChain.Build(safeCertificate);
+            Check(CertificatePolicy.BlockedAuthority(safeCertificate) == null, "certificate name alone caused a false block");
+            Check(CertificatePolicy.Validate(safeCertificate, safeChain, SslPolicyErrors.None, false), "unlisted certificate rejected with no SSL errors");
+            Check(!CertificatePolicy.Validate(safeCertificate, safeChain, SslPolicyErrors.RemoteCertificateNameMismatch, false), "normal TLS name validation bypassed");
+            Check(CertificatePolicy.Validate(safeCertificate, safeChain, SslPolicyErrors.RemoteCertificateNameMismatch, true), "ordinary SSL override stopped working");
+            using var intermediate = X509Certificate2.CreateFromPem(compromised[0].S("pem"));
+            using var intermediateChain = new X509Chain();
+            intermediateChain.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck; intermediateChain.ChainPolicy.DisableCertificateDownloads = true; intermediateChain.Build(intermediate);
+            Check(!CertificatePolicy.Validate(safeCertificate, intermediateChain, SslPolicyErrors.None, true), "blocked intermediate was not checked when leaf is unlisted");
+            Check(!CertificatePolicy.Validate(safeCertificate, null, SslPolicyErrors.None, true), "uninspectable chain accepted");
+        }
+        Pass("eight compromised CA keys and sixteen cross-sign variants denied before SSL overrides");
+        var chainFiles = Directory.GetFiles(Path.Combine(AppContext.BaseDirectory, "fixtures/emudhra-chains"), "*.pem");
+        Check(chainFiles.Length == 14, "supplied incident archive should contain fourteen chains");
+        foreach (var chainFile in chainFiles)
+        {
+            var certificates = new X509Certificate2Collection();
+            certificates.ImportFromPem(await File.ReadAllTextAsync(chainFile));
+            try
+            {
+                Check(certificates.Count >= 2 && certificates.Cast<X509Certificate2>().Any(c => CertificatePolicy.BlockedAuthority(c) != null), "supplied chain has no matching blocked CA: " + Path.GetFileName(chainFile));
+                using var chain = new X509Chain();
+                chain.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck;
+                chain.ChainPolicy.DisableCertificateDownloads = true;
+                chain.ChainPolicy.ExtraStore.AddRange(certificates);
+                chain.Build(certificates[0]);
+                Check(!CertificatePolicy.Validate(certificates[0], chain, SslPolicyErrors.None, true), "supplied chain bypasses denylist with SSL override: " + Path.GetFileName(chainFile));
+            }
+            finally { foreach (var certificate in certificates) certificate.Dispose(); }
+        }
+        Pass("all fourteen supplied chains rejected, including cross-sign and no-CT chains");
         var origin = new System.Net.Sockets.TcpListener(IPAddress.Loopback, 0); origin.Start();
         var unavailableProxy = new System.Net.Sockets.TcpListener(IPAddress.Loopback, 0); unavailableProxy.Start();
         var proxyPort = ((IPEndPoint)unavailableProxy.LocalEndpoint).Port; unavailableProxy.Stop();
@@ -93,6 +142,20 @@ internal static class Program
             await serveDirect; Pass("unreachable proxy direct fallback");
         }
         finally { origin.Stop(); }
+        Check(new Settings().DownloadThreads == 16 && LauncherCore.DownloadConcurrency(new Settings { DownloadThreads = 0 }) == 1 && LauncherCore.DownloadConcurrency(new Settings { DownloadThreads = 999 }) == 256, "download concurrency defaults and clamps to valid bounds");
+        var concurrencyStore = new Store(Path.Combine(root, "download-concurrency")); concurrencyStore.Config.Settings.DownloadThreads = 4;
+        using (var concurrencyCore = new LauncherCore(concurrencyStore, new MockHandler(_ => new HttpResponseMessage(HttpStatusCode.OK))))
+        {
+            var active = 0; var peak = 0;
+            await concurrencyCore.DownloadMany(Enumerable.Range(0, 40), async (_, ct) =>
+            {
+                var now = Interlocked.Increment(ref active); int seen;
+                while (now > (seen = Volatile.Read(ref peak)) && Interlocked.CompareExchange(ref peak, now, seen) != seen) { }
+                await Task.Delay(20, ct); Interlocked.Decrement(ref active);
+            });
+            Check(peak == 4, "download batch obeys configured simultaneous request limit");
+        }
+        Pass("configurable bounded parallel downloads");
         var javaInfo = JavaManager.Parse("fixture-java.exe", "    java.version = 21.0.8\n    java.vendor = Eclipse Adoptium\n    os.arch = amd64\n");
         Check(javaInfo.Major == 21 && javaInfo.Version == "21.0.8" && javaInfo.Vendor == "Eclipse Adoptium" && javaInfo.Architecture == "amd64", "Java properties parsing");
         Check(JavaManager.Parse("fixture", "java version \"1.8.0_452\"").Major == 8, "legacy Java version parsing");
@@ -134,8 +197,12 @@ internal static class Program
         Check(Account.Offline("Steve").Uuid == "5627dd98e6be3c21b8a8e92344183641", "offline UUID differs"); Pass("safe paths and offline UUID");
         var unverifiedMicrosoft = new Account { Type = "microsoft", Name = "Unverified", Uuid = Guid.NewGuid().ToString("N"), Secret = CredentialVault.Protect(new JsonObject { ["accessToken"] = "fixture", ["source"] = "pcl" }) };
         var verifiedMicrosoft = new Account { Type = "microsoft", Name = "Verified", Uuid = Guid.NewGuid().ToString("N"), Secret = CredentialVault.Protect(new JsonObject { ["accessToken"] = "fixture", ["refreshToken"] = "fixture", ["xuid"] = "fixture" }) };
+        var verifiedWithoutOptionalClaims = new Account { Type = "microsoft", Name = "VerifiedNoClaims", Uuid = Guid.NewGuid().ToString("N"), Secret = CredentialVault.Protect(new JsonObject { ["accessToken"] = "fixture", ["minecraftProfileVerified"] = true }) };
+        var explicitlyUnverified = new Account { Type = "microsoft", Name = "UnverifiedProfile", Uuid = Guid.NewGuid().ToString("N"), Secret = CredentialVault.Protect(new JsonObject { ["accessToken"] = "fixture", ["refreshToken"] = "fixture", ["xuid"] = "fixture", ["minecraftProfileVerified"] = false }) };
         var offline = Account.Offline("Steve");
+        Check(Guid.TryParse(MicrosoftAuth.ConfiguredClientId, out _), "embedded Microsoft client identifier is available");
         Check(!MicrosoftAuth.IsVerifiedMinecraftPlayer(unverifiedMicrosoft) && MicrosoftAuth.IsVerifiedMinecraftPlayer(verifiedMicrosoft), "Minecraft profile verification distinguishes Microsoft accounts from PCL imports");
+        Check(MicrosoftAuth.IsVerifiedMinecraftPlayer(verifiedWithoutOptionalClaims) && !MicrosoftAuth.IsVerifiedMinecraftPlayer(explicitlyUnverified), "verified Minecraft profile does not depend on optional XUID or refresh-token claims");
         Check(!MicrosoftAuth.CanUseAccount([offline], offline) && MicrosoftAuth.CanUseAccount([offline, verifiedMicrosoft], offline), "offline identities require a verified Minecraft Java account");
         Throws(() => MicrosoftAuth.EnsureAccountAllowed([offline], offline), "offline launch accepted without a verified Minecraft account");
         Throws(() => MicrosoftAuth.EnsureAccountAllowed([unverifiedMicrosoft], unverifiedMicrosoft), "unverified imported account accepted"); Pass("Microsoft profile gate for offline identities and launch");
@@ -162,6 +229,14 @@ internal static class Program
         using (var buildCore = new LauncherCore(settings, new MockHandler(_ => new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("<metadata><versioning><versions><version>21.1.9</version><version>21.1.100-beta</version><version>21.1.10</version><version>21.2.5</version></versions></versioning></metadata>") })))
             Check((await buildCore.LoaderBuilds("1.21.1", "neoforge", CancellationToken.None)).SequenceEqual(new[] { "21.1.10", "21.1.9", "21.1.100-beta" }), "loader build ordering and filtering");
         Pass("loader build compatibility and stable ordering");
+        var loaderProfileRoot = Path.Combine(root, "loader-profiles");
+        var modernForge = JsonNode.Parse("""{"id":"1.20.1-forge-47.4.22","inheritsFrom":"1.20.1","libraries":[{"name":"net.minecraftforge:fmlloader:1.20.1-47.4.22"},{"name":"net.minecraftforge:forgespi:7.0.1"}]}""")!;
+        await Store.AtomicJson(Store.SafePath(loaderProfileRoot, "versions/1.20.1-forge-47.4.22/1.20.1-forge-47.4.22.json"), modernForge);
+        Check(await LauncherCore.FindLoaderProfile(loaderProfileRoot, "forge", "1.20.1", CancellationToken.None, "1.20.1-47.4.22") == "1.20.1-forge-47.4.22", "modern Forge fmlloader profile detection");
+        await Store.AtomicJson(Store.SafePath(loaderProfileRoot, "versions/1.20.1-forge-47.3.0/1.20.1-forge-47.3.0.json"), JsonNode.Parse("""{"id":"1.20.1-forge-47.3.0","inheritsFrom":"1.20.1","libraries":[{"name":"net.minecraftforge:forge:1.20.1-47.3.0"}]}""")!);
+        Check(await LauncherCore.FindLoaderProfile(loaderProfileRoot, "forge", "1.20.1", CancellationToken.None, "1.20.1-47.3.0") == "1.20.1-forge-47.3.0", "legacy Forge forge profile detection");
+        Check(await LauncherCore.FindLoaderProfile(loaderProfileRoot, "forge", "1.20.1", CancellationToken.None, "1.20.1-47.3.1") == null, "Forge profile from another build is not selected");
+        Pass("modern and legacy Forge profile detection");
         var iconJar = Path.Combine(root, "icon.jar"); var iconBytes = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScLbtAAAAABJRU5ErkJggg==");
         using (var zip = ZipFile.Open(iconJar, ZipArchiveMode.Create))
         {
@@ -314,6 +389,64 @@ internal static class Program
         var malicious = Path.Combine(root, "malicious.zip"); Zip(malicious, new() { ["../outside.txt"] = "no" }); using (var zip = ZipFile.OpenRead(malicious)) await Reject(() => LauncherCore.Extract(zip, Path.Combine(root, "extract")), "zip traversal accepted"); Pass("archive extraction traversal protection");
         var mrpack = Path.Combine(root, "fixture.mrpack"); var index = new JsonObject { ["formatVersion"] = 1, ["game"] = "minecraft", ["name"] = "Fixture Pack", ["dependencies"] = new JsonObject { ["minecraft"] = "1.21.1" }, ["files"] = new JsonArray(new JsonObject { ["path"] = "mods/file.jar", ["fileSize"] = 7, ["downloads"] = new JsonArray("https://example.com/file"), ["hashes"] = new JsonObject { ["sha1"] = Sha("correct") } }) };
         Zip(mrpack, new() { ["modrinth.index.json"] = index.ToJsonString() }); var service = new ModrinthService(core, settings); await Reject(() => service.InstallPack(mrpack, CancellationToken.None), "bad pack accepted"); Check(!Directory.EnumerateDirectories(Path.Combine(settings.Library, "staging")).Any(), "failed pack left staging"); Pass("mrpack rollback on hash failure");
+        var packStore = new Store(Path.Combine(root, "pack-base-game"));
+        var packBytes = Encoding.UTF8.GetBytes("base minecraft client");
+        var versionJson = new JsonObject
+        {
+            ["id"] = "1.21.1", ["type"] = "release", ["mainClass"] = "example.Main",
+            ["javaVersion"] = new JsonObject { ["majorVersion"] = 21 },
+            ["downloads"] = new JsonObject { ["client"] = new JsonObject { ["url"] = "https://fixture.test/client.jar", ["sha1"] = Convert.ToHexString(SHA1.HashData(packBytes)).ToLowerInvariant(), ["size"] = packBytes.Length } },
+            ["libraries"] = new JsonArray(), ["arguments"] = new JsonObject { ["game"] = new JsonArray(), ["jvm"] = new JsonArray() }
+        };
+        var versionText = versionJson.ToJsonString();
+        var manifestText = new JsonObject { ["versions"] = new JsonArray(new JsonObject { ["id"] = "1.21.1", ["type"] = "release", ["url"] = "https://fixture.test/version.json", ["sha1"] = Convert.ToHexString(SHA1.HashData(Encoding.UTF8.GetBytes(versionText))).ToLowerInvariant() }) }.ToJsonString();
+        var vanillaPack = Path.Combine(root, "vanilla-pack.mrpack");
+        Zip(vanillaPack, new() { ["modrinth.index.json"] = new JsonObject { ["formatVersion"] = 1, ["game"] = "minecraft", ["name"] = "Vanilla Pack", ["dependencies"] = new JsonObject { ["minecraft"] = "1.21.1" }, ["files"] = new JsonArray() }.ToJsonString() });
+        using (var packCore = new LauncherCore(packStore, new MockHandler(request => request.RequestUri!.AbsolutePath switch
+        {
+            "/mc/game/version_manifest_v2.json" => new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(manifestText) },
+            "/version.json" => new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(versionText) },
+            "/client.jar" => new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent(packBytes) },
+            _ => new HttpResponseMessage(HttpStatusCode.NotFound)
+        })))
+        {
+            var packInstance = await new ModrinthService(packCore, packStore).InstallPack(vanillaPack, CancellationToken.None);
+            var clientJar = Store.SafePath(packStore.StorageDirectory(packInstance), "versions/1.21.1/1.21.1.jar");
+            Check(File.ReadAllBytes(clientJar).SequenceEqual(packBytes), "modpack installation downloads the vanilla Minecraft client before creating the instance");
+            Check(!Directory.Exists(Store.SafePath(packStore.StorageDirectory(packInstance), "staging/" + packInstance.Id + "-base")), "temporary vanilla game profile is cleaned after modpack installation");
+            var zipService = new ModrinthService(packCore, packStore);
+            var modrinthZip = Path.Combine(root, "modrinth-export.zip");
+            Zip(modrinthZip, new()
+            {
+                ["export/modrinth.index.json"] = new JsonObject { ["formatVersion"] = 1, ["game"] = "minecraft", ["name"] = "ZIP Export", ["dependencies"] = new JsonObject { ["minecraft"] = "1.21.1" }, ["files"] = new JsonArray() }.ToJsonString(),
+                ["export/overrides/config/example.txt"] = "common", ["export/client-overrides/config/example.txt"] = "client"
+            });
+            var zipInstance = await zipService.InstallPack(modrinthZip, CancellationToken.None);
+            Check(File.ReadAllText(Path.Combine(packStore.GameDirectory(zipInstance), "config/example.txt")) == "client", "wrapped Modrinth ZIP applies client overrides last");
+            await Reject(() => zipService.InstallPack(modrinthZip, CancellationToken.None), "duplicate modpack name silently accepted");
+            var renamedPack = await zipService.InstallPack(modrinthZip, CancellationToken.None, (candidate, _) =>
+            {
+                Check(candidate.Directory == null, "modpack name resolution occurs before creating directories");
+                candidate.Name = "Renamed ZIP Export";
+                return Task.CompletedTask;
+            });
+            Check(renamedPack.Name == "Renamed ZIP Export" && File.ReadAllText(Path.Combine(packStore.GameDirectory(zipInstance), "config/example.txt")) == "client", "renaming duplicate modpack preserves original instance");
+            var multiZip = Path.Combine(root, "prism-export.zip");
+            var multiManifest = "{\"formatVersion\":1,\"components\":[{\"uid\":\"net.minecraft\",\"version\":\"1.21.1\"},{\"uid\":\"org.lwjgl3\",\"version\":\"3.3.3\"}]}";
+            Zip(multiZip, new() { ["Prism/mmc-pack.json"] = multiManifest, ["Prism/instance.cfg"] = "[General]\nname=Prism Fixture", ["Prism/.minecraft/mods/local.jar"] = "local mod", ["Prism/launcher-private.txt"] = "do not copy" });
+            var multiInstance = await zipService.InstallPack(multiZip, CancellationToken.None);
+            Check(multiInstance.Name == "Prism Fixture" && multiInstance.GameVersion == "1.21.1", "MultiMC name and game component recognized");
+            Check(File.ReadAllText(Path.Combine(packStore.GameDirectory(multiInstance), "mods/local.jar")) == "local mod", "MultiMC game files extracted");
+            Check(!File.Exists(Path.Combine(packStore.GameDirectory(multiInstance), "launcher-private.txt")), "MultiMC launcher metadata stays outside game directory");
+            var unknownZip = Path.Combine(root, "unknown.zip"); Zip(unknownZip, new() { ["mods/mod.jar"] = "unknown" });
+            await Reject(() => zipService.InstallPack(unknownZip, CancellationToken.None), "unknown ZIP accepted without a game version");
+            var unsafeZip = Path.Combine(root, "unsafe-pack.zip");
+            Zip(unsafeZip, new() { ["mmc-pack.json"] = multiManifest, [".minecraft/../escaped.txt"] = "escape" });
+            await Reject(() => zipService.InstallPack(unsafeZip, CancellationToken.None), "MultiMC traversal accepted");
+            Check(!Directory.EnumerateDirectories(Path.Combine(packStore.Library, "staging")).Any(), "ZIP import failure leaves no staging directories");
+            Pass("Modrinth ZIP and MultiMC/Prism ZIP import, overrides, metadata and traversal protection");
+        }
+        Pass("modpack vanilla client predownload");
         Console.WriteLine("Java detected: " + await LauncherCore.InspectJava("java", CancellationToken.None)); Pass("real local Java detection");
     }
     static IEnumerable<T> Find<T>(DependencyObject root) where T : DependencyObject
