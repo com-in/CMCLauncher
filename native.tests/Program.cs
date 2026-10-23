@@ -145,7 +145,6 @@ internal static class Program
         var verifiedWithoutOptionalClaims = new Account { Type = "microsoft", Name = "VerifiedNoClaims", Uuid = Guid.NewGuid().ToString("N"), Secret = CredentialVault.Protect(new JsonObject { ["accessToken"] = "fixture", ["minecraftProfileVerified"] = true }) };
         var explicitlyUnverified = new Account { Type = "microsoft", Name = "UnverifiedProfile", Uuid = Guid.NewGuid().ToString("N"), Secret = CredentialVault.Protect(new JsonObject { ["accessToken"] = "fixture", ["refreshToken"] = "fixture", ["xuid"] = "fixture", ["minecraftProfileVerified"] = false }) };
         var offline = Account.Offline("Steve");
-        Check(Guid.TryParse(MicrosoftAuth.ConfiguredClientId, out _), "embedded Microsoft client identifier is available");
         Check(!MicrosoftAuth.IsVerifiedMinecraftPlayer(unverifiedMicrosoft) && MicrosoftAuth.IsVerifiedMinecraftPlayer(verifiedMicrosoft), "Minecraft profile verification distinguishes Microsoft accounts from PCL imports");
         Check(MicrosoftAuth.IsVerifiedMinecraftPlayer(verifiedWithoutOptionalClaims) && !MicrosoftAuth.IsVerifiedMinecraftPlayer(explicitlyUnverified), "verified Minecraft profile does not depend on optional XUID or refresh-token claims");
         Check(!MicrosoftAuth.CanUseAccount([offline], offline) && MicrosoftAuth.CanUseAccount([offline, verifiedMicrosoft], offline), "offline identities require a verified Minecraft Java account");

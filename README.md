@@ -1,6 +1,6 @@
 # CMC Launcher
 
-A native Windows desktop launcher for Minecraft Java Edition. Version 0.5.1 is built with C#, .NET 8, and WinUI 3. The interface and launch core are native Windows applications and do not use a web wrapper.
+A native Windows desktop launcher for Minecraft Java Edition. Version 0.9.3-beta is built with C#, .NET 8, and WinUI 3. The interface and launch core are native Windows applications and do not use a web wrapper.
 
 ## Features
 
@@ -25,7 +25,7 @@ CMC Launcher has no server-controlled forced update mechanism. Updates are user 
 
 ## Run the release build
 
-Download `CMCLauncher-0.5.1-win-x64.zip` from the GitHub Releases page, extract the archive, and run `CMCLauncher.exe`. The archive is self-contained and includes the .NET and Windows App SDK runtime. It does not include account tokens, local launcher settings, or game data. The publisher's public Microsoft OAuth client identifier is compiled into the launcher.
+Download `CMCLauncher-0.9.3-beta-win-x64.zip` from the GitHub Releases page, extract the archive, and run `CMCLauncher.exe`. The archive is self-contained and includes the .NET and Windows App SDK runtime. It does not include account tokens, local launcher settings, or game data. The publisher's public Microsoft OAuth client identifier is compiled into the launcher.
 
 ## Build from source
 
@@ -38,7 +38,7 @@ dotnet build winui/CraftLauncher.WinUI.csproj -c Release -p:Platform=x64
 dotnet publish winui/CraftLauncher.WinUI.csproj -c Release -p:Platform=x64 -r win-x64 --self-contained true -o dist/cmc-launcher
 ```
 
-Microsoft device-code sign-in uses the publisher's compiled public OAuth client identifier. Publisher builds read it from the ignored local `winui/clientid.local.json` build input and embed it into the assembly; it is not copied beside the executable or committed to source control. Client IDs are not secrets; Microsoft login completes only after Xbox authentication and a successful Minecraft Java profile lookup. The launcher does not collect Microsoft passwords.
+Microsoft device-code sign-in uses the publisher's compiled public OAuth client identifier. Local publisher builds read it from the ignored `winui/clientid.local.json` file. Tagged CI releases read the `MICROSOFT_CLIENT_ID` GitHub Actions secret and embed the identifier in the assembly; it is not copied beside the executable or committed to source control. Microsoft login completes only after Xbox authentication and a successful Minecraft Java profile lookup. The launcher does not collect Microsoft passwords.
 
 The launcher stores configuration and encrypted credentials under `%APPDATA%/CraftLauncher.Native/`; game instances and downloaded dependencies are stored in its `library/` folder by default. Existing `.minecraft` folders can be imported.
 

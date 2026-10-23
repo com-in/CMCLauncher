@@ -1243,7 +1243,7 @@ public sealed partial class MainWindow : Window
             core.ConfigureNetwork();
             await PersistSettings();
         };
-        PageBody.Children.Add(Text("版本 0.5.1", 12));
+        PageBody.Children.Add(Text("版本 0.9.3-beta", 12));
     }
     void UpdateDownloadProgress(double? value)
     {

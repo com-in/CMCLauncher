@@ -3,7 +3,7 @@ name: CI
 on:
   push:
     branches: [main]
-    tags: ['v*']
+    tags: ['v*', '[0-9]*']
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -36,32 +36,41 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
+      - name: Configure Microsoft login for tagged release
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: pwsh
+        env:
+          MICROSOFT_CLIENT_ID: ${{ secrets.MICROSOFT_CLIENT_ID }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:MICROSOFT_CLIENT_ID)) { throw 'Set the MICROSOFT_CLIENT_ID GitHub Actions secret before publishing a tagged release.' }
+          @{ clientId = $env:MICROSOFT_CLIENT_ID } | ConvertTo-Json | Set-Content -LiteralPath winui/clientid.local.json -Encoding utf8
       - name: Publish self-contained WinUI app
         run: dotnet publish winui/CraftLauncher.WinUI.csproj -c Release -p:Platform=x64 -r win-x64 --self-contained true -o dist/cmc-launcher
       - name: Package and scan release archive
         shell: pwsh
-        run: ./scripts/package-release.ps1 -PublishDirectory dist/cmc-launcher -ArchivePath dist/CMCLauncher-win-x64.zip
+        run: ./scripts/package-release.ps1 -PublishDirectory dist/cmc-launcher -ArchivePath dist/CMCLauncher-0.9.3-beta-win-x64.zip
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
-          name: CMCLauncher-win-x64
-          path: dist/CMCLauncher-win-x64.zip
+          name: CMCLauncher-0.9.3-beta-win-x64
+          path: dist/CMCLauncher-0.9.3-beta-win-x64.zip
           if-no-files-found: error
   release:
     name: Publish tagged release
     runs-on: windows-latest
     needs: build
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: startsWith(github.ref, 'refs/tags/')
     permissions:
       contents: write
     steps:
       - name: Download build artifact
         uses: actions/download-artifact@v4
         with:
-          name: CMCLauncher-win-x64
+          name: CMCLauncher-0.9.3-beta-win-x64
           path: release-files
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           generate_release_notes: true
-          files: release-files/CMCLauncher-win-x64.zip
+          prerelease: ${{ contains(github.ref_name, '-') }}
+          files: release-files/CMCLauncher-0.9.3-beta-win-x64.zip

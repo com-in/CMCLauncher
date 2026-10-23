@@ -1,6 +1,6 @@
 param(
     [string]$PublishDirectory = "dist/cmc-launcher",
-    [string]$ArchivePath = "dist/CMCLauncher-0.5.1-win-x64.zip"
+    [string]$ArchivePath = "dist/CMCLauncher-0.9.3-beta-win-x64.zip"
 )
 
 $ErrorActionPreference = "Stop"

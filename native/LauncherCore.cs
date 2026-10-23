@@ -31,7 +31,7 @@ public sealed class LauncherCore : IDisposable
         http.Dispose();
         var selectedProxy = proxy.Length > 0 ? new WebProxy(proxy) : HttpClient.DefaultProxy;
         http = new HttpClient(new ReachableProxyHandler(selectedProxy, store.Config.Settings.IgnoreSslErrors, authority => Log?.Invoke("TLS connection rejected: compromised CA public key · " + authority)), disposeHandler: true) { Timeout = TimeSpan.FromMinutes(3) };
-        http.DefaultRequestHeaders.UserAgent.ParseAdd("CMCLauncher/0.5.1");
+        http.DefaultRequestHeaders.UserAgent.ParseAdd("CMCLauncher/0.9.3-beta");
     }
     public HttpClient Http => http;
     sealed class ReachableProxyHandler(IWebProxy proxy, bool ignoreSslErrors, Action<string> blocked) : HttpMessageHandler

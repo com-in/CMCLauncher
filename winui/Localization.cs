@@ -119,7 +119,7 @@ public sealed partial class MainWindow
             ("下载 Java", "Download Java"), ("重新打开浏览器", "Reopen browser"), ("复制设备代码", "Copy device code"),
             ("删除版本？", "Delete version?"), ("删除", "Delete"), ("移除", "Remove"), ("预设", "Preset"),
             ("此实例还没有存档。请先进入游戏创建世界。", "This instance has no worlds yet. Launch the game and create a world first."),
-            ("版本 0.5.1", "Version 0.5.1"), ("保存", "Save"), ("确定", "OK"), ("取消", "Cancel"),
+            ("版本 0.9.3-beta", "Version 0.9.3-beta"), ("保存", "Save"), ("确定", "OK"), ("取消", "Cancel"),
             ("项目简介", "Project description"), ("项目介绍", "Project description"), ("版本设置", "Version settings"),
             ("版本下载", "Download game versions"), ("主页卡片", "Home cards"), ("敬请期待", "Coming soon"), ("当前没有进行中的任务。", "No tasks are currently running."));
     }
