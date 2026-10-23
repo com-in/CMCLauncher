@@ -1,14 +1,12 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <OutputType>WinExe</OutputType>
+    <OutputType>Library</OutputType>
     <TargetFramework>net8.0-windows</TargetFramework>
-    <UseWPF>true</UseWPF>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <AssemblyName>CraftLauncher</AssemblyName>
     <RootNamespace>CraftLauncher</RootNamespace>
     <Version>0.3.0</Version>
-    <ApplicationManifest>app.manifest</ApplicationManifest>
   </PropertyGroup>
   <ItemGroup>
     <EmbeddedResource Include="../winui/clientid.local.json" LogicalName="CMCLauncher.MicrosoftClient" Condition="Exists('../winui/clientid.local.json')" />

@@ -8,11 +8,6 @@ using System.Security.Cryptography.X509Certificates;
 using System.Net.Security;
 using System.Text;
 using System.Text.Json.Nodes;
-using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Threading;
 
 internal static class Program
 {
@@ -38,10 +33,6 @@ internal static class Program
         try
         {
             CoreTests().GetAwaiter().GetResult();
-            var app = new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
-            Exception? failure = null;
-            app.Startup += async (_, _) => { try { await WindowTests(); } catch (Exception e) { failure = e; } finally { app.Shutdown(); } };
-            app.Run(); if (failure != null) throw failure;
             Console.WriteLine($"All {passed} native tests passed."); return 0;
         }
         catch (Exception e) { Console.Error.WriteLine(e); return 1; }
@@ -448,33 +439,6 @@ internal static class Program
         }
         Pass("modpack vanilla client predownload");
         Console.WriteLine("Java detected: " + await LauncherCore.InspectJava("java", CancellationToken.None)); Pass("real local Java detection");
-    }
-    static IEnumerable<T> Find<T>(DependencyObject root) where T : DependencyObject
-    {
-        if (root is T item) yield return item;
-        for (int i = 0; i < VisualTreeHelper.GetChildrenCount(root); i++) foreach (var child in Find<T>(VisualTreeHelper.GetChild(root, i))) yield return child;
-    }
-    static async Task Wait(Func<bool> condition)
-    {
-        var end = DateTime.UtcNow.AddSeconds(15); while (!condition()) { if (DateTime.UtcNow > end) throw new Exception("UI timeout"); await Task.Delay(30); }
-    }
-    static async Task WindowTests()
-    {
-        var store = new Store(Path.Combine(root, "ui")); var instance = new Instance { Id = "fixture", Name = "Test World", GameVersion = "1.21.1", Loader = "fabric" }; store.Config.Instances.Add(instance); store.Config.Settings.Theme = "light";
-        var dir = store.GameDirectory(instance); Directory.CreateDirectory(Path.Combine(dir, "mods")); Zip(Path.Combine(dir, "mods", "test.jar"), new() { ["fabric.mod.json"] = "{\"id\":\"fixture\",\"name\":\"Recognized UI Mod\",\"version\":\"1.0\"}" });
-        var w = new MainWindow(store); w.Show(); await Task.Delay(150);
-        Button Button(string label) => Find<Button>(w).First(b => b.Content?.ToString() == label);
-        Button("◇  Mod 管理").RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Button.ClickEvent)); await Wait(() => Find<TextBlock>(w).Any(t => t.Text == "Recognized UI Mod"));
-        Button("停用").RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Button.ClickEvent)); await Wait(() => Find<Button>(w).Any(b => b.Content?.ToString() == "恢复"));
-        Button("恢复").RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Button.ClickEvent)); await Wait(() => Find<Button>(w).Any(b => b.Content?.ToString() == "停用")); Pass("WPF Mod metadata and toggle UI");
-        Button("▤  资源与内容包").RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Button.ClickEvent)); await Wait(() => Find<Button>(w).Any(b => b.Content?.ToString() == "数据包"));
-        Button("数据包").RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Button.ClickEvent)); await Wait(() => Find<TextBlock>(w).Any(t => t.Text.Contains("还没有已保存的世界"))); Pass("WPF world-specific data pack UI");
-        Button("⚙  启动器设置").RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Button.ClickEvent)); await Wait(() => Find<Button>(w).Any(b => b.Content?.ToString() == "保存设置"));
-        var theme = Find<ComboBox>(w).First(c => c.Items.Contains("深色 · 森林")); theme.SelectedItem = "深色 · 森林"; Button("保存设置").RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Button.ClickEvent)); await Wait(() => store.Config.Settings.Theme == "dark" && ((SolidColorBrush)w.Background).Color == (Color)ColorConverter.ConvertFromString("#111815"));
-        Check(((SolidColorBrush)w.Background).Color == (Color)ColorConverter.ConvertFromString("#111815"), "dark theme did not apply"); Pass("WPF theme switch and settings persistence");
-        theme = Find<ComboBox>(w).First(c => c.Items.Contains("浅色 · 晨光")); theme.SelectedItem = "浅色 · 晨光"; Button("保存设置").RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Button.ClickEvent)); await Wait(() => store.Config.Settings.Theme == "light" && ((SolidColorBrush)w.Background).Color == (Color)ColorConverter.ConvertFromString("#F2F5EE"));
-        Button("⌂  开始游戏").RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Button.ClickEvent)); await Task.Delay(100); w.UpdateLayout();
-        var bmp = new RenderTargetBitmap((int)w.ActualWidth, (int)w.ActualHeight, 96, 96, PixelFormats.Pbgra32); bmp.Render(w); var png = new PngBitmapEncoder(); png.Frames.Add(BitmapFrame.Create(bmp)); Directory.CreateDirectory(".artifacts"); using (var file = File.Create(".artifacts/native-home.png")) png.Save(file); Pass("native WPF window render"); w.Close();
     }
     sealed class MockHandler(Func<HttpRequestMessage, HttpResponseMessage> handler) : HttpMessageHandler
     {

@@ -32,7 +32,7 @@ Download `CMCLauncher-0.5.1-win-x64.zip` from the GitHub Releases page, extract 
 Install the .NET 8 SDK and Windows App SDK prerequisites, then run:
 
 ```powershell
-dotnet run --project native/CraftLauncher.csproj
+dotnet run --project winui/CraftLauncher.WinUI.csproj -p:Platform=x64
 dotnet run --project native.tests/CraftLauncher.Tests.csproj -c Release
 dotnet build winui/CraftLauncher.WinUI.csproj -c Release -p:Platform=x64
 dotnet publish winui/CraftLauncher.WinUI.csproj -c Release -p:Platform=x64 -r win-x64 --self-contained true -o dist/cmc-launcher
@@ -70,4 +70,3 @@ The launcher's own HTTPS client rejects the eight compromised eMudhra intermedia
 
 CMC Launcher is licensed under the GNU General Public License v3.0. See [LICENSE](LICENSE). Third-party dependencies retain their respective licenses. Minecraft, mods, and modpacks belong to their respective owners. CMC Launcher is not affiliated with Mojang Studios, Microsoft, or NetEase.
 
-The `src/`, `test/`, and Electron package files contain the historical 0.2.0 prototype; the current launcher is the native WinUI 3 application under `native/` and `winui/`.
