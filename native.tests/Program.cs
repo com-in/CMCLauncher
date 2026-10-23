@@ -72,6 +72,7 @@ internal static class Program
     }
     static async Task CoreTests()
     {
+        CertificatePolicyTests.Run(); Pass("compromised CA public keys and supplied certificate chains");
         var origin = new System.Net.Sockets.TcpListener(IPAddress.Loopback, 0); origin.Start();
         var unavailableProxy = new System.Net.Sockets.TcpListener(IPAddress.Loopback, 0); unavailableProxy.Start();
         var proxyPort = ((IPEndPoint)unavailableProxy.LocalEndpoint).Port; unavailableProxy.Stop();

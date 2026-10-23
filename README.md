@@ -57,6 +57,8 @@ The WinUI integration check runs against an isolated data directory and creates 
 
 ## Known limitations
 
+HTTPS requests made by the launcher's shared network client reject eight compromised eMudhra intermediate CA public keys, including cross-signed certificate variants, using SHA-256 SPKI fingerprints. The list is a snapshot from [the incident's public certificate inventory](https://emudhra.we-have-a-problem.com/impacted-intermediates.json) on October 23, 2026. Normal platform certificate validation still applies. This policy does not modify the Windows certificate store or cover network requests made by external Java processes.
+
 - New loader installation currently supports Fabric. Forge and NeoForge profiles can be imported and inspected, but full installation and compatibility have not been validated across game versions.
 - CurseForge archive import and automatic Java downloads are not supported.
 - Shader packs require Iris or OptiFine. Data pack enablement should be confirmed in game.

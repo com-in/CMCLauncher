@@ -24,14 +24,22 @@ public sealed class LauncherCore : IDisposable
         var proxy = store.Config.Settings.Proxy;
         if (proxy.Length > 0 && (!Uri.TryCreate(proxy, UriKind.Absolute, out var uri) || uri.Scheme is not ("http" or "https" or "socks5"))) throw new Exception("代理地址应为 http://127.0.0.1:7890 等格式");
         http.Dispose();
-        http = new HttpClient(new ReachableProxyHandler(proxy.Length > 0 ? new WebProxy(proxy) : HttpClient.DefaultProxy)) { Timeout = TimeSpan.FromMinutes(3) };
+        http = new HttpClient(new ReachableProxyHandler(proxy.Length > 0 ? new WebProxy(proxy) : HttpClient.DefaultProxy,
+            authority => Log?.Invoke("TLS certificate rejected: " + authority))) { Timeout = TimeSpan.FromMinutes(3) };
         http.DefaultRequestHeaders.UserAgent.ParseAdd("CMCLauncher/0.5.1");
     }
     public HttpClient Http => http;
-    sealed class ReachableProxyHandler(IWebProxy proxy) : HttpMessageHandler
+    sealed class ReachableProxyHandler(IWebProxy proxy, Action<string> blocked) : HttpMessageHandler
     {
-        readonly HttpMessageInvoker proxied = new(new HttpClientHandler { Proxy = proxy, UseProxy = true });
-        readonly HttpMessageInvoker direct = new(new HttpClientHandler { UseProxy = false });
+        readonly HttpMessageInvoker proxied = new(CreateTransport(proxy, blocked));
+        readonly HttpMessageInvoker direct = new(CreateTransport(null, blocked));
+        static HttpClientHandler CreateTransport(IWebProxy? transportProxy, Action<string> onBlocked) => new()
+        {
+            Proxy = transportProxy,
+            UseProxy = transportProxy != null,
+            ServerCertificateCustomValidationCallback = (_, certificate, chain, errors) =>
+                CertificatePolicy.Validate(certificate, chain, errors, false, onBlocked)
+        };
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
         {
             var target = request.RequestUri!;
