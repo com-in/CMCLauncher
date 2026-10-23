@@ -69,4 +69,3 @@ The launcher's own HTTPS client rejects the eight compromised eMudhra intermedia
 ## License
 
 CMC Launcher is licensed under the GNU General Public License v3.0. See [LICENSE](LICENSE). Third-party dependencies retain their respective licenses. Minecraft, mods, and modpacks belong to their respective owners. CMC Launcher is not affiliated with Mojang Studios, Microsoft, or NetEase.
-

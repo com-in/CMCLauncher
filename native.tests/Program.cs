@@ -65,53 +65,7 @@ internal static class Program
     }
     static async Task CoreTests()
     {
-        var compromised = JsonNode.Parse(await File.ReadAllTextAsync(Path.Combine(AppContext.BaseDirectory, "fixtures/emudhra-2026-10-23.json")))!.AsArray();
-        Check(compromised.Count == 16 && compromised.Select(item => item.S("spki_sha256")).Distinct().Count() == 8, "CA fixture contains eight keys and their sixteen certificate variants");
-        foreach (var item in compromised)
-        {
-            using var certificate = X509Certificate2.CreateFromPem(item.S("pem"));
-            Check(Convert.ToHexString(SHA256.HashData(certificate.RawData)) == item.S("sha256"), "CA certificate fingerprint does not match published incident data");
-            Check(Convert.ToHexString(SHA256.HashData(certificate.PublicKey.ExportSubjectPublicKeyInfo())) == item.S("spki_sha256"), "CA SPKI fingerprint does not match published incident data");
-            Check(CertificatePolicy.BlockedAuthority(certificate) == item.S("name"), "compromised CA or cross-sign not blocked");
-            using var chain = new X509Chain(); chain.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck; chain.ChainPolicy.DisableCertificateDownloads = true; chain.Build(certificate);
-            Check(!CertificatePolicy.Validate(certificate, chain, SslPolicyErrors.None, false), "compromised key accepted as otherwise valid");
-            Check(!CertificatePolicy.Validate(certificate, chain, SslPolicyErrors.RemoteCertificateChainErrors, true), "SSL override bypassed compromised key block");
-        }
-        using (var safeKey = ECDsa.Create())
-        {
-            var request = new CertificateRequest("CN=EM DV TLS CA - G3B", safeKey, HashAlgorithmName.SHA256);
-            using var safeCertificate = request.CreateSelfSigned(DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddDays(1));
-            using var safeChain = new X509Chain(); safeChain.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck; safeChain.Build(safeCertificate);
-            Check(CertificatePolicy.BlockedAuthority(safeCertificate) == null, "certificate name alone caused a false block");
-            Check(CertificatePolicy.Validate(safeCertificate, safeChain, SslPolicyErrors.None, false), "unlisted certificate rejected with no SSL errors");
-            Check(!CertificatePolicy.Validate(safeCertificate, safeChain, SslPolicyErrors.RemoteCertificateNameMismatch, false), "normal TLS name validation bypassed");
-            Check(CertificatePolicy.Validate(safeCertificate, safeChain, SslPolicyErrors.RemoteCertificateNameMismatch, true), "ordinary SSL override stopped working");
-            using var intermediate = X509Certificate2.CreateFromPem(compromised[0].S("pem"));
-            using var intermediateChain = new X509Chain();
-            intermediateChain.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck; intermediateChain.ChainPolicy.DisableCertificateDownloads = true; intermediateChain.Build(intermediate);
-            Check(!CertificatePolicy.Validate(safeCertificate, intermediateChain, SslPolicyErrors.None, true), "blocked intermediate was not checked when leaf is unlisted");
-            Check(!CertificatePolicy.Validate(safeCertificate, null, SslPolicyErrors.None, true), "uninspectable chain accepted");
-        }
-        Pass("eight compromised CA keys and sixteen cross-sign variants denied before SSL overrides");
-        var chainFiles = Directory.GetFiles(Path.Combine(AppContext.BaseDirectory, "fixtures/emudhra-chains"), "*.pem");
-        Check(chainFiles.Length == 14, "supplied incident archive should contain fourteen chains");
-        foreach (var chainFile in chainFiles)
-        {
-            var certificates = new X509Certificate2Collection();
-            certificates.ImportFromPem(await File.ReadAllTextAsync(chainFile));
-            try
-            {
-                Check(certificates.Count >= 2 && certificates.Cast<X509Certificate2>().Any(c => CertificatePolicy.BlockedAuthority(c) != null), "supplied chain has no matching blocked CA: " + Path.GetFileName(chainFile));
-                using var chain = new X509Chain();
-                chain.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck;
-                chain.ChainPolicy.DisableCertificateDownloads = true;
-                chain.ChainPolicy.ExtraStore.AddRange(certificates);
-                chain.Build(certificates[0]);
-                Check(!CertificatePolicy.Validate(certificates[0], chain, SslPolicyErrors.None, true), "supplied chain bypasses denylist with SSL override: " + Path.GetFileName(chainFile));
-            }
-            finally { foreach (var certificate in certificates) certificate.Dispose(); }
-        }
-        Pass("all fourteen supplied chains rejected, including cross-sign and no-CT chains");
+        CertificatePolicyTests.Run(); Pass("compromised CA public keys and supplied certificate chains");
         var origin = new System.Net.Sockets.TcpListener(IPAddress.Loopback, 0); origin.Start();
         var unavailableProxy = new System.Net.Sockets.TcpListener(IPAddress.Loopback, 0); unavailableProxy.Start();
         var proxyPort = ((IPEndPoint)unavailableProxy.LocalEndpoint).Port; unavailableProxy.Stop();
