@@ -23,9 +23,8 @@ public sealed partial class MainWindow
             var picker = new FolderPicker(); InitializeWithWindow.Initialize(picker, WindowNative.GetWindowHandle(this)); picker.FileTypeFilter.Add("*");
             var folder = await picker.PickSingleFolderAsync(); if (folder != null) await ScanJava(folder.Path);
         })));
-        var versions = new BelowComboBox { Header = "下载 Temurin Java（Windows x64）", ItemsSource = new[] { 8, 11, 17, 21, 25 }, SelectedItem = 21, Width = 260 };
+        var versions = new BelowComboBox { Header = Ui("下载 Temurin Java（Windows x64）", "Download Temurin Java (Windows x64)"), ItemsSource = new[] { 8, 11, 17, 21, 25 }, SelectedItem = 21, Width = 260 };
         PageBody.Children.Add(versions);
-        PageBody.Children.Add(Text("移除只会删除启动器中的记录，不会删除本地 Java 文件。", 12));
         var automaticRow = Buttons(Action("下载 Java", async (_, _) =>
         {
             var major = (int)versions.SelectedItem;
@@ -40,7 +39,7 @@ public sealed partial class MainWindow
         }));
         PageBody.Children.Add(automaticRow);
         if (!string.IsNullOrWhiteSpace(settings.JavaPath) && !settings.JavaInstallations.Any(j => string.Equals(j.Path, settings.JavaPath, StringComparison.OrdinalIgnoreCase)))
-            PageBody.Children.Add(Text("当前手动配置：" + settings.JavaPath + "（导入后可识别详细信息）", 12));
+            PageBody.Children.Add(Text(store.Config.Settings.LauncherLanguage == "en_us" ? "Manual Java setting: " + settings.JavaPath + " (import it for full details)" : "当前手动配置：" + settings.JavaPath + "（导入后可识别详细信息）", 12));
         if (settings.JavaInstallations.Count == 0) PageBody.Children.Add(Text("尚未添加 Java，可导入或扫描本机安装。", 13));
         foreach (var java in settings.JavaInstallations.OrderByDescending(j => j.Major).ThenBy(j => j.Vendor))
         {

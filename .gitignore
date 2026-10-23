@@ -5,3 +5,4 @@ dist/
 winui/clientid.local.json
 **/bin/
 **/obj/
+winui/artifacts/

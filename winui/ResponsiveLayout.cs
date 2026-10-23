@@ -9,7 +9,13 @@ public sealed partial class MainWindow
     {
         // A finite width is required before measuring long text in star columns.
         if (args.NewSize.Width > 0) PageFrame.Width = args.NewSize.Width;
-        TaskDrawer.OpenPaneLength = Math.Min(380, Math.Max(0, ((FrameworkElement)Content).ActualWidth - 24));
+        UpdateTaskDrawerWidth();
+    }
+    void UpdateTaskDrawerWidth()
+    {
+        var fontSize = store.Config.Settings.UiFontSize;
+        var fontScale = (double.IsFinite(fontSize) ? Math.Clamp(fontSize, 12, 22) : 14) / 14;
+        TaskDrawer.OpenPaneLength = Math.Min(480 * Math.Max(1, fontScale), Math.Max(0, ((FrameworkElement)Content).ActualWidth - 24));
     }
     static void AdaptCard(Grid card, FrameworkElement detail, FrameworkElement actions)
     {

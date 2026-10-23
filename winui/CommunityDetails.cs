@@ -26,7 +26,10 @@ public sealed partial class MainWindow
             var identity = new StackPanel { Spacing = 5 };
             identity.Children.Add(Text(info.Name, 21, true));
             identity.Children.Add(Text(info.Description, 13));
-            var stats = Text($"{info.Downloads:N0} 次下载  ·  {info.Followers:N0} 人关注  ·  " + string.Join(" / ", info.Categories), 12); stats.Opacity = .7; identity.Children.Add(stats);
+            var statsText = store.Config.Settings.LauncherLanguage == "en_us"
+                ? $"{info.Downloads:N0} downloads  ·  {info.Followers:N0} followers  ·  " + string.Join(" / ", info.Categories)
+                : $"{info.Downloads:N0} 次下载  ·  {info.Followers:N0} 人关注  ·  " + string.Join(" / ", info.Categories);
+            var stats = Text(statsText, 12); stats.Opacity = .7; identity.Children.Add(stats);
             var heading = new Grid { ColumnSpacing = 14 };
             heading.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(48) });
             heading.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
@@ -34,16 +37,20 @@ public sealed partial class MainWindow
             host.Children.Add(Card(heading));
             if (!string.IsNullOrWhiteSpace(info.Body))
             {
-                var intro = new Expander { Header = "项目介绍", HorizontalAlignment = HorizontalAlignment.Stretch, HorizontalContentAlignment = HorizontalAlignment.Stretch, IsExpanded = store.Config.Settings.ExpandProjectIntroduction };
+                var intro = new Expander { Header = Ui("项目介绍", "Project description"), HorizontalAlignment = HorizontalAlignment.Stretch, HorizontalContentAlignment = HorizontalAlignment.Stretch, IsExpanded = store.Config.Settings.ExpandProjectIntroduction };
                 intro.Content = new ScrollViewer { MaxHeight = 360, Content = RenderMarkdown(info.Body) }; host.Children.Add(intro);
             }
-            host.Children.Add(new HyperlinkButton { Content = "在 Modrinth 查看项目", NavigateUri = new Uri("https://modrinth.com/project/" + Uri.EscapeDataString(project.Id)), Padding = new Thickness(0) });
-            if (project.Type != "modpack") host.Children.Add(Text(selected == null ? "安装时选择目标位置" : "默认安装到：" + selected.Name, 12));
+            host.Children.Add(new HyperlinkButton { Content = Ui("在 Modrinth 查看项目", "View on Modrinth"), NavigateUri = new Uri("https://modrinth.com/project/" + Uri.EscapeDataString(project.Id)), Padding = new Thickness(0) });
             var groups = new StackPanel { Spacing = 8 };
             host.Children.Add(Text("版本下载", 16, true));
-            var gameCategory = new BelowComboBox { Header = "Minecraft 游戏版本类型", ItemsSource = new[] { "全部", "正式版", "快照", "愚人节" }, SelectedItem = communityGameCategory, Width = 190 };
+            var english = store.Config.Settings.LauncherLanguage == "en_us";
+            var categories = english ? new[] { "All", "Release", "Snapshot", "April Fools" } : new[] { "全部", "正式版", "快照", "愚人节" };
+            var categoryIndex = Array.IndexOf(new[] { "全部", "正式版", "快照", "愚人节" }, communityGameCategory);
+            var gameCategory = new BelowComboBox { Header = Ui("Minecraft 游戏版本类型", "Minecraft version type"), ItemsSource = categories, SelectedIndex = Math.Max(0, categoryIndex), Width = 190 };
             if (project.Type != "modpack") host.Children.Add(gameCategory);
-            var filterStatus = Text("", 12); host.Children.Add(filterStatus);
+            var filterStatus = Text("", 12);
+            filterStatus.Visibility = project.Type == "modpack" ? Visibility.Collapsed : Visibility.Visible;
+            host.Children.Add(filterStatus);
             host.Children.Add(groups);
             var filterRevision = 0;
             async Task FilterVersions()
@@ -56,9 +63,9 @@ public sealed partial class MainWindow
                     if (generation != renderVersion || revision != filterRevision) return;
                     filterStatus.Text = ""; DrawVersions();
                 }
-                catch (Exception ex) { if (generation == renderVersion && revision == filterRevision) { groups.Children.Clear(); filterStatus.Text = "无法获取 Minecraft 版本分类：" + ex.Message + "。请选择全部或重试。"; } }
+                catch (Exception ex) { if (generation == renderVersion && revision == filterRevision) { groups.Children.Clear(); filterStatus.Text = Ui("无法获取 Minecraft 版本分类：", "Could not load Minecraft version categories: ") + ex.Message + Ui("。请选择全部或重试。", ". Select All or try again."); } }
             }
-            gameCategory.SelectionChanged += async (_, _) => { if (gameCategory.SelectedItem is string value) { communityGameCategory = value; await FilterVersions(); } };
+            gameCategory.SelectionChanged += async (_, _) => { if (gameCategory.SelectedIndex >= 0) { communityGameCategory = new[] { "全部", "正式版", "快照", "愚人节" }[gameCategory.SelectedIndex]; await FilterVersions(); } };
             void DrawVersions()
             {
                 groups.Children.Clear();
@@ -88,7 +95,7 @@ public sealed partial class MainWindow
                             await Run(async ct =>
                             {
                                 EnsureEditable();
-                                if (project.Type == "modpack") { var instance = await modrinth.InstallProjectPack(project.Id, ct, version.Id); store.Config.Instances.Add(instance); selected = instance; store.Config.SelectedInstanceId = instance.Id; await store.Save(); }
+                                if (project.Type == "modpack") { var instance = await modrinth.InstallProjectPack(project.Id, ct, version.Id, ResolveModpackName); store.Config.Instances.Add(instance); selected = instance; store.Config.SelectedInstanceId = instance.Id; await store.Save(); }
                                 else if (destination is { } location)
                                 {
                                     var failure = InstallationReason(location.Instance, project.Type, version);
@@ -103,7 +110,7 @@ public sealed partial class MainWindow
                         row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) }); row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
                         row.Children.Add(labels); Grid.SetColumn(install, 1); row.Children.Add(install); rows.Children.Add(CompactCard(row));
                     }
-                    groups.Children.Add(new Expander { Header = $"Minecraft {group.Key} · {group.Count()} 个版本", Content = rows, IsExpanded = group.Key == selected?.GameVersion || (selected == null && group == grouped[0]), HorizontalAlignment = HorizontalAlignment.Stretch, HorizontalContentAlignment = HorizontalAlignment.Stretch });
+                    groups.Children.Add(new Expander { Header = english ? $"Minecraft {group.Key} · {group.Count()} versions" : $"Minecraft {group.Key} · {group.Count()} 个版本", Content = rows, IsExpanded = group.Key == selected?.GameVersion || (selected == null && group == grouped[0]), HorizontalAlignment = HorizontalAlignment.Stretch, HorizontalContentAlignment = HorizontalAlignment.Stretch });
                 }
             }
             await FilterVersions();

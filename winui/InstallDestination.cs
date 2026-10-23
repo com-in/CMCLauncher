@@ -45,7 +45,7 @@ public sealed partial class MainWindow
             var dialog = new ContentDialog
             {
                 XamlRoot = Content.XamlRoot, RequestedTheme = lightTheme ? ElementTheme.Light : ElementTheme.Dark,
-                Title = "选择安装位置", Content = content, PrimaryButtonText = compatible.Count == 0 ? "前往下载游戏" : "安装到此版本", CloseButtonText = "取消", DefaultButton = ContentDialogButton.Close
+                Title = Ui("选择安装位置", "Choose install location"), Content = content, PrimaryButtonText = compatible.Count == 0 ? Ui("前往下载游戏", "Go to game downloads") : Ui("安装到此版本", "Install to this version"), CloseButtonText = Ui("取消", "Cancel"), DefaultButton = ContentDialogButton.Close
             };
             if (await showInstallDialog(dialog) != ContentDialogResult.Primary) return null;
             if (compatible.Count == 0) { page = "downloads"; expandedNavigation = "downloads"; await RenderAsync(); return null; }
@@ -59,7 +59,7 @@ public sealed partial class MainWindow
             var worlds = ContentManager.Worlds(store.GameDirectory(target));
             var list = new ListView { ItemsSource = worlds, SelectedIndex = 0, SelectionMode = ListViewSelectionMode.Single, MaxHeight = 280 };
             var panel = new StackPanel { Spacing = 10, Children = { Text("安装到：" + target.Name, 13), list } };
-            var dialog = new ContentDialog { XamlRoot = Content.XamlRoot, RequestedTheme = lightTheme ? ElementTheme.Light : ElementTheme.Dark, Title = "选择数据包目标存档", Content = panel, PrimaryButtonText = "安装", CloseButtonText = "取消", DefaultButton = ContentDialogButton.Close, IsPrimaryButtonEnabled = worlds.Count > 0 };
+            var dialog = new ContentDialog { XamlRoot = Content.XamlRoot, RequestedTheme = lightTheme ? ElementTheme.Light : ElementTheme.Dark, Title = Ui("选择数据包目标存档", "Choose a world for the data pack"), Content = panel, PrimaryButtonText = Ui("安装", "Install"), CloseButtonText = Ui("取消", "Cancel"), DefaultButton = ContentDialogButton.Close, IsPrimaryButtonEnabled = worlds.Count > 0 };
             if (await showInstallDialog(dialog) != ContentDialogResult.Primary) return null;
             worldName = list.SelectedItem as string;
             if (worldName == null) return null;

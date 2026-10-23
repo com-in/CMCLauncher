@@ -10,25 +10,29 @@ namespace CraftLauncher.WinUI;
 
 public sealed partial class MainWindow
 {
-    void InstanceFiles(Instance instance)
+    void InstanceFiles(Instance instance, bool includeWorlds = true)
     {
         var root = store.GameDirectory(instance);
-        var screenshots = Path.Combine(root, "screenshots");
-        var shotSection = new StackPanel { Spacing = 7 };
-        shotSection.Children.Add(Text("截图查看", 15, true));
-        var shots = Directory.Exists(screenshots) ? Directory.EnumerateFiles(screenshots).Where(p => Path.GetExtension(p).Equals(".png", StringComparison.OrdinalIgnoreCase)).OrderByDescending(File.GetLastWriteTimeUtc).Take(40).ToList() : [];
-        if (shots.Count == 0) shotSection.Children.Add(Text("此实例暂无游戏截图。", 12));
-        else foreach (var file in shots)
+        if (!includeWorlds)
         {
-            var row = new Grid { ColumnSpacing = 10, MinHeight = 64 };
-            row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(104) }); row.ColumnDefinitions.Add(new ColumnDefinition()); row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-            var image = new Image { Width = 96, Height = 56, Stretch = Microsoft.UI.Xaml.Media.Stretch.UniformToFill, Source = new BitmapImage(new Uri(Path.GetFullPath(file))) };
-            row.Children.Add(image); var info = new StackPanel { VerticalAlignment = VerticalAlignment.Center, Spacing = 3 };
-            info.Children.Add(Text(Path.GetFileName(file), 13, true)); info.Children.Add(Text(File.GetLastWriteTime(file).ToString("yyyy-MM-dd HH:mm"), 11)); Grid.SetColumn(info, 1); row.Children.Add(info);
-            var open = Action("查看", (_, _) => Process.Start(new ProcessStartInfo(file) { UseShellExecute = true })); Grid.SetColumn(open, 2); row.Children.Add(open);
-            shotSection.Children.Add(CompactCard(row));
+            var screenshots = Path.Combine(root, "screenshots");
+            var shotSection = new StackPanel { Spacing = 7 };
+            shotSection.Children.Add(Text("截图查看", 15, true));
+            var shots = Directory.Exists(screenshots) ? Directory.EnumerateFiles(screenshots).Where(p => Path.GetExtension(p).Equals(".png", StringComparison.OrdinalIgnoreCase)).OrderByDescending(File.GetLastWriteTimeUtc).Take(40).ToList() : [];
+            if (shots.Count == 0) shotSection.Children.Add(Text("此实例暂无游戏截图。", 12));
+            else foreach (var file in shots)
+            {
+                var row = new Grid { ColumnSpacing = 10, MinHeight = 64 };
+                row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(104) }); row.ColumnDefinitions.Add(new ColumnDefinition()); row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+                var image = new Image { Width = 96, Height = 56, Stretch = Microsoft.UI.Xaml.Media.Stretch.UniformToFill, Source = new BitmapImage(new Uri(Path.GetFullPath(file))) };
+                row.Children.Add(image); var info = new StackPanel { VerticalAlignment = VerticalAlignment.Center, Spacing = 3 };
+                info.Children.Add(Text(Path.GetFileName(file), 13, true)); info.Children.Add(Text(File.GetLastWriteTime(file).ToString("yyyy-MM-dd HH:mm"), 11)); Grid.SetColumn(info, 1); row.Children.Add(info);
+                var open = Action("查看", (_, _) => Process.Start(new ProcessStartInfo(file) { UseShellExecute = true })); Grid.SetColumn(open, 2); row.Children.Add(open);
+                shotSection.Children.Add(CompactCard(row));
+            }
+            PageBody.Children.Add(shotSection);
+            return;
         }
-        PageBody.Children.Add(shotSection);
         var worlds = ContentManager.Worlds(root);
         var worldSection = new StackPanel { Spacing = 8 };
         worldSection.Children.Add(Text("存档管理", 15, true));
@@ -40,7 +44,9 @@ public sealed partial class MainWindow
             var panel = new StackPanel { Spacing = 3 };
             panel.Children.Add(Text(name, 13, true));
             var info = new FileInfo(Path.Combine(folder, "level.dat"));
-            panel.Children.Add(Text(info.Exists ? $"最后修改 {info.LastWriteTime:yyyy-MM-dd HH:mm} · {info.Length / 1024:N0} KB" : "存档信息不可用", 11));
+            panel.Children.Add(Text(info.Exists
+                ? store.Config.Settings.LauncherLanguage == "en_us" ? $"Modified {info.LastWriteTime:yyyy-MM-dd HH:mm} · {info.Length / 1024:N0} KB" : $"最后修改 {info.LastWriteTime:yyyy-MM-dd HH:mm} · {info.Length / 1024:N0} KB"
+                : "存档信息不可用", 11));
             panel.Children.Add(Action("导出 ZIP", async (_, _) => await ExportWorld(name, folder)));
             worldSection.Children.Add(CompactCard(panel));
         }

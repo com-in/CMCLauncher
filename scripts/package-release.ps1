@@ -10,13 +10,14 @@ Add-Type -AssemblyName System.IO.Compression.FileSystem
 $publishRoot = [System.IO.Path]::GetFullPath($PublishDirectory)
 $archiveFullPath = [System.IO.Path]::GetFullPath($ArchivePath)
 $repoRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot ".."))
+$publishRootUri = [System.Uri]::new($publishRoot.TrimEnd('\') + '\')
 $archive = [System.IO.File]::Open($archiveFullPath, [System.IO.FileMode]::Create)
 $zip = [System.IO.Compression.ZipArchive]::new($archive, [System.IO.Compression.ZipArchiveMode]::Create)
 
 try {
     $files = Get-ChildItem -LiteralPath $publishRoot -File -Recurse
     foreach ($file in $files) {
-        $relative = [System.IO.Path]::GetRelativePath($publishRoot, $file.FullName).Replace("\", "/")
+        $relative = [System.Uri]::UnescapeDataString($publishRootUri.MakeRelativeUri([System.Uri]::new($file.FullName)).ToString()).Replace("\", "/")
         if ($relative -match '(^|/)(clientid\.local\.json|settings\.json|credentials?\.json|secrets?\.json)$' -or $file.Extension -match '^\.(pfx|p12|key)$') { continue }
         $entry = $zip.CreateEntry($relative, [System.IO.Compression.CompressionLevel]::Optimal)
         $source = [System.IO.File]::OpenRead($file.FullName)

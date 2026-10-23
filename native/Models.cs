@@ -12,17 +12,48 @@ public sealed class Settings
     public List<JavaInstallation> JavaInstallations { get; set; } = [];
     public List<string> IgnoredJavaPaths { get; set; } = [];
     public int MemoryMb { get; set; } = 4096;
+    public int DownloadThreads { get; set; } = 16;
     public bool AutoMemory { get; set; } = true;
     public string MicrosoftClientId { get; set; } = "";
     public string Proxy { get; set; } = "";
+    public bool IgnoreSslErrors { get; set; }
     public string Theme { get; set; } = "dark";
     public string ColorPreset { get; set; } = "craft";
+    public double UiScale { get; set; } = 1;
+    public double UiButtonScale { get; set; } = 1;
+    public double UiMenuScale { get; set; } = 1;
+    public string UiFontFamily { get; set; } = "Segoe UI Variable Text";
+    public double UiFontSize { get; set; } = 14;
     public Dictionary<string, string> CustomLightColors { get; set; } = new();
     public Dictionary<string, string> CustomDarkColors { get; set; } = new();
+    public List<CustomAppearancePreset> CustomAppearancePresets { get; set; } = [];
     public string GameLanguage { get; set; } = "auto";
     public string MinecraftRoot { get; set; } = "";
     public bool StartMaximized { get; set; }
     public bool ExpandProjectIntroduction { get; set; } = true;
+    public string LauncherLanguage { get; set; } = "zh_cn";
+    public string InstanceView { get; set; } = "list";
+    public List<HomeCardPlacement> HomeCards { get; set; } = [new() { Id = "account" }, new() { Id = "game" }];
+    public string HomeNote { get; set; } = "";
+}
+public sealed class HomeCardPlacement
+{
+    public string Id { get; set; } = "";
+    public int Width { get; set; } = 2;
+    public int Height { get; set; } = 1;
+}
+public sealed class CustomAppearancePreset
+{
+    public string Name { get; set; } = "";
+    public string Theme { get; set; } = "dark";
+    public string ColorPreset { get; set; } = "craft";
+    public double UiScale { get; set; } = 1;
+    public double UiButtonScale { get; set; } = 1;
+    public double UiMenuScale { get; set; } = 1;
+    public string UiFontFamily { get; set; } = "Segoe UI Variable Text";
+    public double UiFontSize { get; set; } = 14;
+    public Dictionary<string, string> CustomLightColors { get; set; } = new();
+    public Dictionary<string, string> CustomDarkColors { get; set; } = new();
 }
 public sealed class JavaInstallation
 {
@@ -46,6 +77,7 @@ public sealed class Instance
     public string? Directory { get; set; }
     public string? VersionId { get; set; }
     public DateTime? LastPlayed { get; set; }
+    public bool Favorite { get; set; }
     public override string ToString() => $"{Name}  ·  {GameVersion} / {Loader}";
 }
 public sealed record GameRelease(string Id, string Type)
@@ -125,6 +157,8 @@ public sealed class Store
     {
         var name = instance.Name.Trim();
         if (name.Length == 0) throw new Exception("请填写实例名称");
+        if (name.Contains('/') || name.Contains('\\')) throw new Exception("文件路径不安全");
+        SafePath(instance.StorageRoot ?? MinecraftRoot, "versions/" + name);
         if (Config.Instances.Any(existing => string.Equals(existing.Name.Trim(), name, StringComparison.OrdinalIgnoreCase)))
             throw new Exception("已有同名游戏版本，请更换名称后再下载：" + name);
         if (instance.ImportRoot == null && instance.Directory == null)

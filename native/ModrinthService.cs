@@ -164,23 +164,23 @@ public sealed class ModrinthService(LauncherCore core, Store store)
         }
         finally { Directory.Delete(stage, true); }
     }
-    public async Task<Instance> InstallProjectPack(string project, CancellationToken ct, string? versionId = null)
+    public async Task<Instance> InstallProjectPack(string project, CancellationToken ct, string? versionId = null, Func<Instance, CancellationToken, Task>? resolveName = null)
     {
         var version = versionId == null ? await ProjectVersion(project, null, null, ct) : await ExactVersion(project, versionId, ct);
         var file = version["files"].Items().FirstOrDefault(f => f.S("filename").EndsWith(".mrpack")) ?? throw new Exception("此项目没有 .mrpack 文件");
         var cache = Store.SafePath(store.Library, "pack-cache/" + version.S("id") + ".mrpack");
-        Status?.Invoke("下载整合包 · " + version.S("name")); await DownloadFile(file, cache, ct); return await InstallPack(cache, ct);
+        Status?.Invoke("下载整合包 · " + version.S("name")); await DownloadFile(file, cache, ct); return await InstallPack(cache, ct, resolveName);
     }
-    public async Task<Instance> InstallPack(string file, CancellationToken ct)
+    public async Task<Instance> InstallPack(string file, CancellationToken ct, Func<Instance, CancellationToken, Task>? resolveName = null)
     {
         if (new FileInfo(file).Length > 1024L * 1024 * 1024) throw new Exception("整合包超过 1 GB");
-        using var zip = ZipFile.OpenRead(file); var entry = zip.GetEntry("modrinth.index.json") ?? throw new Exception("请选择 Modrinth .mrpack，暂不支持 CurseForge ZIP");
-        if (entry.Length > 8 * 1024 * 1024) throw new Exception("整合包清单过大");
-        using var reader = new StreamReader(entry.Open()); var manifest = JsonNode.Parse(await reader.ReadToEndAsync(ct))!;
+        var (manifest, contentPrefixes) = await Task.Run(() => ReadPack(file, Path.GetFileNameWithoutExtension(file)), ct);
+        using var zip = ZipFile.OpenRead(file);
         if (manifest.Int("formatVersion") != 1 || manifest.S("game") != "minecraft" || manifest["dependencies"].S("minecraft").Length == 0) throw new Exception("整合包清单无效");
         if (manifest["dependencies"]!.AsObject().Any(d => d.Key is not ("minecraft" or "fabric-loader" or "forge" or "neoforge"))) throw new Exception("整合包使用了暂不支持的加载器");
         if (new[] { "fabric-loader", "forge", "neoforge" }.Count(key => manifest["dependencies"].S(key).Length > 0) > 1) throw new Exception("整合包声明了多个加载器");
         var instance = new Instance { Name = manifest.S("name", "整合包"), GameVersion = manifest["dependencies"].S("minecraft"), Loader = manifest["dependencies"].S("fabric-loader").Length > 0 ? "fabric" : "vanilla", LoaderVersion = manifest["dependencies"].S("fabric-loader") };
+        if (resolveName != null) await resolveName(instance, ct);
         store.EnsureUniqueInstanceName(instance);
         foreach (var loader in new[] { "forge", "neoforge" })
             if (manifest["dependencies"].S(loader) is { Length: > 0 } build) { instance.Loader = loader; instance.LoaderVersion = build; }
@@ -190,20 +190,46 @@ public sealed class ModrinthService(LauncherCore core, Store store)
         {
             var files = manifest["files"].Items().Where(f => f["env"].S("client") != "unsupported").ToArray();
             if (files.Length > 20000 || files.Sum(f => f["fileSize"]?.GetValue<long>() ?? 0) > 20L * 1024 * 1024 * 1024) throw new Exception("整合包内容超过支持上限");
-            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase); int count = 0;
-            foreach (var f in files)
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var jobs = files.Select(f =>
             {
-                ct.ThrowIfCancellationRequested(); var target = Store.SafePath(stage, f.S("path")); if (!seen.Add(target)) throw new Exception("整合包包含重复文件");
-                var urls = f["downloads"].Items().ToArray(); if (urls.Length == 0) throw new Exception("文件缺少下载地址");
-                Status?.Invoke($"安装整合包 {++count}/{files.Length} · {f.S("path")}"); Exception? failure = null;
-                foreach (var url in urls)
+                var target = Store.SafePath(stage, f.S("path"));
+                if (!seen.Add(target)) throw new Exception("整合包包含重复文件");
+                var urls = f["downloads"].Items().Select(url => url.ToString()).ToArray();
+                if (urls.Length == 0) throw new Exception("文件缺少下载地址");
+                return (File: f, Target: target, Urls: urls);
+            }).ToArray();
+            int count = 0;
+            await core.DownloadMany(jobs, async (job, token) =>
+            {
+                var current = Interlocked.Increment(ref count);
+                Status?.Invoke($"安装整合包 {current}/{files.Length} · {job.File.S("path")}"); Exception? failure = null;
+                foreach (var url in job.Urls)
                 {
-                    try { await DownloadFile(new JsonObject { ["url"] = url.ToString(), ["hashes"] = f["hashes"]?.DeepClone(), ["size"] = f["fileSize"]?.DeepClone() }, target, ct); failure = null; break; }
+                    try { await DownloadFile(new JsonObject { ["url"] = url, ["hashes"] = job.File["hashes"]?.DeepClone(), ["size"] = job.File["fileSize"]?.DeepClone() }, job.Target, token); failure = null; break; }
                     catch (Exception ex) when (ex is not OperationCanceledException) { failure = ex; }
                 }
                 if (failure != null) throw failure;
+            }, ct);
+            foreach (var prefix in contentPrefixes) await LauncherCore.Extract(zip, stage, prefix, ct: ct);
+            var baseGame = new Instance
+            {
+                Name = instance.Name + "-base",
+                GameVersion = instance.GameVersion,
+                Loader = "vanilla",
+                StorageRoot = instance.StorageRoot,
+                Directory = Store.SafePath(store.StorageDirectory(instance), "staging/" + instance.Id + "-base")
+            };
+            try
+            {
+                Status?.Invoke($"下载整合包原版游戏文件 · Minecraft {instance.GameVersion}");
+                await core.DownloadGame(baseGame, ct);
             }
-            await LauncherCore.Extract(zip, stage, "overrides/", ct: ct); await LauncherCore.Extract(zip, stage, "client-overrides/", ct: ct);
+            finally
+            {
+                var baseDirectory = store.GameDirectory(baseGame);
+                if (Directory.Exists(baseDirectory)) Directory.Delete(baseDirectory, true);
+            }
             if (instance.Loader is "forge" or "neoforge")
             {
                 var build = instance.Loader == "forge" ? instance.GameVersion + "-" + instance.LoaderVersion : instance.LoaderVersion!;
@@ -215,5 +241,57 @@ public sealed class ModrinthService(LauncherCore core, Store store)
             await core.WriteIsolatedProfile(instance, await core.VersionFor(instance, ct)); return instance;
         }
         finally { if (Directory.Exists(stage)) Directory.Delete(stage, true); }
+    }
+
+    // ZIP is a container, not a pack format. Only import game content described by a known manifest.
+    static (JsonNode Manifest, string[] ContentPrefixes) ReadPack(string path, string fallbackName)
+    {
+        using var zip = ZipFile.OpenRead(path);
+        if (zip.Entries.Count > 30000) throw new Exception("The modpack archive contains too many entries.");
+        var indexes = zip.Entries.Where(e => e.Name is "modrinth.index.json" or "mmc-pack.json").ToArray();
+        if (indexes.Length != 1)
+        {
+            if (zip.Entries.Any(e => e.Name == "manifest.json"))
+                throw new Exception("This ZIP appears to be a CurseForge pack. CurseForge file downloads are not supported yet; use a Modrinth .mrpack or a MultiMC/Prism ZIP export.");
+            throw new Exception("Unrecognized modpack. Choose a Modrinth .mrpack or ZIP, or a MultiMC/Prism ZIP export containing mmc-pack.json.");
+        }
+        var index = indexes[0];
+        var prefix = index.FullName[..^index.Name.Length];
+        // Validate the wrapper path even when the archive contains no overrides.
+        Store.SafePath(Path.GetTempPath(), prefix + "manifest.json");
+        if (index.Length > 8 * 1024 * 1024) throw new Exception("整合包清单过大");
+        using var reader = new StreamReader(index.Open());
+        var source = JsonNode.Parse(reader.ReadToEnd()) ?? throw new Exception("整合包清单无效");
+        if (index.Name == "modrinth.index.json") return (source, [prefix + "overrides/", prefix + "client-overrides/"]);
+
+        if (source.Int("formatVersion") != 1) throw new Exception("Unsupported MultiMC pack format version.");
+        var dependencies = new JsonObject();
+        foreach (var component in source["components"].Items())
+        {
+            var key = component.S("uid") switch
+            {
+                "net.minecraft" => "minecraft", "net.fabricmc.fabric-loader" => "fabric-loader",
+                "net.minecraftforge" => "forge", "net.neoforged" => "neoforge",
+                "org.lwjgl" or "org.lwjgl3" or "net.fabricmc.intermediary" => null,
+                _ => throw new Exception("Unsupported modpack component: " + component.S("uid"))
+            };
+            if (key == null) continue;
+            if (dependencies.ContainsKey(key) || component.S("version").Length == 0) throw new Exception("Invalid or duplicate modpack component: " + component.S("uid"));
+            var version = component.S("version");
+            dependencies[key] = version;
+        }
+        var minecraft = dependencies.S("minecraft");
+        if (dependencies.S("forge").StartsWith(minecraft + "-", StringComparison.Ordinal)) dependencies["forge"] = dependencies.S("forge")[(minecraft.Length + 1)..];
+        var name = fallbackName;
+        if (zip.GetEntry(prefix + "instance.cfg") is { Length: < 65536 } config)
+        {
+            using var configReader = new StreamReader(config.Open());
+            foreach (var line in configReader.ReadToEnd().Split('\n'))
+                if (line.StartsWith("name=", StringComparison.Ordinal) && line[5..].Trim().Length > 0) { name = line[5..].Trim(); break; }
+        }
+        var gameFolders = new[] { prefix + ".minecraft/", prefix + "minecraft/" }
+            .Where(folder => zip.Entries.Any(e => e.FullName.StartsWith(folder, StringComparison.Ordinal))).ToArray();
+        if (gameFolders.Length != 1) throw new Exception("The MultiMC/Prism ZIP must contain exactly one .minecraft or minecraft game folder.");
+        return (new JsonObject { ["formatVersion"] = 1, ["game"] = "minecraft", ["name"] = name, ["dependencies"] = dependencies, ["files"] = new JsonArray() }, gameFolders);
     }
 }

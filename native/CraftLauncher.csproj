@@ -10,4 +10,7 @@
     <Version>0.3.0</Version>
     <ApplicationManifest>app.manifest</ApplicationManifest>
   </PropertyGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="../winui/clientid.local.json" LogicalName="CMCLauncher.MicrosoftClient" Condition="Exists('../winui/clientid.local.json')" />
+  </ItemGroup>
 </Project>

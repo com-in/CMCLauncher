@@ -11,23 +11,31 @@ internal static class Program
 {
     const uint MuiLanguageName = 0x8;
     internal static IReadOnlyList<string> LoadedMuiLanguages { get; private set; } = [];
+    [DllImport("ole32.dll")]
+    static extern int OleInitialize(IntPtr reserved);
+    [DllImport("ole32.dll")]
+    static extern void OleUninitialize();
 
     [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
     static extern bool GetUserPreferredUILanguages(uint flags, ref uint count,
         [Out, MarshalAs(UnmanagedType.LPWStr)] StringBuilder? languages, ref uint length);
 
+    [STAThread]
     static int Main(string[] args)
     {
         if (args.Length >= 2 && args[0] == "--cleanup-mui") return CleanupWorker(args);
         PrepareMuiResources();
         StartMuiCleanupWorker();
         WinRT.ComWrappersSupport.InitializeComWrappers();
-        Application.Start(callback =>
+        var oleResult = OleInitialize(IntPtr.Zero);
+        if (oleResult < 0) Marshal.ThrowExceptionForHR(oleResult);
+        try { Application.Start(callback =>
         {
             SynchronizationContext.SetSynchronizationContext(new DispatcherQueueSynchronizationContext(DispatcherQueue.GetForCurrentThread()));
             _ = new CraftApp(args);
-        });
+        }); }
+        finally { OleUninitialize(); }
         return 0;
     }
 

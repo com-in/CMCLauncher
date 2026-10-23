@@ -76,18 +76,21 @@ public sealed partial class MainWindow
         paletteBrushes.RemoveAll(entry => !entry.Brush.TryGetTarget(out _));
         foreach (var entry in paletteBrushes) if (entry.Brush.TryGetTarget(out var brush)) brush.Color = PaletteColor(entry.Source);
     }
-    UIElement ThemeEditor()
+    UIElement ThemeEditor(System.Action? defaultsChanged = null)
     {
         var panel = new StackPanel { Spacing = 12 };
-        var preset = new BelowComboBox { Header = "配色预设", ItemsSource = new[] { "清新绿", "WinUI 3 原生", "自定义" }, SelectedIndex = store.Config.Settings.ColorPreset switch { "native" => 1, "custom" => 2, _ => 0 }, HorizontalAlignment = HorizontalAlignment.Stretch };
+        var english = store.Config.Settings.LauncherLanguage == "en_us";
+        var preset = new BelowComboBox { Header = english ? "Preset" : "预设", ItemsSource = english ? new[] { "Fresh green", "WinUI 3 native", "Custom" } : new[] { "清新绿", "WinUI 3 原生", "自定义" }, SelectedIndex = store.Config.Settings.ColorPreset switch { "native" => 1, "custom" => 2, _ => 0 }, HorizontalAlignment = HorizontalAlignment.Stretch };
         var editor = new StackPanel { Spacing = 10, Visibility = preset.SelectedIndex == 2 ? Visibility.Visible : Visibility.Collapsed };
-        var mode = new BelowComboBox { Header = "编辑配色", ItemsSource = new[] { "浅色", "深色" }, SelectedIndex = lightTheme ? 0 : 1 };
+        var mode = new BelowComboBox { Header = english ? "Edit colors" : "编辑配色", ItemsSource = english ? new[] { "Light", "Dark" } : new[] { "浅色", "深色" }, SelectedIndex = lightTheme ? 0 : 1 };
         var swatches = new StackPanel { Spacing = 8 };
         void BuildSwatches()
         {
             swatches.Children.Clear();
             var colors = mode.SelectedIndex == 0 ? store.Config.Settings.CustomLightColors : store.Config.Settings.CustomDarkColors;
-            foreach (var (role, label) in new[] { ("background", "背景"), ("sidebar", "侧栏"), ("surface", "卡片"), ("text", "正文"), ("muted", "次要文字"), ("border", "边框"), ("accent", "强调色") })
+            foreach (var (role, label) in english
+                ? new[] { ("background", "Background"), ("sidebar", "Sidebar"), ("surface", "Surface"), ("text", "Text"), ("muted", "Secondary text"), ("border", "Border"), ("accent", "Accent") }
+                : new[] { ("background", "背景"), ("sidebar", "侧栏"), ("surface", "卡片"), ("text", "正文"), ("muted", "次要文字"), ("border", "边框"), ("accent", "强调色") })
             {
                 var defaults = PaletteDefaults[role]; var fallback = mode.SelectedIndex == 0 ? defaults.Light : defaults.Dark;
                 var value = colors.GetValueOrDefault(role, fallback);
@@ -109,9 +112,19 @@ public sealed partial class MainWindow
         mode.SelectionChanged += (_, _) => BuildSwatches(); BuildSwatches(); editor.Children.Add(mode); editor.Children.Add(swatches);
         preset.SelectionChanged += async (_, _) =>
         {
+            if (preset.SelectedIndex < 0) return;
             store.Config.Settings.ColorPreset = preset.SelectedIndex switch { 1 => "native", 2 => "custom", _ => "craft" };
+            if (preset.SelectedIndex is 0 or 1)
+            {
+                store.Config.Settings.UiScale = 1;
+                store.Config.Settings.UiButtonScale = 1;
+                store.Config.Settings.UiMenuScale = 1;
+                store.Config.Settings.UiFontFamily = DefaultFontFamily;
+                store.Config.Settings.UiFontSize = 14;
+                defaultsChanged?.Invoke();
+            }
             editor.Visibility = preset.SelectedIndex == 2 ? Visibility.Visible : Visibility.Collapsed;
-            ApplyTheme();
+            ApplyTheme(); ApplyPersonalization();
             try { await store.Save(); } catch (Exception ex) { await Error(ex); }
         };
         panel.Children.Add(preset); panel.Children.Add(editor); return panel;

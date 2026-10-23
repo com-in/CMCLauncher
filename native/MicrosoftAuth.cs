@@ -28,14 +28,17 @@ public static class CredentialVault
 public sealed class MicrosoftAuth(LauncherCore core)
 {
     const string LoginBase = "https://login.microsoftonline.com/consumers/oauth2/v2.0/";
+    // Build-time input stays out of source control; the public OAuth identifier
+    // is embedded in the assembly and is not a client secret.
     public static string ConfiguredClientId
     {
         get
         {
-            var path = Path.Combine(AppContext.BaseDirectory, "clientid.local.json");
-            if (!File.Exists(path)) throw new Exception("缺少本机 Microsoft 登录配置文件 clientid.local.json");
-            var clientId = JsonNode.Parse(File.ReadAllText(path))?.S("clientId");
-            if (!Guid.TryParse(clientId, out _)) throw new Exception("本机 Microsoft 登录配置中的 Client ID 无效");
+            using var input = typeof(MicrosoftAuth).Assembly.GetManifestResourceStream("CMCLauncher.MicrosoftClient")
+                ?? throw new Exception("此构建未配置 Microsoft 登录，请联系发行者");
+            using var reader = new StreamReader(input, Encoding.UTF8);
+            var clientId = JsonNode.Parse(reader.ReadToEnd())?.S("clientId");
+            if (!Guid.TryParse(clientId, out _)) throw new Exception("内置 Microsoft Client ID 无效");
             return clientId!;
         }
     }
@@ -90,7 +93,16 @@ public sealed class MicrosoftAuth(LauncherCore core)
         try
         {
             var credentials = CredentialVault.Read(account);
-            return credentials.S("source") != "pcl" && credentials.S("refreshToken").Length > 0 && credentials.S("xuid").Length > 0;
+            if (credentials.S("source") == "pcl") return false;
+
+            // A successful /minecraft/profile response is the ownership check. Xbox refresh
+            // tokens and XUID claims are useful account data, but neither is guaranteed to
+            // be present in every otherwise valid response.
+            if (credentials is JsonObject obj && obj.TryGetPropertyValue("minecraftProfileVerified", out var verified))
+                return verified?.GetValue<bool>() == true;
+
+            // Older CMC credentials predate the explicit profile-verification marker.
+            return credentials.S("refreshToken").Length > 0 && credentials.S("xuid").Length > 0;
         }
         catch { return false; }
     }
@@ -106,6 +118,7 @@ public sealed class MicrosoftAuth(LauncherCore core)
         if (credentials.S("source") == "pcl") throw new Exception("此账号来自旧版 PCL 同步，不能用于 CMC Launcher。请重新通过 Microsoft 登录。");
         if (!IsVerifiedMinecraftPlayer(account)) throw new Exception("此 Microsoft 账号尚未验证 Minecraft Java Edition 档案，请重新登录并确认账号拥有 Java 版游戏。");
         if (long.TryParse(credentials.S("expiresAt"), out var expiry) && expiry > DateTimeOffset.UtcNow.ToUnixTimeSeconds() + 60) return account;
+        if (credentials.S("refreshToken").Length == 0) throw new Exception("Microsoft 登录凭据缺少刷新令牌，请重新登录此账号。");
         clientId = ConfiguredClientId;
         var token = await Post(LoginBase + "token", new JsonObject { ["client_id"] = clientId, ["grant_type"] = "refresh_token", ["refresh_token"] = credentials.S("refreshToken"), ["scope"] = "XboxLive.signin offline_access" }, true, ct);
         if (token.S("refresh_token").Length == 0) token["refresh_token"] = credentials.S("refreshToken");
@@ -123,8 +136,19 @@ public sealed class MicrosoftAuth(LauncherCore core)
         status?.Invoke("正在获取 Minecraft Java 玩家档案…");
         using var request = new HttpRequestMessage(HttpMethod.Get, "https://api.minecraftservices.com/minecraft/profile"); request.Headers.Authorization = new("Bearer", minecraft.S("access_token"));
         using var response = await core.Http.SendAsync(request, ct);
-        if (!response.IsSuccessStatusCode) throw new Exception("无法获取 Java 版档案，请确认已购买游戏、创建角色且应用获得 API 授权");
+        if (!response.IsSuccessStatusCode)
+        {
+            var message = response.StatusCode switch
+            {
+                System.Net.HttpStatusCode.NotFound => "未找到 Minecraft Java 玩家档案（HTTP 404）。请确认此账号已拥有 Java 版并完成角色创建；若已完成，请重新登录刷新账号状态。",
+                System.Net.HttpStatusCode.Unauthorized => "Minecraft 会话令牌无效（HTTP 401），请重新登录。",
+                System.Net.HttpStatusCode.Forbidden => "Minecraft 服务拒绝访问（HTTP 403），这不能单独证明账号未拥有游戏；请确认应用/API 访问配置后重试。",
+                _ => $"获取 Minecraft Java 玩家档案失败（HTTP {(int)response.StatusCode}）。请稍后重试。"
+            };
+            throw new Exception(message);
+        }
         var profile = JsonNode.Parse(await response.Content.ReadAsStringAsync(ct))!;
+        if (profile.S("id").Length == 0 || profile.S("name").Length == 0) throw new Exception("Minecraft 服务未返回有效的 Java 玩家档案。");
         var credentials = new JsonObject { ["accessToken"] = minecraft.S("access_token"), ["refreshToken"] = token.S("refresh_token"), ["expiresAt"] = DateTimeOffset.UtcNow.ToUnixTimeSeconds() + minecraft.Int("expires_in", 86400), ["xuid"] = claim.S("xid"), ["minecraftProfileVerified"] = true };
         return new Account { Type = "microsoft", Name = profile.S("name"), Uuid = profile.S("id"), Secret = CredentialVault.Protect(credentials) };
     }
