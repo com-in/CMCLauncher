@@ -25,6 +25,7 @@ static class ThemeTokens
     public const string LightBorder = "#E4E3ED", DarkBorder = "#3A3B4B", DarkBorderAlt = "#30313E";
     public const string LightTitlebarHover = "#E4E8E0", DarkTitlebarHover = "#303240";
     public const string LightTitlebarPressed = "#D5DCD0", DarkTitlebarPressed = "#404354";
+    public const string NativeFallbackLight = "#F3F3F3", NativeFallbackDark = "#202020";
 }
 public sealed partial class MainWindow
 {
@@ -86,7 +87,7 @@ public sealed partial class MainWindow
             Color From(Border border)
             {
                 if (border.Background is SolidColorBrush brush) return brush.Color;
-                return RawColor(lightTheme ? "#F3F3F3" : "#202020");
+                return RawColor(lightTheme ? ThemeTokens.NativeFallbackLight : ThemeTokens.NativeFallbackDark);
             }
             return role switch
             {
@@ -103,7 +104,7 @@ public sealed partial class MainWindow
             var value = colors.GetValueOrDefault(name, fallback);
             return RawColor(System.Text.RegularExpressions.Regex.IsMatch(value ?? "", "^#[0-9A-Fa-f]{6}$") ? value! : fallback);
         }
-        if (role == "onAccent") return RawColor("#FFFFFF");
+        if (role == "onAccent") return RawColor(ThemeTokens.White);
         if (role is "selection" or "hover" or "pressed")
         {
             var accent = Get("accent"); var target = Get(role == "selection" ? "sidebar" : "background");

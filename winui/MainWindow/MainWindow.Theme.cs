@@ -1,14 +1,8 @@
-using System.Diagnostics;
 using Microsoft.UI;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
-using Microsoft.UI.Xaml.Media.Imaging;
-using Microsoft.UI.Xaml.Media.Animation;
-using Windows.Storage.Pickers;
-using WinRT.Interop;
-using System.Text.Json.Nodes;
 using Windows.UI.ViewManagement;
 
 namespace CraftLauncher.WinUI;
