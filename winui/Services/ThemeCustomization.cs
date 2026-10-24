@@ -1,3 +1,22 @@
+// ============================================================================
+// 主题配色系统
+//
+// 整体流程：
+//   UI 元素调用 Brush(hex) 创建画刷
+//   → Brush() 将 hex 传入 PaletteColor() 解析为实际 Color
+//   → PaletteColor() 根据当前预设 (craft/lakecyan/native/custom) 决定颜色
+//   → 画刷存入 paletteBrushes 弱引用列表，主题切换时批量刷新
+//
+// 预设类型：
+//   craft/清新绿 — PaletteColor 直接返回原 hex (预设颜色的 hex 就是最终色值)
+//   lakecyan/浅湖青 — 通过 LakeCyan 字典一对一替换 hex 再返回
+//   native/WinUI原生 — 从系统主题资源读取颜色
+//   custom/自定义   — 用户在 PaletteDefaults 基础上自定义每项角色色值
+//
+// 新增预设只需：
+//   1. ThemeCustomization.cs 加一个类似 LakeCyan 的字典
+//   2. ThemeEditor 下拉列表加一项 + ColorPreset 映射加一行
+// ============================================================================
 using Microsoft.UI;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -6,30 +25,45 @@ using Windows.UI;
 
 namespace CraftLauncher.WinUI;
 
+// 所有主题色值的唯一定义点。UI 代码和预设字典都引用这里，不再散落裸 hex。
 static class ThemeTokens
 {
+    // 背景色 — 窗口主内容区域底色
     public const string LightBg = "#F6F8F4", DarkBg = "#181922", DarkBgAlt = "#171820";
+    // 侧边栏
     public const string LightSidebar = "#EAF0E4", DarkSidebar = "#20212D";
+    // 表面色 — 卡片/浮层背景，白色在 dark 模式也保持白色
     public const string White = "#FFFFFF", DarkSurface = "#242530", LightSurface = "#F1F2F5";
     public const string LightSurfaceAlt = "#EEEAF7", DarkSurfaceAlt = "#343044";
+    // 正文颜色
     public const string LightText = "#303145", DarkText = "#F0F0FA";
     public const string LightTextCaption = "#41424D", DarkTextCaption = "#E5E5EE";
     public const string LightTextSub = "#4A4B58", DarkTextSub = "#D1D1DC";
+    // 次要文字 (muted)
     public const string LightMuted = "#69745F", DarkMuted = "#ACADBD";
     public const string LightMutedAlt = "#73786F", DarkMutedAlt = "#AAAAB7";
+    // 强调色 — 链接、选中态、高亮
     public const string LightAccent = "#416D37", DarkAccent = "#536DBD";
     public const string LightAccentText = "#91A9F0", DarkAccentText = "#30592B";
+    // 选中态背景
     public const string LightSelection = "#DDE8D6", DarkSelection = "#2C3550";
+    // 悬停态
     public const string LightHover = "#507F44", DarkHover = "#637DCD";
+    // 按下态
     public const string LightPressed = "#355B2D", DarkPressed = "#465DA5";
+    // 边框
     public const string LightBorder = "#E4E3ED", DarkBorder = "#3A3B4B", DarkBorderAlt = "#30313E";
+    // 标题栏按钮悬停/按下
     public const string LightTitlebarHover = "#E4E8E0", DarkTitlebarHover = "#303240";
     public const string LightTitlebarPressed = "#D5DCD0", DarkTitlebarPressed = "#404354";
+    // WinUI 原生主题取色失败时的兜底色
     public const string NativeFallbackLight = "#F3F3F3", NativeFallbackDark = "#202020";
 }
 public sealed partial class MainWindow
 {
+    // 所有通过 Brush() 创建的画刷弱引用列表，主题切换时用 RefreshPaletteBrushes() 批量刷新
     readonly List<(WeakReference<SolidColorBrush> Brush, string Source)> paletteBrushes = [];
+    // 每个角色在浅/深模式下的默认色值 (用于自定义模式时的回退)
     static readonly Dictionary<string, (string Light, string Dark)> PaletteDefaults = new()
     {
         ["background"] = (ThemeTokens.LightBg, ThemeTokens.DarkBg),
@@ -40,6 +74,7 @@ public sealed partial class MainWindow
         ["border"] = (ThemeTokens.LightBorder, ThemeTokens.DarkBorder),
         ["accent"] = (ThemeTokens.LightAccent, ThemeTokens.DarkAccent)
     };
+    // 浅湖青预设 — 每项 key 是清新绿的色值，value 是替换后的湖泊青色值
     static readonly Dictionary<string, string> LakeCyan = new(StringComparer.OrdinalIgnoreCase)
     {
         [ThemeTokens.LightBg] = "#EDF4F6", [ThemeTokens.DarkBg] = "#172427", [ThemeTokens.DarkBgAlt] = "#172427",
@@ -59,6 +94,11 @@ public sealed partial class MainWindow
         [ThemeTokens.LightTitlebarPressed] = "#D4E2E5", [ThemeTokens.DarkTitlebarPressed] = "#2F3A3D",
     };
     Color RawColor(string hex) => ColorHelper.FromArgb(255, Convert.ToByte(hex[1..3], 16), Convert.ToByte(hex[3..5], 16), Convert.ToByte(hex[5..7], 16));
+
+    // 核心方法 — 将 ThemeTokens hex 解析为最终的 WinUI Color
+    // craft/lakecyan: 直接或映射后返回 hex 颜色
+    // native:          从系统主题资源取色，hove/pressed/selection 用 alpha 混合模拟
+    // custom:          从用户自定义字典取色，无效 hex 回退到 PaletteDefaults
     Color PaletteColor(string hex)
     {
         if (store.Config.Settings.ColorPreset is "craft" or "lakecyan")
@@ -67,6 +107,7 @@ public sealed partial class MainWindow
                 hex = LakeCyan.GetValueOrDefault(hex, hex);
             return RawColor(hex);
         }
+        // 将 hex 映射为语义角色。craft 预设跳过这里，直接在上方返回。
         var role = hex.ToUpperInvariant() switch
         {
             ThemeTokens.LightBg or ThemeTokens.DarkBg or ThemeTokens.DarkBgAlt => "background",
@@ -82,6 +123,7 @@ public sealed partial class MainWindow
             _ => "border"
         };
         if (role == "white") role = "surface";
+        // WinUI 3 原生主题 — 从系统控件采样颜色
         if (store.Config.Settings.ColorPreset == "native")
         {
             Color From(Border border)
@@ -97,6 +139,7 @@ public sealed partial class MainWindow
                 "selection" => Composite(From(NativeSelection), From(NativeBackground)), _ => From(NativeStroke)
             };
         }
+        // 自定义配色 — 从用户保存的 hex 字典取色，格式非法则回退到 PaletteDefaults
         var colors = lightTheme ? store.Config.Settings.CustomLightColors : store.Config.Settings.CustomDarkColors;
         Color Get(string name)
         {
@@ -105,6 +148,7 @@ public sealed partial class MainWindow
             return RawColor(System.Text.RegularExpressions.Regex.IsMatch(value ?? "", "^#[0-9A-Fa-f]{6}$") ? value! : fallback);
         }
         if (role == "onAccent") return RawColor(ThemeTokens.White);
+        // selection / hover / pressed 通过 accent 色与背景色按比例混合生成
         if (role is "selection" or "hover" or "pressed")
         {
             var accent = Get("accent"); var target = Get(role == "selection" ? "sidebar" : "background");
@@ -113,17 +157,20 @@ public sealed partial class MainWindow
         }
         return Get(role);
 
+        // 前景色叠加到背景色上 (alpha 混合)，用于 native 主题取半透明系统色时还原
         static Color Composite(Color foreground, Color background)
         {
             var alpha = foreground.A / 255d;
             return ColorHelper.FromArgb(255, (byte)(foreground.R * alpha + background.R * (1 - alpha)), (byte)(foreground.G * alpha + background.G * (1 - alpha)), (byte)(foreground.B * alpha + background.B * (1 - alpha)));
         }
     }
+    // 主题切换后批量刷新所有已缓存画刷的颜色，无需销毁重建整个 UI
     void RefreshPaletteBrushes()
     {
         paletteBrushes.RemoveAll(entry => !entry.Brush.TryGetTarget(out _));
         foreach (var entry in paletteBrushes) if (entry.Brush.TryGetTarget(out var brush)) brush.Color = PaletteColor(entry.Source);
     }
+    // 构建设置页面的「主题配色」编辑区域 — 预设下拉 + 自定义 7 色色板
     UIElement ThemeEditor(System.Action? defaultsChanged = null)
     {
         var panel = new StackPanel { Spacing = 12 };
