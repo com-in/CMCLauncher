@@ -6,33 +6,56 @@ using Windows.UI;
 
 namespace CraftLauncher.WinUI;
 
+static class ThemeTokens
+{
+    public const string LightBg = "#F6F8F4", DarkBg = "#181922", DarkBgAlt = "#171820";
+    public const string LightSidebar = "#EAF0E4", DarkSidebar = "#20212D";
+    public const string White = "#FFFFFF", DarkSurface = "#242530", LightSurface = "#F1F2F5";
+    public const string LightSurfaceAlt = "#EEEAF7", DarkSurfaceAlt = "#343044";
+    public const string LightText = "#303145", DarkText = "#F0F0FA";
+    public const string LightTextCaption = "#41424D", DarkTextCaption = "#E5E5EE";
+    public const string LightTextSub = "#4A4B58", DarkTextSub = "#D1D1DC";
+    public const string LightMuted = "#69745F", DarkMuted = "#ACADBD";
+    public const string LightMutedAlt = "#73786F", DarkMutedAlt = "#AAAAB7";
+    public const string LightAccent = "#416D37", DarkAccent = "#536DBD";
+    public const string LightAccentText = "#91A9F0", DarkAccentText = "#30592B";
+    public const string LightSelection = "#DDE8D6", DarkSelection = "#2C3550";
+    public const string LightHover = "#507F44", DarkHover = "#637DCD";
+    public const string LightPressed = "#355B2D", DarkPressed = "#465DA5";
+    public const string LightBorder = "#E4E3ED", DarkBorder = "#3A3B4B", DarkBorderAlt = "#30313E";
+    public const string LightTitlebarHover = "#E4E8E0", DarkTitlebarHover = "#303240";
+    public const string LightTitlebarPressed = "#D5DCD0", DarkTitlebarPressed = "#404354";
+}
 public sealed partial class MainWindow
 {
     readonly List<(WeakReference<SolidColorBrush> Brush, string Source)> paletteBrushes = [];
     static readonly Dictionary<string, (string Light, string Dark)> PaletteDefaults = new()
     {
-        ["background"] = ("#F6F8F4", "#181922"), ["sidebar"] = ("#EAF0E4", "#20212D"),
-        ["surface"] = ("#FFFFFF", "#242530"), ["text"] = ("#303145", "#F0F0FA"),
-        ["muted"] = ("#69745F", "#ACADBD"), ["border"] = ("#E4E3ED", "#3A3B4B"),
-        ["accent"] = ("#416D37", "#536DBD")
+        ["background"] = (ThemeTokens.LightBg, ThemeTokens.DarkBg),
+        ["sidebar"] = (ThemeTokens.LightSidebar, ThemeTokens.DarkSidebar),
+        ["surface"] = (ThemeTokens.White, ThemeTokens.DarkSurface),
+        ["text"] = (ThemeTokens.LightText, ThemeTokens.DarkText),
+        ["muted"] = (ThemeTokens.LightMuted, ThemeTokens.DarkMuted),
+        ["border"] = (ThemeTokens.LightBorder, ThemeTokens.DarkBorder),
+        ["accent"] = (ThemeTokens.LightAccent, ThemeTokens.DarkAccent)
     };
     static readonly Dictionary<string, string> LakeCyan = new(StringComparer.OrdinalIgnoreCase)
     {
-        ["#F6F8F4"] = "#EDF4F6", ["#181922"] = "#172427", ["#171820"] = "#172427",
-        ["#EAF0E4"] = "#E6EFF1", ["#20212D"] = "#1D2426",
-        ["#FFFFFF"] = "#FFFFFF", ["#242530"] = "#232A2C", ["#F1F2F5"] = "#EDF4F6",
-        ["#303145"] = "#2B3537", ["#F0F0FA"] = "#E1EBED", ["#41424D"] = "#2B3537",
-        ["#E5E5EE"] = "#E1EBED", ["#4A4B58"] = "#2B3537", ["#D1D1DC"] = "#D8E2E4",
-        ["#69745F"] = "#697779", ["#ACADBD"] = "#849294", ["#73786F"] = "#697779",
-        ["#AAAAB7"] = "#849294", ["#416D37"] = "#7DB6BF", ["#536DBD"] = "#7DB6BF",
-        ["#91A9F0"] = "#7DB6BF", ["#30592B"] = "#7DB6BF",
-        ["#DDE8D6"] = "#D0E3E6", ["#2C3550"] = "#232E30",
-        ["#507F44"] = "#8DBFC7", ["#637DCD"] = "#6D9EA6",
-        ["#355B2D"] = "#6A9EA6", ["#465DA5"] = "#59868E",
-        ["#EEEAF7"] = "#FFFFFF", ["#343044"] = "#232A2C",
-        ["#E4E3ED"] = "#D8E2E4", ["#3A3B4B"] = "#343E40", ["#30313E"] = "#343E40",
-        ["#E4E8E0"] = "#E0EBED", ["#303240"] = "#242D30",
-        ["#D5DCD0"] = "#D4E2E5", ["#404354"] = "#2F3A3D",
+        [ThemeTokens.LightBg] = "#EDF4F6", [ThemeTokens.DarkBg] = "#172427", [ThemeTokens.DarkBgAlt] = "#172427",
+        [ThemeTokens.LightSidebar] = "#E6EFF1", [ThemeTokens.DarkSidebar] = "#1D2426",
+        [ThemeTokens.White] = "#FFFFFF", [ThemeTokens.DarkSurface] = "#232A2C", [ThemeTokens.LightSurface] = "#EDF4F6",
+        [ThemeTokens.LightText] = "#2B3537", [ThemeTokens.DarkText] = "#E1EBED", [ThemeTokens.LightTextCaption] = "#2B3537",
+        [ThemeTokens.DarkTextCaption] = "#E1EBED", [ThemeTokens.LightTextSub] = "#2B3537", [ThemeTokens.DarkTextSub] = "#D8E2E4",
+        [ThemeTokens.LightMuted] = "#697779", [ThemeTokens.DarkMuted] = "#849294", [ThemeTokens.LightMutedAlt] = "#697779",
+        [ThemeTokens.DarkMutedAlt] = "#849294", [ThemeTokens.LightAccent] = "#7DB6BF", [ThemeTokens.DarkAccent] = "#7DB6BF",
+        [ThemeTokens.LightAccentText] = "#7DB6BF", [ThemeTokens.DarkAccentText] = "#7DB6BF",
+        [ThemeTokens.LightSelection] = "#D0E3E6", [ThemeTokens.DarkSelection] = "#232E30",
+        [ThemeTokens.LightHover] = "#8DBFC7", [ThemeTokens.DarkHover] = "#6D9EA6",
+        [ThemeTokens.LightPressed] = "#6A9EA6", [ThemeTokens.DarkPressed] = "#59868E",
+        [ThemeTokens.LightSurfaceAlt] = "#FFFFFF", [ThemeTokens.DarkSurfaceAlt] = "#232A2C",
+        [ThemeTokens.LightBorder] = "#D8E2E4", [ThemeTokens.DarkBorder] = "#343E40", [ThemeTokens.DarkBorderAlt] = "#343E40",
+        [ThemeTokens.LightTitlebarHover] = "#E0EBED", [ThemeTokens.DarkTitlebarHover] = "#242D30",
+        [ThemeTokens.LightTitlebarPressed] = "#D4E2E5", [ThemeTokens.DarkTitlebarPressed] = "#2F3A3D",
     };
     Color RawColor(string hex) => ColorHelper.FromArgb(255, Convert.ToByte(hex[1..3], 16), Convert.ToByte(hex[3..5], 16), Convert.ToByte(hex[5..7], 16));
     Color PaletteColor(string hex)
@@ -45,15 +68,16 @@ public sealed partial class MainWindow
         }
         var role = hex.ToUpperInvariant() switch
         {
-            "#F6F8F4" or "#181922" or "#171820" => "background",
-            "#EAF0E4" or "#20212D" => "sidebar",
-            "#FFFFFF" => "white", "#242530" or "#F1F2F5" => "surface",
-            "#303145" or "#F0F0FA" or "#41424D" or "#E5E5EE" or "#4A4B58" or "#D1D1DC" => "text",
-            "#69745F" or "#ACADBD" or "#73786F" or "#AAAAB7" => "muted",
-            "#416D37" or "#536DBD" or "#91A9F0" or "#30592B" => "accent",
-            "#DDE8D6" or "#2C3550" => "selection",
-            "#507F44" or "#637DCD" => "hover", "#355B2D" or "#465DA5" => "pressed",
-            "#EEEAF7" or "#343044" => "surface",
+            ThemeTokens.LightBg or ThemeTokens.DarkBg or ThemeTokens.DarkBgAlt => "background",
+            ThemeTokens.LightSidebar or ThemeTokens.DarkSidebar => "sidebar",
+            ThemeTokens.White => "white",
+            ThemeTokens.DarkSurface or ThemeTokens.LightSurface or ThemeTokens.LightSurfaceAlt or ThemeTokens.DarkSurfaceAlt => "surface",
+            ThemeTokens.LightText or ThemeTokens.DarkText or ThemeTokens.LightTextCaption or ThemeTokens.DarkTextCaption or ThemeTokens.LightTextSub or ThemeTokens.DarkTextSub => "text",
+            ThemeTokens.LightMuted or ThemeTokens.DarkMuted or ThemeTokens.LightMutedAlt or ThemeTokens.DarkMutedAlt => "muted",
+            ThemeTokens.LightAccent or ThemeTokens.DarkAccent or ThemeTokens.LightAccentText or ThemeTokens.DarkAccentText => "accent",
+            ThemeTokens.LightSelection or ThemeTokens.DarkSelection => "selection",
+            ThemeTokens.LightHover or ThemeTokens.DarkHover => "hover",
+            ThemeTokens.LightPressed or ThemeTokens.DarkPressed => "pressed",
             _ => "border"
         };
         if (role == "white") role = "surface";
