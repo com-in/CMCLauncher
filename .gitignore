@@ -6,3 +6,4 @@ winui/clientid.local.json
 **/bin/
 **/obj/
 winui/artifacts/
+winui/CompanionData.g.cs

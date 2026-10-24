@@ -23,15 +23,18 @@
     <RootNamespace>CraftLauncher.WinUI</RootNamespace>
     <Version>0.9.3-beta</Version>
     <ApplicationManifest>app.manifest</ApplicationManifest>
-    <ApplicationIcon>assets/cmc-logo.ico</ApplicationIcon>
+    <ApplicationIcon>Assets/cmc-logo.ico</ApplicationIcon>
     <DefineConstants>$(DefineConstants);DISABLE_XAML_GENERATED_MAIN</DefineConstants>
+    <EnableMsixTooling Condition="'$(PublishSingleFile)' == 'true'">true</EnableMsixTooling>
+    <IncludeNativeLibrariesForSelfExtract Condition="'$(PublishSingleFile)' == 'true'">true</IncludeNativeLibrariesForSelfExtract>
+    <DefineConstants Condition="'$(PublishSingleFile)' == 'true'">$(DefineConstants);SINGLE_FILE</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
     <EmbeddedResource Include="clientid.local.json" LogicalName="CMCLauncher.MicrosoftClient" Condition="Exists('clientid.local.json')" />
-    <Content Update="assets/cmc-logo.png" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
-    <Content Update="assets/grass-block.png" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
-    <Content Include="assets/loaders/*.png" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
-    <None Update="assets/cmc-logo.ico" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Update="Assets/cmc-logo.png" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Update="Assets/grass-block.png" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="Assets/loaders/*.png" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <None Update="Assets/cmc-logo.ico" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <PackageReference Include="Markdig" Version="1.4.2" />
     <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.8.260921001" />
     <Compile Include="../native/Models.cs" Link="Core/Models.cs" />
@@ -45,11 +48,11 @@
     <Compile Include="../native/MicrosoftAuth.cs" Link="Core/MicrosoftAuth.cs" />
     <Compile Include="../native/GlobalUsings.cs" Link="Core/GlobalUsings.cs" />
   </ItemGroup>
-  <Target Name="PublishWinUIResources" AfterTargets="Publish">
+  <Target Name="PublishWinUIResources" AfterTargets="Publish" Condition="'$(PublishSingleFile)' != 'true'">
     <ItemGroup>
       <WinUIResource Include="$(TargetDir)*.pri;$(TargetDir)*.xbf" />
     </ItemGroup>
     <Copy SourceFiles="@(WinUIResource)" DestinationFolder="$(PublishDir)" />
     <Exec WorkingDirectory="$(PublishDir)" Command="powershell.exe -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildProjectDirectory)\..\scripts\organize-winui-languages.ps1&quot; -PublishDir ." />
   </Target>
-</Project>
+  </Project>
