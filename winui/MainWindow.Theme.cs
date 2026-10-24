@@ -28,7 +28,8 @@ public sealed partial class MainWindow
         if (Content is FrameworkElement themedRoot) themedRoot.RequestedTheme = lightTheme ? ElementTheme.Light : ElementTheme.Dark;
         RefreshPaletteBrushes();
         var bg = lightTheme ? "#F6F8F4" : "#181922"; var sidebar = lightTheme ? "#EAF0E4" : "#20212D"; var text = lightTheme ? "#303145" : "#F0F0FA"; var muted = lightTheme ? "#69745F" : "#ACADBD"; var accent = lightTheme ? "#416D37" : "#91A9F0";
-        WindowBackground.Color = Brush(bg).Color; Sidebar.Background = Brush(sidebar); Sidebar.BorderBrush = new SolidColorBrush(RawColor(lightTheme ? "#E4E3ED" : "#30313E")); SidebarNote.Foreground = Brush(muted); Eyebrow.Foreground = Brush(accent); PageTitle.Foreground = Brush(text); PageSubtitle.Foreground = Brush(muted); StatusText.Foreground = Brush(muted); TaskManagerButton.Foreground = Brush(text);
+        var bgBrush = Brush(bg); WindowBackground.Color = bgBrush.Color; if (Sidebar.Parent is Panel contentGrid) contentGrid.Background = bgBrush;
+        Sidebar.Background = Brush(sidebar); Sidebar.BorderBrush = new SolidColorBrush(RawColor(lightTheme ? "#E4E3ED" : "#30313E")); SidebarNote.Foreground = Brush(muted); Eyebrow.Foreground = Brush(accent); PageTitle.Foreground = Brush(text); PageSubtitle.Foreground = Brush(muted); StatusText.Foreground = Brush(muted); TaskManagerButton.Foreground = Brush(text);
         StatusText.Visibility = Visibility.Collapsed; if (launchStatusText != null) launchStatusText.Foreground = Brush(muted);
         if (Content is FrameworkElement root) root.RequestedTheme = lightTheme ? ElementTheme.Light : ElementTheme.Dark;
         SyncNavigation();

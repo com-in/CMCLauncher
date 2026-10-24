@@ -16,10 +16,33 @@ public sealed partial class MainWindow
         ["muted"] = ("#69745F", "#ACADBD"), ["border"] = ("#E4E3ED", "#3A3B4B"),
         ["accent"] = ("#416D37", "#536DBD")
     };
+    static readonly Dictionary<string, string> LakeCyan = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["#F6F8F4"] = "#EDF4F6", ["#181922"] = "#172427", ["#171820"] = "#172427",
+        ["#EAF0E4"] = "#E6EFF1", ["#20212D"] = "#1D2426",
+        ["#FFFFFF"] = "#FFFFFF", ["#242530"] = "#232A2C", ["#F1F2F5"] = "#EDF4F6",
+        ["#303145"] = "#2B3537", ["#F0F0FA"] = "#E1EBED", ["#41424D"] = "#2B3537",
+        ["#E5E5EE"] = "#E1EBED", ["#4A4B58"] = "#2B3537", ["#D1D1DC"] = "#D8E2E4",
+        ["#69745F"] = "#697779", ["#ACADBD"] = "#849294", ["#73786F"] = "#697779",
+        ["#AAAAB7"] = "#849294", ["#416D37"] = "#7DB6BF", ["#536DBD"] = "#7DB6BF",
+        ["#91A9F0"] = "#7DB6BF", ["#30592B"] = "#7DB6BF",
+        ["#DDE8D6"] = "#D0E3E6", ["#2C3550"] = "#232E30",
+        ["#507F44"] = "#8DBFC7", ["#637DCD"] = "#6D9EA6",
+        ["#355B2D"] = "#6A9EA6", ["#465DA5"] = "#59868E",
+        ["#EEEAF7"] = "#FFFFFF", ["#343044"] = "#232A2C",
+        ["#E4E3ED"] = "#D8E2E4", ["#3A3B4B"] = "#343E40", ["#30313E"] = "#343E40",
+        ["#E4E8E0"] = "#E0EBED", ["#303240"] = "#242D30",
+        ["#D5DCD0"] = "#D4E2E5", ["#404354"] = "#2F3A3D",
+    };
     Color RawColor(string hex) => ColorHelper.FromArgb(255, Convert.ToByte(hex[1..3], 16), Convert.ToByte(hex[3..5], 16), Convert.ToByte(hex[5..7], 16));
     Color PaletteColor(string hex)
     {
-        if (store.Config.Settings.ColorPreset == "craft") return RawColor(hex);
+        if (store.Config.Settings.ColorPreset is "craft" or "lakecyan")
+        {
+            if (store.Config.Settings.ColorPreset == "lakecyan")
+                hex = LakeCyan.GetValueOrDefault(hex, hex);
+            return RawColor(hex);
+        }
         var role = hex.ToUpperInvariant() switch
         {
             "#F6F8F4" or "#181922" or "#171820" => "background",
@@ -80,8 +103,8 @@ public sealed partial class MainWindow
     {
         var panel = new StackPanel { Spacing = 12 };
         var english = store.Config.Settings.LauncherLanguage == "en_us";
-        var preset = new BelowComboBox { Header = english ? "Preset" : "预设", ItemsSource = english ? new[] { "Fresh green", "WinUI 3 native", "Custom" } : new[] { "清新绿", "WinUI 3 原生", "自定义" }, SelectedIndex = store.Config.Settings.ColorPreset switch { "native" => 1, "custom" => 2, _ => 0 }, HorizontalAlignment = HorizontalAlignment.Stretch };
-        var editor = new StackPanel { Spacing = 10, Visibility = preset.SelectedIndex == 2 ? Visibility.Visible : Visibility.Collapsed };
+        var preset = new BelowComboBox { Header = english ? "Preset" : "预设", ItemsSource = english ? new[] { "Fresh green", "WinUI 3 native", "Lake Cyan", "Custom" } : new[] { "清新绿", "WinUI 3 原生", "浅湖青", "自定义" }, SelectedIndex = store.Config.Settings.ColorPreset switch { "native" => 1, "lakecyan" => 2, "custom" => 3, _ => 0 }, HorizontalAlignment = HorizontalAlignment.Stretch };
+        var editor = new StackPanel { Spacing = 10, Visibility = preset.SelectedIndex == 3 ? Visibility.Visible : Visibility.Collapsed };
         var mode = new BelowComboBox { Header = english ? "Edit colors" : "编辑配色", ItemsSource = english ? new[] { "Light", "Dark" } : new[] { "浅色", "深色" }, SelectedIndex = lightTheme ? 0 : 1 };
         var swatches = new StackPanel { Spacing = 8 };
         void BuildSwatches()
@@ -113,8 +136,8 @@ public sealed partial class MainWindow
         preset.SelectionChanged += async (_, _) =>
         {
             if (preset.SelectedIndex < 0) return;
-            store.Config.Settings.ColorPreset = preset.SelectedIndex switch { 1 => "native", 2 => "custom", _ => "craft" };
-            if (preset.SelectedIndex is 0 or 1)
+            store.Config.Settings.ColorPreset = preset.SelectedIndex switch { 1 => "native", 2 => "lakecyan", 3 => "custom", _ => "craft" };
+            if (preset.SelectedIndex is 0 or 1 or 2)
             {
                 store.Config.Settings.UiScale = 1;
                 store.Config.Settings.UiButtonScale = 1;
@@ -123,7 +146,7 @@ public sealed partial class MainWindow
                 store.Config.Settings.UiFontSize = 14;
                 defaultsChanged?.Invoke();
             }
-            editor.Visibility = preset.SelectedIndex == 2 ? Visibility.Visible : Visibility.Collapsed;
+            editor.Visibility = preset.SelectedIndex == 3 ? Visibility.Visible : Visibility.Collapsed;
             ApplyTheme(); ApplyPersonalization();
             try { await store.Save(); } catch (Exception ex) { await Error(ex); }
         };
