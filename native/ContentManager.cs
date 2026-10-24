@@ -4,12 +4,15 @@ using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 
 namespace CraftLauncher;
+// Mod/资源包元数据容器
 public sealed record ContentItem(string File, string Name, string Version, string Loader, string Description, bool Enabled, bool Recognized)
 {
     public override string ToString() => $"{Name}  {Version}  {Loader}\n{Description}\n{File}";
 }
+// 内容管理 — Mod 元数据解析、图标提取、语言识别、文件夹定位
 public static class ContentManager
 {
+    // 从 JAR 包中提取 Mod ID（支持 Fabric/Quilt/Forge/NeoForge/Legacy 格式）
     public static HashSet<string> ModIds(string file)
     {
         var ids = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -41,6 +44,7 @@ public static class ContentManager
         catch (Exception ex) when (ex is IOException or InvalidDataException or System.Text.Json.JsonException) { }
         return ids;
     }
+    // 从 JAR 包中提取 Mod 图标（返回 PNG 字节数组）
     public static byte[]? Icon(string file)
     {
         try
@@ -71,12 +75,14 @@ public static class ContentManager
         }
         catch { return null; }
     }
+    // 将系统 locale 映射为 Minecraft 语言标识符 (zh_cn / en_us / ja_jp 等)
     public static string LanguageFor(string locale)
     {
         var tag = locale.ToLowerInvariant().Replace('_', '-');
         if (tag.StartsWith("zh")) return Regex.IsMatch(tag, "tw|hk|mo|hant") ? "zh_tw" : "zh_cn";
         return tag.Split('-')[0] switch { "ja" => "ja_jp", "ko" => "ko_kr", "de" => "de_de", "fr" => "fr_fr", "ru" => "ru_ru", "es" => "es_es", "pt" => "pt_br", _ => "en_us" };
     }
+    // 写入游戏 options.txt 中的 lang 设置（原子写入：先写 .tmp 再 move）
     public static async Task Language(string directory, string preference, string? systemLocale = null)
     {
         if (preference == "preserve") return;
@@ -87,6 +93,7 @@ public static class ContentManager
         lines.Add("lang:" + language); var temp = file + "." + Guid.NewGuid() + ".tmp";
         try { await File.WriteAllLinesAsync(temp, lines); File.Move(temp, file, true); } finally { if (File.Exists(temp)) File.Delete(temp); }
     }
+    // 根据内容类型返回游戏目录下的对应文件夹路径
     public static string Folder(string game, string kind, string? world = null)
     {
         if (kind == "datapack")

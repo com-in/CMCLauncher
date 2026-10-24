@@ -10,10 +10,12 @@ using System.Xml.Linq;
 
 namespace CraftLauncher;
 
+// 启动器网络与下载核心 — HTTP 客户端、代理探测、并发下载、版本解析
 public sealed class LauncherCore : IDisposable
 {
     readonly Store store;
     HttpClient http = new();
+    // 事件：状态变更 / 原始日志 / 下载进度百分比 / 瞬时下载字节数
     public event Action<string>? Status;
     public event Action<string>? Log;
     public event Action<double?>? DownloadProgress;
@@ -21,9 +23,11 @@ public sealed class LauncherCore : IDisposable
     const int DownloadBufferSize = 256 * 1024;
     const int ProgressIntervalMs = 500;
     public static int DownloadConcurrency(Settings settings) => Math.Clamp(settings.DownloadThreads, 1, 256);
+    // 并行下载 — 使用 Parallel.ForEachAsync 控制并发数
     public Task DownloadMany<T>(IEnumerable<T> items, Func<T, CancellationToken, Task> download, CancellationToken ct = default)
         => Parallel.ForEachAsync(items, new ParallelOptions { MaxDegreeOfParallelism = DownloadConcurrency(store.Config.Settings), CancellationToken = ct }, (item, token) => new ValueTask(download(item, token)));
     public LauncherCore(Store store, HttpMessageHandler? handler = null) { this.store = store; if (handler == null) ConfigureNetwork(); else { http.Dispose(); http = new HttpClient(handler); } }
+    // 根据用户代理设置重新配置 HTTP 客户端（代理地址、SSL 验证、User-Agent）
     public void ConfigureNetwork()
     {
         var proxy = store.Config.Settings.Proxy;
@@ -34,6 +38,7 @@ public sealed class LauncherCore : IDisposable
         http.DefaultRequestHeaders.UserAgent.ParseAdd("CMCLauncher/0.9.3-beta");
     }
     public HttpClient Http => http;
+    // 代理可达性感知的 HTTP Handler — 先用 TCP 探测代理是否可达，不可达时走直连
     sealed class ReachableProxyHandler(IWebProxy proxy, bool ignoreSslErrors, Action<string> blocked) : HttpMessageHandler
     {
         readonly HttpMessageInvoker proxied = new(CreateTransportHandler(proxy, true, ignoreSslErrors, blocked));
@@ -75,18 +80,21 @@ public sealed class LauncherCore : IDisposable
             base.Dispose(disposing);
         }
     }
+    // 创建底层传输 Handler — 配置连接池、SSL 证书验证、代理
     static SocketsHttpHandler CreateTransportHandler(IWebProxy? proxy, bool useProxy, bool ignoreSslErrors, Action<string> blocked)
     {
         var handler = new SocketsHttpHandler { Proxy = proxy, UseProxy = useProxy, MaxConnectionsPerServer = 256, PooledConnectionLifetime = TimeSpan.FromMinutes(10) };
         handler.SslOptions.RemoteCertificateValidationCallback = (_, certificate, chain, errors) => CertificatePolicy.Validate(certificate, chain, errors, ignoreSslErrors, blocked);
         return handler;
     }
+    // 安全的 HTTPS GET 并解析 JSON — 强制 HTTPS、检查状态码
     public async Task<JsonNode> Json(string url, CancellationToken ct = default)
     {
         if (!url.StartsWith("https://", StringComparison.OrdinalIgnoreCase)) throw new Exception("服务地址必须使用 HTTPS");
         using var response = await http.GetAsync(url, ct); response.EnsureSuccessStatusCode();
         return JsonNode.Parse(await response.Content.ReadAsStringAsync(ct)) ?? throw new Exception("服务器返回空数据");
     }
+    // 文件下载 — 分块流式下载 + 哈希校验 + 进度事件 + .part 临时文件
     public async Task Download(string url, string target, string? hash = null, string algorithm = "sha1", long? size = null, CancellationToken ct = default)
     {
         async Task<bool> Valid()
@@ -139,13 +147,16 @@ public sealed class LauncherCore : IDisposable
         }
         finally { if (File.Exists(temp)) File.Delete(temp); }
     }
+    // 获取 Minecraft 正式版 ID 列表
     public async Task<List<string>> Versions(CancellationToken ct = default)
         => (await VersionCatalog(ct)).Where(v => v.Category == "正式版").Select(v => v.Id).ToList();
+    // 获取完整的 Minecraft 版本目录（含快照）
     public async Task<List<GameRelease>> VersionCatalog(CancellationToken ct = default)
     {
         var manifest = await Json("https://piston-meta.mojang.com/mc/game/version_manifest_v2.json", ct);
         return manifest["versions"].Items().Where(v => v.S("type") is "release" or "snapshot").Select(v => new GameRelease(v.S("id"), v.S("type"))).ToList();
     }
+    // 获取 vanilla 版本 JSON（首次从 Mojang 下载并缓存）
     async Task<JsonNode> Vanilla(string id, string storage, CancellationToken ct)
     {
         var file = Store.SafePath(storage, $"versions/{id}/{id}.json");
@@ -155,6 +166,7 @@ public sealed class LauncherCore : IDisposable
         await Download(entry.S("url"), file, entry.S("sha1"), ct: ct);
         return JsonNode.Parse(await File.ReadAllTextAsync(file, ct))!;
     }
+    // 合并父子版本 JSON — 用于加载器继承 vanilla 基版本的 libraries 和 arguments
     public static JsonNode Merge(JsonNode parent, JsonNode child)
     {
         var merged = parent.DeepClone();
@@ -173,6 +185,7 @@ public sealed class LauncherCore : IDisposable
         foreach (var kind in new[] { "game", "jvm" }) merged["arguments"]![kind] = new JsonArray((parent["arguments"]?[kind]).Items().Concat((child["arguments"]?[kind]).Items()).Select(n => n.DeepClone()).ToArray());
         return merged;
     }
+    // 递归解析版本继承链 — 沿 inheritsFrom 向上合并，防止循环
     public async Task<JsonNode> Resolve(string id, string storage, CancellationToken ct, HashSet<string>? seen = null)
     {
         seen ??= [];

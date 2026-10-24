@@ -4,6 +4,8 @@ using System.Net.Http;
 using System.Text.Json.Nodes;
 
 namespace CraftLauncher;
+
+// Windows DPAPI 凭据加密 — 用当前用户身份加密/解密账号 Token
 public static class CredentialVault
 {
     [StructLayout(LayoutKind.Sequential)] struct Blob { public int Length; public IntPtr Data; }
@@ -25,6 +27,7 @@ public static class CredentialVault
     public static string Protect(JsonNode value) => Convert.ToBase64String(Transform(Encoding.UTF8.GetBytes(value.ToJsonString()), true));
     public static JsonNode Read(Account account) => account.Type == "offline" ? new JsonObject { ["accessToken"] = "0" } : JsonNode.Parse(Encoding.UTF8.GetString(Transform(Convert.FromBase64String(account.Secret ?? throw new Exception("账号凭据不存在，请重新登录")), false)))!;
 }
+// Microsoft OAuth 设备代码登录 — 流程：设备代码 → Xbox Live → XSTS → Minecraft 服务
 public sealed class MicrosoftAuth(LauncherCore core)
 {
     const string LoginBase = "https://login.microsoftonline.com/consumers/oauth2/v2.0/";
@@ -42,6 +45,7 @@ public sealed class MicrosoftAuth(LauncherCore core)
             return clientId!;
         }
     }
+    // OAuth POST 请求 — 自动识别 form/json 两种 Content-Type，处理 AuthException
     async Task<JsonNode> Post(string url, JsonNode payload, bool form, CancellationToken ct)
     {
         using HttpContent content = form ? new FormUrlEncodedContent(payload.AsObject().Select(p => new KeyValuePair<string, string>(p.Key, p.Value?.ToString() ?? ""))) : new StringContent(payload.ToJsonString(), Encoding.UTF8, "application/json");
@@ -124,6 +128,7 @@ public sealed class MicrosoftAuth(LauncherCore core)
         if (token.S("refresh_token").Length == 0) token["refresh_token"] = credentials.S("refreshToken");
         return await Exchange(token, ct);
     }
+    // 用 OAuth token 换取 Xbox Live → XSTS → Minecraft 三层令牌，最终返回 Account
     async Task<Account> Exchange(JsonNode token, CancellationToken ct, Action<string>? status = null)
     {
         status?.Invoke("Microsoft 授权完成，正在登录 Xbox Live…");
