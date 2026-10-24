@@ -10,10 +10,14 @@ namespace CraftLauncher.WinUI;
 public sealed partial class MainWindow
 {
     bool lightTheme;
+    // 需要在主题切换时更新的卡片边框列表
     readonly List<Border> themeCards = new();
     readonly UISettings systemUi = new();
 
     void SystemThemeChanged(UISettings sender, object args) => DispatcherQueue.TryEnqueue(() => { if (store.Config.Settings.Theme == "system") ApplyTheme(); });
+
+    // 应用浅/深主题到窗口全局
+    // 流程：监听系统主题 → 切换 RequestedTheme → 刷新所有缓存的画刷 → 更新标题栏
     void ApplyTheme()
     {
         LocalizeStaticChrome();
@@ -60,11 +64,13 @@ public sealed partial class MainWindow
         var scale = CustomTitleBar.XamlRoot?.RasterizationScale ?? 1;
         CaptionButtonInset.Width = Math.Max(138, AppWindow.TitleBar.RightInset / scale);
     }
+    // 创建可随主题刷新的 SolidColorBrush。hex 必须是 ThemeTokens 常量
     SolidColorBrush Brush(string hex)
     {
         var brush = new SolidColorBrush(PaletteColor(hex));
         paletteBrushes.Add((new WeakReference<SolidColorBrush>(brush), hex));
         return brush;
     }
+    // 主色调 hex，供 TaskCountBadge 等小控件直接取色
     string PrimaryColor => lightTheme ? ThemeTokens.LightAccent : ThemeTokens.DarkAccent;
 }
