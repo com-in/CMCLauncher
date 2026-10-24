@@ -11,9 +11,9 @@ $sb = [System.Text.StringBuilder]::new()
 namespace CraftLauncher.WinUI;
 internal static class CompanionData
 {
-    public static (string RelativePath, byte[] Data)[] Files { get; } =
-    {
-"@.TrimEnd())
+    public static string CompanionVersion { get; } =
+"@)
+$culturePattern = '^[a-z]{2}(-[a-zA-Z0-9]+){1,2}$'
 
 $files = [System.Collections.Generic.List[System.IO.FileInfo]]::new()
 
@@ -32,9 +32,17 @@ if (Test-Path $TargetDir) {
     if (Test-Path $msDir) {
         foreach ($f in Get-ChildItem -LiteralPath $msDir -File -Recurse -ErrorAction SilentlyContinue) { $files.Add($f) }
     }
+    foreach ($dir in Get-ChildItem -LiteralPath $TargetDir -Directory -ErrorAction SilentlyContinue) {
+        if ($dir.Name -match $culturePattern) {
+            foreach ($f in Get-ChildItem -LiteralPath $dir.FullName -File -Recurse -ErrorAction SilentlyContinue) { $files.Add($f) }
+        }
+    }
 }
 
 if ($files.Count -eq 0) {
+    [void]$sb.AppendLine('"placeholder";')
+    [void]$sb.AppendLine("    public static (string RelativePath, byte[] Data)[] Files { get; } =")
+    [void]$sb.AppendLine("    {")
     [void]$sb.AppendLine("    };")
     [void]$sb.AppendLine("}")
     Set-Content -LiteralPath $OutputPath -Value $sb.ToString() -Encoding UTF8
@@ -44,23 +52,33 @@ if ($files.Count -eq 0) {
 
 $targetDirUri = [System.Uri]::new($TargetDir.TrimEnd('\') + '\')
 $fileEntries = [System.Collections.Generic.List[string]]::new()
+$sha256 = [System.Security.Cryptography.SHA256]::Create()
+$allBytes = [System.Collections.Generic.List[byte]]::new()
 
-foreach ($file in $files) {
+foreach ($file in $files | Sort-Object FullName) {
     $relative = [System.Uri]::UnescapeDataString(
         $targetDirUri.MakeRelativeUri([System.Uri]::new($file.FullName)).ToString()
     ).Replace('/', '\\')
     $bytes = [System.IO.File]::ReadAllBytes($file.FullName)
+    $allBytes.AddRange($bytes)
     $hex = [System.BitConverter]::ToString($bytes).Replace('-', ',0x')
     if ($hex.Length -gt 0) { $hex = "0x" + $hex }
     $fileEntries.Add("        (`"$relative`", new byte[] { $hex })")
 }
 
+$versionHash = [System.BitConverter]::ToString($sha256.ComputeHash($allBytes.ToArray())).Replace('-', '').ToLowerInvariant()
+[void]$sb.Append('"')
+[void]$sb.Append($versionHash)
+[void]$sb.AppendLine('";')
+$sha256.Dispose()
+
+[void]$sb.AppendLine("    public static (string RelativePath, byte[] Data)[] Files { get; } =")
+[void]$sb.AppendLine("    {")
 [void]$sb.AppendLine(($fileEntries -join ",`r`n"))
 [void]$sb.AppendLine("    };")
 [void]$sb.AppendLine("}")
 
 $content = $sb.ToString()
 Set-Content -LiteralPath $OutputPath -Value $content -Encoding UTF8
-Write-Output "Generated companion source with $($files.Count) files from $TargetDir."
+Write-Output "Generated companion source with $($files.Count) files, version=$versionHash"
 Write-Output "Output: $OutputPath"
-Write-Output "Total bytes: $($content.Length)"

@@ -152,7 +152,8 @@ internal static class Program
     {
         var exeDir = Path.GetDirectoryName(Environment.ProcessPath) ?? AppContext.BaseDirectory;
         var marker = Path.Combine(exeDir, ".companion-extracted");
-        if (File.Exists(marker)) return;
+        if (File.Exists(marker) && File.ReadAllText(marker).Trim() == CompanionData.CompanionVersion)
+            return;
         foreach (var (relativePath, data) in CompanionData.Files)
         {
             var destination = Path.Combine(exeDir, relativePath);
@@ -160,7 +161,7 @@ internal static class Program
             if (directory is not null) Directory.CreateDirectory(directory);
             File.WriteAllBytes(destination, data);
         }
-        File.WriteAllText(marker, DateTime.UtcNow.ToString("O"));
+        File.WriteAllText(marker, CompanionData.CompanionVersion);
     }
 #endif
 }
