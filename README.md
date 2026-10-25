@@ -1,71 +1,144 @@
 # CMC Launcher
 
-A native Windows desktop launcher for Minecraft Java Edition. Version 0.9.3-beta is built with C#, .NET 8, and WinUI 3. The interface and launch core are native Windows applications and do not use a web wrapper.
+A native Windows launcher for Minecraft Java Edition, built with C#, .NET 8, and WinUI 3. Manage isolated instances, download game versions and loaders, install Modrinth content, and manage Java and accounts.
+
+Current version: **0.9.3-beta** · Platform: **Windows x64**
+
+[Download](https://github.com/com-in/CMCLauncher/releases) · [Website](https://cmcl.ctfun.top/) · [Report an issue](https://github.com/com-in/CMCLauncher/issues)
+
+![CMC Launcher home screen in English](docs/assets/launcher-home.png)
+
+## Quick start
+
+1. Download `CMCLauncher-0.9.3-beta-win-x64.zip` from [Releases](https://github.com/com-in/CMCLauncher/releases), extract the entire archive, and run `CMCLauncher.exe`.
+2. Open **Settings → Java** to scan for or import an existing Java installation, or download Temurin Java.
+3. Open **Settings → Accounts** and choose Microsoft device-code sign-in. Complete authorization in your browser, then wait for the launcher to verify your Minecraft Java profile.
+4. Download a game version, import an existing `.minecraft` folder, or import a modpack. Select a version and account on Home, then launch.
+
+The release archive includes the .NET and Windows App SDK runtimes, so you do not need to install .NET separately. Java and game files are downloaded or imported separately. Updates are user initiated.
+
+### Requirements
+
+- Windows 10 version 2004 (build 19041) or later, x64.
+- A compatible Java runtime for the selected Minecraft version. The launcher checks and matches discovered Java installations at launch.
+- A Microsoft account with a Minecraft Java Edition profile for Microsoft sign-in. At least one Microsoft account must pass verification before offline identities can be used.
 
 ## Features
 
-- Download Minecraft Java releases, snapshots, and April Fools versions, plus Fabric, Forge, and NeoForge profiles.
-- Import existing game folders, Modrinth `.mrpack`/`.zip` modpacks, and MultiMC/Prism `.zip` exports. Drop modpack archives onto the launcher or choose them from the import picker; new instances keep saves, settings, and mods isolated. ZIP archives must contain a supported pack manifest; CurseForge ZIP downloads are not currently supported.
-- Browse and install Modrinth projects, including mods, modpacks, resource packs, data packs, and shaders.
-- Inspect installed mod metadata and icons; manage resource packs, data packs by world, and shader packs.
-- Check game and loader compatibility before installation. Installation tasks report progress and can be cancelled.
-- Set the number of simultaneous file downloads from 1 to 256; the default is 16.
-- Select Java from the local environment, manage Java installations, and match Java versions to Minecraft versions.
-- Automatically allocate game memory, configure the game language, and use light, dark, system, or custom themes.
-- Sign in with a Microsoft device code. Offline identities are available only after a Microsoft account has a verified Minecraft Java profile.
-- Protect account credentials with Windows DPAPI.
+| Area | Supported features |
+| --- | --- |
+| Games and instances | Browse releases, snapshots, and April Fools versions; create isolated instances; import local game folders |
+| Loaders | Query and install Fabric, Forge, and NeoForge; identify loaders used by imported versions |
+| Modpacks | Import Modrinth `.mrpack` files, ZIP archives with supported manifests, and MultiMC / Prism ZIP exports; drag-and-drop import |
+| Community content | Browse Modrinth projects and versions; check game, loader, and installation-target compatibility |
+| Content management | Inspect Mod metadata and icons; import, disable, or remove content; manage data packs by world |
+| Java and memory | Scan, import, and download Temurin Java; match Java versions automatically; use automatic or manual heap allocation |
+| Downloads | View progress and speed, cancel tasks, and configure 1–256 simultaneous file downloads; default: 16 |
+| Appearance and language | Light, dark, and system themes; colors, fonts, scaling, and appearance presets; launcher and game language settings |
+| Accounts and diagnostics | Microsoft device-code sign-in, Windows DPAPI credential encryption, runtime logs, and game error report export |
 
-CMC Launcher has no server-controlled forced update mechanism. Updates are user initiated.
+New instances keep Mods, saves, and settings separate. Imported games retain their original locations, including recognized version-isolation layouts.
 
-## Requirements
+## Support and limitations
 
-- Windows 10 version 19041 or later, x64.
-- Minecraft Java Edition and a compatible Java runtime for the selected game version. The launcher can use Java installations found on the computer; Java is not bundled in the release archive.
-- A Microsoft account with a Minecraft Java Edition profile to use Microsoft sign-in and unlock offline identities.
+- Forge and NeoForge installation is available, but installation and runtime compatibility have not been fully validated across game versions.
+- ZIP is a container, not a modpack format. Archives must contain a recognized Modrinth or MultiMC / Prism manifest. CurseForge modpack import and file downloads are not supported.
+- Shaders require an installed and enabled Iris, Oculus, or OptiFine setup. Confirm data pack enablement in game after importing.
+- Browser authorization is followed by Xbox and Minecraft service verification. Actual sign-in and reaching an in-game menu require a valid application configuration and a real account; local tests cannot replace end-to-end verification.
+- Windows x64 is the build and validation target. ARM-native dependencies are not selected.
 
-## Run the release build
+## Data and logs
 
-Download `CMCLauncher-0.9.3-beta-win-x64.zip` from the GitHub Releases page, extract the archive, and run `CMCLauncher.exe`. The archive is self-contained and includes the .NET and Windows App SDK runtime. It does not include account tokens, local launcher settings, or game data. The publisher's public Microsoft OAuth client identifier is compiled into the launcher.
+| Location | Contents |
+| --- | --- |
+| `%APPDATA%/CraftLauncher.Native/settings.json` | Launcher settings, instance records, and encrypted account credentials |
+| `%APPDATA%/CraftLauncher.Native/library/` | Default instances and dependency libraries; a different game root can be selected in the launcher |
+| `%APPDATA%/CraftLauncher.Native/runtimes/` | Java installations downloaded by the launcher |
+| `logs/launcher-yyyyMMdd.log` beside the executable | Launcher runtime logs |
+| `logs/` and `crash-reports/` inside an instance | Game logs and crash reports |
 
-## Build from source
+Credentials are encrypted with DPAPI for the current Windows user. Copying the configuration to another user or device may require signing in again. When backing up games, include saves and settings from their actual instance directories.
 
-Install the .NET 8 SDK and Windows App SDK prerequisites, then run:
+The launcher's HTTPS client rejects certificate public keys on its embedded denylist, even when the SSL-error override is enabled. See [CertificatePolicy.cs](native/CertificatePolicy.cs). This policy does not modify Windows trust stores or change certificate validation performed by external Java installers and games.
+
+## Run from source
+
+On Windows, install the .NET 8 SDK and the Windows SDK / development tools needed to build WinUI 3 projects. The project targets `net8.0-windows10.0.19041.0` and x64. Run the following commands from the repository root after cloning:
 
 ```powershell
+git clone https://github.com/com-in/CMCLauncher.git
+cd CMCLauncher
 dotnet run --project winui/CraftLauncher.WinUI.csproj -p:Platform=x64
-dotnet run --project native.tests/CraftLauncher.Tests.csproj -c Release
-dotnet build winui/CraftLauncher.WinUI.csproj -c Release -p:Platform=x64
-dotnet publish winui/CraftLauncher.WinUI.csproj -c Release -p:Platform=x64 -r win-x64 --self-contained true -o dist/cmc-launcher
 ```
 
-Microsoft device-code sign-in uses the publisher's compiled public OAuth client identifier. Local publisher builds read it from the ignored `winui/clientid.local.json` file. Tagged CI releases read the `MICROSOFT_CLIENT_ID` GitHub Actions secret and embed the identifier in the assembly; it is not copied beside the executable or committed to source control. Microsoft login completes only after Xbox authentication and a successful Minecraft Java profile lookup. The launcher does not collect Microsoft passwords.
+### Configure Microsoft sign-in
 
-The launcher stores configuration and encrypted credentials under `%APPDATA%/CraftLauncher.Native/`; game instances and downloaded dependencies are stored in its `library/` folder by default. Existing `.minecraft` folders can be imported.
+A source build without a client ID can run the interface, but Microsoft sign-in is unavailable. To enable it in a local build, create `winui/clientid.local.json` with your configured public OAuth client ID:
 
-## Tests
+```json
+{
+  "clientId": "YOUR_MICROSOFT_CLIENT_ID"
+}
+```
 
-Run the native tests with:
+Replace the placeholder with a valid GUID. This file is ignored by Git and embedded as an assembly resource during compilation; it is not distributed as a separate JSON file. The client ID is a public identifier, not a client secret. Your application still needs the appropriate Microsoft / Minecraft API access configuration. The launcher does not collect Microsoft passwords.
+
+Tagged release builds read this identifier from the `MICROSOFT_CLIENT_ID` GitHub Actions secret. Ordinary PR builds do not write it.
+
+### Build and package
+
+Build the Release configuration:
+
+```powershell
+dotnet build winui/CraftLauncher.WinUI.csproj -c Release -p:Platform=x64
+```
+
+Publish a self-contained directory and create a ZIP archive:
+
+```powershell
+dotnet publish winui/CraftLauncher.WinUI.csproj -c Release -p:Platform=x64 -r win-x64 --self-contained true -o dist/cmc-launcher
+./scripts/package-release.ps1 -PublishDirectory dist/cmc-launcher -ArchivePath dist/CMCLauncher-0.9.3-beta-win-x64.zip
+```
+
+The packaging script excludes local configuration, credential, and key files, then checks that the archive contains the launcher executable.
+
+### Tests
+
+Run the native regression tests:
 
 ```powershell
 dotnet run --project native.tests/CraftLauncher.Tests.csproj -c Release
 ```
 
-The WinUI integration check runs against an isolated data directory and creates screenshots and a `passed.txt` report:
+These tests use Windows DPAPI and must run on Windows. The final local Java detection check also requires `java` on PATH.
+
+After publishing the application directory, run the WinUI integration check:
 
 ```powershell
 & ./dist/cmc-launcher/CMCLauncher.exe --verify-ui "$PWD/.artifacts/winui-check"
 ```
 
-## Known limitations
+The check uses an isolated data directory and produces screenshots and `passed.txt`. Failures are recorded in `failure.txt`.
 
-The launcher's own HTTPS client rejects the eight compromised eMudhra intermediate public keys reported in the [October 2026 incident](https://emudhra.we-have-a-problem.com/). The embedded SPKI SHA-256 denylist also covers cross-signed certificates and takes priority over the SSL-error override. This application policy does not modify Windows trust stores or the certificate validation performed by external Java installers and games.
+## Source layout
 
-- New loader installation currently supports Fabric. Forge and NeoForge profiles can be imported and inspected, but full installation and compatibility have not been validated across game versions.
-- CurseForge archive import and automatic Java downloads are not supported.
-- Shader packs require Iris or OptiFine. Data pack enablement should be confirmed in game.
-- Microsoft authentication and reaching an in-game menu require an authorized Microsoft application and a real account; local tests cannot verify those external services end to end.
-- Windows x64 is the tested target. ARM-native dependencies are not selected.
+| Directory | Contents |
+| --- | --- |
+| [`winui/`](winui/) | Desktop entry point, window, pages, controls, and UI services |
+| [`native/`](native/) | Downloads, launch arguments, authentication, Java, content management, and storage |
+| [`native.tests/`](native.tests/) | Native regression tests and certificate fixtures |
+| [`scripts/`](scripts/) | Publishing, resource organization, and packaging scripts |
+| [`docs/`](docs/) | Project website source and screenshot assets |
+| [`.github/workflows/`](.github/workflows/) | Automated tests, builds, and tagged releases |
+
+## Feedback and contributions
+
+Report problems through [Issues](https://github.com/com-in/CMCLauncher/issues). Include the launcher version, Windows version, Minecraft and loader versions, and steps to reproduce. For launch failures, attach the error report or relevant logs. Check for account information and local paths before sharing them.
+
+Run tests relevant to your changes before submitting a pull request. Include screenshots for layout changes, and check cancellation and failure cleanup when changing downloads, installation, or imports.
 
 ## License
 
-CMC Launcher is licensed under the GNU General Public License v3.0. See [LICENSE](LICENSE). Third-party dependencies retain their respective licenses. Minecraft, mods, and modpacks belong to their respective owners. CMC Launcher is not affiliated with Mojang Studios, Microsoft, or NetEase.
+CMC Launcher is licensed under the [GNU General Public License v3.0](LICENSE). Third-party dependencies retain their respective licenses.
+
+Minecraft, mods, and modpacks belong to their respective owners. CMC Launcher is not affiliated with Mojang Studios, Microsoft, or NetEase.
