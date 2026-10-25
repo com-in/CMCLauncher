@@ -39,7 +39,7 @@ public sealed partial class MainWindow : Window
     Func<string, CancellationToken, Task<CommunityProject>> fetchProject = null!;
     Func<string, CancellationToken, Task<List<CommunityVersion>>> fetchProjectVersions = null!;
     string communityGameCategory = "全部";
-    Func<string, string, Instance?, CancellationToken, bool, IReadOnlyCollection<string>?, Task<List<SearchResult>>> searchResources = null!;
+    Func<string, string, CancellationToken, int, int, Task<CommunitySearchPage>> searchResourcePage = null!;
     Func<string, string, string?, Task<List<ContentItem>>> listContent = (directory, type, targetWorld) => Task.Run(() => ContentManager.ListFiles(directory, type, targetWorld));
     Task contentLoad = Task.CompletedTask;
     internal readonly Queue<string> logs = new();
@@ -81,7 +81,7 @@ public sealed partial class MainWindow : Window
         fetchDownloadLoaderBuilds = core.LoaderBuilds;
         fetchProject = modrinth.ProjectDetails;
         fetchProjectVersions = modrinth.ProjectVersions;
-        searchResources = (query, type, instance, ct, browse, versions) => modrinth.Search(query, type, instance, ct, browse, versions);
+        searchResourcePage = modrinth.SearchPage;
         core.Status += Report; modrinth.Status += Report;
         core.DownloadBytes += bytes => { if (activeWork is { } work) Interlocked.Add(ref work.Bytes, bytes); };
         taskViewTimer = DispatcherQueue.CreateTimer(); taskViewTimer.Interval = TimeSpan.FromMilliseconds(500);

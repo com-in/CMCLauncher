@@ -26,36 +26,40 @@ public sealed partial class MainWindow
     // 先展示表单，再异步拉取版本目录；失败时仍保留已有缓存列表。
     Task Downloads()
     {
-        Header("版本下载", "");
-        var form = new Grid { ColumnSpacing = 16, HorizontalAlignment = HorizontalAlignment.Stretch };
-        form.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(0.9, GridUnitType.Star) });
-        form.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1.1, GridUnitType.Star) });
+        Header("版本下载", Ui("第 1 步：选择要安装的游戏版本。", "Step 1: choose a game version to install."));
+        var form = new Grid { HorizontalAlignment = HorizontalAlignment.Stretch, Tag = "game-download-form" };
         var releaseTypes = new[] { "正式版", "快照", "愚人节" };
         var category = new Grid { ColumnSpacing = 6 };
         var categoryButtons = new List<RadioButton>();
         foreach (var value in releaseTypes)
         {
             category.ColumnDefinitions.Add(new ColumnDefinition());
+            category.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
             var button = new RadioButton { Content = Ui(value), GroupName = "MinecraftVersionCategory", IsChecked = value == releaseCategory, HorizontalAlignment = HorizontalAlignment.Stretch, MinWidth = 0, Padding = new Thickness(6, 7, 6, 7) };
             Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(button, value);
             Grid.SetColumn(button, categoryButtons.Count); categoryButtons.Add(button); category.Children.Add(button);
         }
         Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(category, Ui("版本类型"));
-        var versions = new ListView { SelectionMode = ListViewSelectionMode.Single, IsItemClickEnabled = false, HorizontalAlignment = HorizontalAlignment.Stretch, MinHeight = 160, MaxHeight = 360 };
+        var versionSearch = new TextBox { PlaceholderText = Ui("搜索版本号，例如 1.21", "Find a version, e.g. 1.21"), Tag = "game-version-search", HorizontalAlignment = HorizontalAlignment.Stretch };
+        var versions = new ListView { SelectionMode = ListViewSelectionMode.Single, IsItemClickEnabled = true, HorizontalAlignment = HorizontalAlignment.Stretch, MinHeight = 240, MaxHeight = 400 };
         Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(versions, Ui("Minecraft 版本"));
         ScrollViewer.SetHorizontalScrollBarVisibility(versions, ScrollBarVisibility.Disabled);
         ScrollViewer.SetVerticalScrollBarVisibility(versions, ScrollBarVisibility.Hidden);
         var versionStatus = Text("正在获取官方版本列表…", 12);
-        var versionDetail = Text(Ui("请先在右侧选择游戏版本", "Select a game version on the right first"), 15, true);
+        var versionDetail = Text(Ui("尚未选择版本", "No version selected"), 21, true);
         versionDetail.Foreground = Brush(lightTheme ? "#69745F" : "#ACADBD");
-        var versionSection = new StackPanel { Spacing = 12, Children = { Text("选择游戏版本", 17, true), category, versionStatus, versions } };
-        var installSection = new StackPanel { Spacing = 16, Children = { Text(Ui("安装选项", "Installation options"), 17, true), versionDetail } };
+        var emptyVersions = Text(Ui("没有匹配的版本，试试其他版本号或分类。", "No matching versions. Try a different version number or category."), 12);
+        emptyVersions.Visibility = Visibility.Collapsed;
+        var versionSection = new StackPanel { Spacing = 12, Children = { Text(Ui("1 · 选择游戏版本", "1 · Choose a game version"), 16, true), category, versionSearch, versionStatus, versions, emptyVersions } };
+        var back = new Button { Content = Ui("← 重新选择版本", "← Choose another version"), Tag = "game-download-back", HorizontalAlignment = HorizontalAlignment.Left };
+        var installSection = new StackPanel { Spacing = 16, Children = { back, Text(Ui("2 · 安装选项", "2 · Installation options"), 16, true), versionDetail } };
         var loader = new BelowComboBox { Header = Ui("加载器", "Mod loader"), ItemsSource = store.Config.Settings.LauncherLanguage == "en_us" ? new[] { "Vanilla", "Fabric", "Forge", "NeoForge" } : new[] { "原版", "Fabric", "Forge", "NeoForge" }, SelectedIndex = 0, HorizontalAlignment = HorizontalAlignment.Stretch };
         var name = new TextBox { Header = Ui("安装名称", "Installation name"), Text = "", MaxLength = 80 };
         var nameError = new TextBlock { Foreground = Brush(lightTheme ? "#C42B1C" : "#FF99A4"), TextWrapping = TextWrapping.Wrap, FontSize = 12, Visibility = Visibility.Collapsed };
         var loaderStatus = Text("", 12); loaderStatus.Visibility = Visibility.Collapsed;
+        var loaderRetry = new Button { Content = Ui("重试加载器查询", "Retry loader lookup"), Tag = "game-loader-retry", Visibility = Visibility.Collapsed, HorizontalAlignment = HorizontalAlignment.Left };
         var nameSection = new StackPanel { Spacing = 4, Children = { name, nameError } };
-        var options = new StackPanel { Spacing = 14, Children = { loader, loaderStatus, nameSection } };
+        var options = new StackPanel { Spacing = 14, Children = { loader, loaderStatus, loaderRetry, nameSection } };
         var note = Text("", 12); note.Visibility = Visibility.Collapsed;
         note.Foreground = Brush(lightTheme ? "#69745F" : "#ACADBD");
         var isolation = Text("版本隔离已启用 · 每个版本独立保存 Mods、存档与设置", 12);
@@ -63,12 +67,33 @@ public sealed partial class MainWindow
         installSection.Children.Add(options); installSection.Children.Add(isolation); installSection.Children.Add(note);
         var versionCard = Card(versionSection); versionCard.Padding = new Thickness(18); versionCard.VerticalAlignment = VerticalAlignment.Top;
         var installCard = Card(installSection); installCard.Padding = new Thickness(18); installCard.VerticalAlignment = VerticalAlignment.Top;
+        versionCard.Tag = "game-version-step";
+        installCard.Tag = "game-install-step"; installCard.Visibility = Visibility.Collapsed;
         Button? download = null;
         string automaticName = "", resolvedLoaderVersion = "", resolvedBuild = "";
         string? loaderFailure = null;
         bool loadingLoader = false;
         int loaderRequest = 0;
         var viewVersion = renderVersion;
+        bool changingVersionList = false;
+        // 两步复用当前表单，返回选版本时保留搜索词、分类和用户填写的安装名称。
+        void ShowStep(bool installation)
+        {
+            if (viewVersion != renderVersion) return;
+            versionCard.Visibility = installation ? Visibility.Collapsed : Visibility.Visible;
+            installCard.Visibility = installation ? Visibility.Visible : Visibility.Collapsed;
+            PageSubtitle.Text = installation
+                ? Ui("第 2 步：确认安装选项并开始下载。", "Step 2: review installation options and start downloading.")
+                : Ui("第 1 步：选择要安装的游戏版本。", "Step 1: choose a game version to install.");
+            PageViewport.ChangeView(null, 0, null, true);
+            DispatcherQueue.TryEnqueue(() =>
+            {
+                if (viewVersion != renderVersion) return;
+                if (installation && installCard.Visibility == Visibility.Visible) loader.Focus(FocusState.Programmatic);
+                else if (!installation && versionCard.Visibility == Visibility.Visible) versions.Focus(FocusState.Programmatic);
+            });
+        }
+        back.Click += (_, _) => ShowStep(false); taskButtons.Add(back);
         string LoaderType() => loader.SelectedIndex switch { 1 => "fabric", 2 => "forge", 3 => "neoforge", _ => "vanilla" };
         void ValidateName()
         {
@@ -90,6 +115,7 @@ public sealed partial class MainWindow
         async Task ResolveLoader()
         {
             var request = ++loaderRequest;
+            loaderRetry.Visibility = Visibility.Collapsed;
             resolvedLoaderVersion = resolvedBuild = ""; loaderFailure = null;
             var mc = versions.SelectedItem as string;
             var type = LoaderType();
@@ -112,30 +138,42 @@ public sealed partial class MainWindow
                 if (request != loaderRequest || viewVersion != renderVersion) return;
                 loaderFailure = ex is OperationCanceledException ? Ui("加载器查询超时，请重新选择后重试。", "Loader lookup timed out. Select the loader again to retry.") : ex.Message;
                 loaderStatus.Text = loaderFailure;
+                loaderRetry.Visibility = Visibility.Visible;
             }
             finally
             {
                 if (request == loaderRequest && viewVersion == renderVersion) { loadingLoader = false; SuggestName(); }
             }
         }
+        loaderRetry.Click += async (_, _) => { loaderRetry.IsEnabled = false; try { await ResolveLoader(); } finally { loaderRetry.IsEnabled = true; } };
         void SyncSelection()
         {
             var hasSelection = versions.SelectedItem is string;
             loader.IsEnabled = name.IsEnabled = hasSelection;
             options.Opacity = hasSelection ? 1 : 0.5;
             ValidateName();
-            versionDetail.Text = versions.SelectedItem is string value ? "Minecraft " + value : Ui("请先在右侧选择游戏版本", "Select a game version on the right first");
+            versionDetail.Text = versions.SelectedItem is string value ? "Minecraft " + value : Ui("尚未选择版本", "No version selected");
+            versionDetail.Foreground = Brush(hasSelection ? (lightTheme ? ThemeTokens.LightText : ThemeTokens.DarkText) : (lightTheme ? ThemeTokens.LightMuted : ThemeTokens.DarkMuted));
+            if (!hasSelection && !changingVersionList) ShowStep(false);
         }
         void FilterVersions()
         {
             var previous = versions.SelectedItem as string;
-            var values = cachedVersions.Where(v => v.Category == releaseCategory).Select(v => v.Id).ToList();
-            versions.ItemsSource = values;
-            versions.SelectedItem = previous != null && values.Contains(previous) ? previous : null;
+            var values = cachedVersions.Where(v => v.Category == releaseCategory && v.Id.Contains(versionSearch.Text.Trim(), StringComparison.OrdinalIgnoreCase)).Select(v => v.Id).ToList();
+            changingVersionList = true;
+            try
+            {
+                versions.ItemsSource = values;
+                versions.SelectedItem = previous != null && values.Contains(previous) ? previous : null;
+            }
+            finally { changingVersionList = false; }
             versions.IsEnabled = values.Count > 0;
+            versions.Visibility = values.Count == 0 && cachedVersions.Count > 0 ? Visibility.Collapsed : Visibility.Visible;
             versionStatus.Text = $"{Ui(releaseCategory)} · {values.Count} {Ui("个版本", "versions")}";
+            emptyVersions.Visibility = values.Count == 0 && cachedVersions.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
             SyncSelection();
         }
+        versionSearch.TextChanged += (_, _) => FilterVersions();
         if (cachedVersions.Count > 0) FilterVersions();
         foreach (var button in categoryButtons) button.Checked += (_, _) =>
         {
@@ -144,7 +182,19 @@ public sealed partial class MainWindow
             releaseCategory = value;
             versions.SelectedItem = null; FilterVersions();
         };
-        versions.SelectionChanged += async (_, _) => { SyncSelection(); await ResolveLoader(); };
+        versions.SelectionChanged += async (_, _) =>
+        {
+            SyncSelection();
+            if (!changingVersionList && versions.SelectedItem is string) ShowStep(true);
+            await ResolveLoader();
+        };
+        // 返回后再点同一个版本不会触发 SelectionChanged，仍应进入安装选项。
+        versions.ItemClick += (_, args) =>
+        {
+            if (args.ClickedItem is not string) return;
+            versions.SelectedItem = args.ClickedItem;
+            ShowStep(true);
+        };
         name.TextChanged += (_, _) => ValidateName();
         var loadingVersions = false;
         async Task LoadVersions()
@@ -172,7 +222,7 @@ public sealed partial class MainWindow
             }
             finally { loadingVersions = false; if (ReferenceEquals(resourceSearch, request)) resourceSearch = null; }
         }
-        var refresh = Action("刷新版本列表", async (_, _) => await LoadVersions());
+        var refresh = Action(Ui("刷新", "Refresh"), async (_, _) => await LoadVersions());
         download = Action("下载并安装", async (_, _) =>
         {
             if (versions.SelectedItem is not string gameVersion) throw new Exception("请选择 Minecraft 版本");
@@ -202,9 +252,38 @@ public sealed partial class MainWindow
             await ResolveLoader();
         };
         download.HorizontalAlignment = HorizontalAlignment.Stretch;
+        download.MinHeight = 44;
         installSection.Children.Add(download);
-        versionSection.Children.Insert(3, refresh);
-        form.Children.Add(installCard); Grid.SetColumn(versionCard, 1); form.Children.Add(versionCard);
+        refresh.MinWidth = 56; refresh.MinHeight = 28; refresh.Padding = new Thickness(8, 4, 8, 4);
+        var catalogToolbar = new Grid { ColumnSpacing = 8 };
+        catalogToolbar.ColumnDefinitions.Add(new ColumnDefinition());
+        catalogToolbar.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        versionSection.Children.Remove(versionStatus);
+        versionStatus.VerticalAlignment = VerticalAlignment.Center;
+        catalogToolbar.Children.Add(versionStatus); Grid.SetColumn(refresh, 1); catalogToolbar.Children.Add(refresh);
+        versionSection.Children.Insert(3, catalogToolbar);
+        form.Children.Add(versionCard); form.Children.Add(installCard);
+        // 两步分别占满正文区域，只根据可用宽度调整版本分类排列。
+        void ArrangeDownloadCards()
+        {
+            var fontSize = store.Config.Settings.UiFontSize;
+            var fontScale = double.IsFinite(fontSize) ? Math.Max(1, Math.Clamp(fontSize, 12, 22) / 14) : 1;
+            var narrow = form.ActualWidth < 680 * fontScale;
+            versions.MaxHeight = narrow ? 300 : 400;
+            versions.MinHeight = narrow ? 160 : 240;
+            // 小窗口里单选框横排会把中文标签挤成逐字换行，改为整行排列。
+            var versionWidth = form.ActualWidth;
+            var verticalCategories = versionWidth < 380 * fontScale;
+            category.RowSpacing = verticalCategories ? 2 : 0;
+            for (var index = 0; index < categoryButtons.Count; index++)
+            {
+                Grid.SetRow(categoryButtons[index], verticalCategories ? index : 0);
+                Grid.SetColumn(categoryButtons[index], verticalCategories ? 0 : index);
+                Grid.SetColumnSpan(categoryButtons[index], verticalCategories ? 3 : 1);
+            }
+        }
+        form.SizeChanged += (_, _) => ArrangeDownloadCards();
+        form.Loaded += (_, _) => ArrangeDownloadCards();
         PageBody.Children.Add(form);
         SyncSelection();
         _ = LoadVersions();

@@ -30,7 +30,7 @@ The release archive includes the .NET and Windows App SDK runtimes, so you do no
 | Games and instances | Browse releases, snapshots, and April Fools versions; create isolated instances; import local game folders |
 | Loaders | Query and install Fabric, Forge, and NeoForge; identify loaders used by imported versions |
 | Modpacks | Import Modrinth `.mrpack` files, ZIP archives with supported manifests, and MultiMC / Prism ZIP exports; drag-and-drop import |
-| Community content | Browse Modrinth projects and versions; check game, loader, and installation-target compatibility |
+| Community content | Browse paginated Modrinth rankings and search results; view project versions and check game, loader, and installation-target compatibility |
 | Content management | Inspect Mod metadata and icons; import, disable, or remove content; manage data packs by world |
 | Java and memory | Scan, import, and download Temurin Java; match Java versions automatically; use automatic or manual heap allocation |
 | Downloads | View progress and speed, cancel tasks, and configure 1–256 simultaneous file downloads; default: 16 |

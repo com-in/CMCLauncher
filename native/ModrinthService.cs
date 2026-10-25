@@ -10,6 +10,10 @@ public sealed record SearchResult(string Id, string Name, string Description, st
 }
 public sealed record CommunityProject(string Name, string Description, string Body, string IconUrl, long Downloads, long Followers, List<string> Categories);
 public sealed record CommunityVersion(string Id, string Name, string Number, string Type, string Published, List<string> GameVersions, List<string> Loaders);
+public sealed record CommunitySearchPage(IReadOnlyList<SearchResult> Hits, int Offset, int Limit, int TotalHits)
+{
+    public bool HasNext => Hits.Count > 0 && (long)Offset + Hits.Count < TotalHits;
+}
 // 社区查询与安装共用 LauncherCore 的网络设置，页面只接收整理后的项目和版本信息。
 public sealed class ModrinthService(LauncherCore core, Store store)
 {
@@ -58,8 +62,26 @@ public sealed class ModrinthService(LauncherCore core, Store store)
         }
         else if (type == "mod" && !browse && instance == null) throw new Exception(ModInstallUnsupportedReason(null)!);
         else if (instance != null && type != "modpack") facets.Add(["versions:" + instance.GameVersion]);
-        var url = "https://api.modrinth.com/v2/search?limit=16&index=" + (string.IsNullOrWhiteSpace(query) ? "downloads" : "relevance") + "&query=" + Uri.EscapeDataString(query) + "&facets=" + Uri.EscapeDataString(System.Text.Json.JsonSerializer.Serialize(facets));
-        return (await core.Json(url, ct))["hits"].Items().Select(h => new SearchResult(h.S("project_id"), h.S("title"), h.S("description"), type, h.S("icon_url"), h["downloads"]?.GetValue<long>() ?? 0)).ToList();
+        return (await FetchSearchPage(query, type, facets, 0, 16, ct)).Hits.ToList();
+    }
+
+    // 搜索和榜单共用服务端分页；总数来自 total_hits，不能用“本页是否填满”猜下一页。
+    public Task<CommunitySearchPage> SearchPage(string query, string type, CancellationToken ct, int offset = 0, int limit = 16)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(offset);
+        if (limit is < 1 or > 100) throw new ArgumentOutOfRangeException(nameof(limit));
+        ArgumentNullException.ThrowIfNull(query);
+        return FetchSearchPage(query, type, [new[] { "project_type:" + type }], offset, limit, ct);
+    }
+
+    async Task<CommunitySearchPage> FetchSearchPage(string query, string type, List<string[]> facets, int offset, int limit, CancellationToken ct)
+    {
+        var url = $"https://api.modrinth.com/v2/search?limit={limit}&offset={offset}&index=" +
+            (string.IsNullOrWhiteSpace(query) ? "downloads" : "relevance") + "&query=" + Uri.EscapeDataString(query) +
+            "&facets=" + Uri.EscapeDataString(System.Text.Json.JsonSerializer.Serialize(facets));
+        var response = await core.Json(url, ct);
+        var hits = response["hits"].Items().Select(h => new SearchResult(h.S("project_id"), h.S("title"), h.S("description"), type, h.S("icon_url"), h["downloads"]?.GetValue<long>() ?? 0)).ToList();
+        return new(hits, offset, limit, Math.Max(0, response.Int("total_hits", offset + hits.Count)));
     }
     async Task<JsonNode> ProjectVersion(string project, string? gameVersion, string? loader, CancellationToken ct)
     {

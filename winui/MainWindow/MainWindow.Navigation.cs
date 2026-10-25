@@ -19,6 +19,8 @@ public sealed partial class MainWindow
     StackPanel? pendingPageBody;
     readonly Dictionary<string, Button> navigationButtons = new();
     readonly Dictionary<string, Border> navigationIndicators = new();
+    readonly Dictionary<string, AnimatedNavigationIndicator> animatedNavigationIndicators = new();
+    string? selectedRootIndicator, selectedPageIndicator;
     readonly Dictionary<string, StackPanel> navigationSubmenus = new();
     readonly Dictionary<string, AnimatedSubmenu> animatedSubmenus = new();
     internal string expandedNavigation = "home";
@@ -86,6 +88,7 @@ public sealed partial class MainWindow
         var navigationKey = key.StartsWith("root:") ? key : "page:" + key;
         navigationButtons[navigationKey] = button;
         navigationIndicators[navigationKey] = indicator;
+        animatedNavigationIndicators[navigationKey] = new AnimatedNavigationIndicator(indicator);
         return button;
     }
     void SyncNavigation()
@@ -97,14 +100,22 @@ public sealed partial class MainWindow
             animatedSubmenus[key].SetExpanded(visible, pageFrameReady && systemUi.AnimationsEnabled);
         }
         var activeGroup = page switch { "home" or "version-settings" or "instances" => "home", "resource-detail" or "downloads" or "discover" or "packs" or "download-mod" or "download-datapack" or "download-resourcepack" or "download-shader" => "downloads", "settings" or "personalization" or "java" or "accounts" or "logs" => "settings", _ => "more" };
+        var rootKey = "root:" + activeGroup;
+        var pageKey = "page:" + (page == "resource-detail" ? resourceReturnPage : page);
+        var keys = navigationButtons.Keys.ToList();
+        double Offset(string? oldKey, string newKey) => oldKey != null && keys.Contains(oldKey) && keys.Contains(newKey)
+            ? Math.Sign(keys.IndexOf(oldKey) - keys.IndexOf(newKey)) * 8 : 0;
+        var rootOffset = Offset(selectedRootIndicator, rootKey);
+        var pageOffset = Offset(selectedPageIndicator, pageKey);
         foreach (var (key, button) in navigationButtons)
         {
-            var selected = key == "page:" + (page == "resource-detail" ? resourceReturnPage : page) || key == "root:" + activeGroup;
+            var selected = key == pageKey || key == rootKey;
             button.Background = selected ? Brush(lightTheme ? "#DDE8D6" : "#2C3550") : new SolidColorBrush(Colors.Transparent);
             if (navigationIndicators.TryGetValue(key, out var indicator))
             {
                 indicator.Background = Brush(lightTheme ? "#416D37" : "#536DBD");
-                indicator.Opacity = selected ? 1 : 0;
+                animatedNavigationIndicators[key].SetSelected(selected, pageFrameReady && systemUi.AnimationsEnabled,
+                    key.StartsWith("root:") ? rootOffset : pageOffset);
             }
             if (button.Content is Grid row)
             {
@@ -112,6 +123,7 @@ public sealed partial class MainWindow
                 foreach (var label in row.Children.OfType<TextBlock>()) label.Foreground = Brush(selected ? (lightTheme ? "#30592B" : "#91A9F0") : (lightTheme ? "#41424D" : "#E5E5EE"));
             }
         }
+        selectedRootIndicator = rootKey; selectedPageIndicator = pageKey;
         foreach (var group in new[] { "downloads", "settings", "more" })
             if (navigationButtons.TryGetValue("root:" + group, out var root) && root.Content is Grid grid && grid.Children.OfType<FontIcon>().LastOrDefault() is { } chevron) chevron.Glyph = expandedNavigation == group ? "\uE70E" : "\uE70D";
     }

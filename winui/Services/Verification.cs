@@ -19,7 +19,6 @@ public sealed partial class MainWindow
         // 用固定项目和搜索结果替换网络入口，交互断言不依赖社区服务的实时数据。
         var passed = new List<string>();
         var resourceRequests = new List<string>();
-        var resourceVersionFilters = new List<IReadOnlyCollection<string>?>();
         fetchProject = (_, _) => Task.FromResult(new CommunityProject("详情测试项目", "项目摘要", "# 使用说明\n\n支持 **粗体**、*斜体*、`代码` 和 [项目链接](https://modrinth.com)。\n\n- 自动解析依赖\n- 选择兼容版本\n\n> 保留原生界面。\n\n```text\n示例代码\n```\n\n| 版本 | 加载器 |\n| --- | --- |\n| 1.21.1 | Fabric |", "", 123456, 100, ["fabric"]));
         fetchProjectVersions = (_, _) => Task.FromResult(new List<CommunityVersion>
         {
@@ -28,10 +27,10 @@ public sealed partial class MainWindow
             new("snapshot", "资源正式发布但支持快照", "3.0", "release", "2026-10-21T00:00:00Z", ["24w10a", "24w14potato"], ["fabric"])
         });
         fetchVersions = async ct => { await Task.Delay(20, ct); return [new GameRelease("1.21.1", "release"), new GameRelease("1.20.1", "release"), new GameRelease("24w10a", "snapshot"), new GameRelease("24w14potato", "snapshot")]; };
-        searchResources = async (query, type, target, ct, browse, gameVersions) =>
+        searchResourcePage = async (query, type, ct, offset, limit) =>
         {
-            resourceRequests.Add(type); resourceVersionFilters.Add(gameVersions); await Task.Delay(30, ct);
-            return [new SearchResult("fixture", "榜单测试 · " + type, "隔离榜单数据", type, "")];
+            resourceRequests.Add(type); await Task.Delay(30, ct);
+            return new CommunitySearchPage([new SearchResult("fixture", "榜单测试 · " + type, "隔离榜单数据", type, "")], offset, limit, 1);
         };
         void Check(bool value, string message) { if (!value) throw new Exception(message); passed.Add(message); File.AppendAllText(Path.Combine(directory, "passed.txt"), message + Environment.NewLine); }
         Check(IsModpackFile("Pack.MRPACK") && IsModpackFile("Pack.ZIP") && !IsModpackFile("mod.jar"), "drag import recognizes both archive extensions case insensitively");
@@ -64,6 +63,16 @@ public sealed partial class MainWindow
         Check(!systemUi.AnimationsEnabled || animatedSubmenus["downloads"].IsAnimating, "download submenu animates closed before hiding");
         await Task.Delay(300);
         Check(navigationSubmenus["downloads"].Visibility == Visibility.Collapsed && animatedSubmenus["downloads"].View.Visibility == Visibility.Collapsed, "collapsed submenu releases sidebar space after animation");
+        page = "downloads"; SyncNavigation();
+        Check(!systemUi.AnimationsEnabled || animatedNavigationIndicators["root:downloads"].IsAnimating, "selected navigation blue indicator animates when Windows animations are enabled");
+        SyncNavigation();
+        page = "settings"; SyncNavigation(); page = "home"; SyncNavigation();
+        await Task.Delay(260);
+        Check(navigationIndicators["root:home"].Opacity == 1 && navigationIndicators["root:downloads"].Opacity == 0 && navigationIndicators["root:settings"].Opacity == 0 && animatedNavigationIndicators.Values.All(indicator => !indicator.IsAnimating), "rapid navigation changes settle the blue indicator on the latest selection");
+        Check(navigationIndicators["root:home"].RenderTransform is CompositeTransform { ScaleY: 1, TranslateY: 0 }, "navigation indicator finishes at its original size and position");
+        animatedNavigationIndicators["root:home"].SetSelected(false, false);
+        animatedNavigationIndicators["root:home"].SetSelected(true, false);
+        Check(navigationIndicators["root:home"].Opacity == 1 && !animatedNavigationIndicators["root:home"].IsAnimating, "navigation indicator supports immediate updates without animation");
         Check(LauncherCore.LoaderBuildPrefix("1.21.1", "neoforge") == "21.1.", "NeoForge build prefix maps Minecraft version");
         Check(LauncherCore.LoaderBuildPrefix("1.20.1", "forge") == "1.20.1-", "Forge build prefix includes Minecraft version");
         Check(Directory.GetDirectories(Path.Combine(AppContext.BaseDirectory, "languages")).Length >= 80, "WinUI system language resources are organized under languages folder");
@@ -236,9 +245,10 @@ public sealed partial class MainWindow
             for (var wait = 0; wait < 100 && !Descendants(PageBody).OfType<TextBlock>().Any(t => t.Text == "榜单测试 · " + category); wait++) await Task.Delay(20);
             Check(resourceRequests.Contains(category) && Descendants(PageBody).OfType<TextBlock>().Any(t => t.Text == "榜单测试 · " + category), category + " ranking loads automatically on entry");
             Check(!Descendants(PageBody).OfType<ComboBox>().Any(c => c.ItemsSource is IEnumerable<Instance>), category + " download page has no instance dropdown");
-            Check(!Descendants(PageBody).OfType<ComboBox>().Any(c => c.Header?.ToString() == "Minecraft 游戏版本类型") && resourceVersionFilters.Last() == null, category + " resource list has no Minecraft version filter");
+            Check(!Descendants(PageBody).OfType<ComboBox>().Any(c => c.Header?.ToString() == "Minecraft 游戏版本类型"), category + " resource list has no Minecraft version filter");
             Check(!Descendants(PageBody).OfType<ComboBox>().Any(c => c.Items.Contains("modpack")) && Descendants(PageBody).OfType<Button>().Any(b => b.Content?.ToString() == "搜索") && !Descendants(PageBody).OfType<Button>().Any(b => b.Content?.ToString() is "停用" or "移除" or "导入 ZIP"), category + " download page searches online content only");
         }
+        await VerifyCommunityPagination(Check, directory);
         var detailsButton = Descendants(PageBody).OfType<Button>().First(b => b.Content?.ToString() == "查看详情");
         PageBody.Children.Add(new Border { Height = 1800 });
         PageViewport.UpdateLayout(); PageViewport.ChangeView(null, 420, null, true); await Task.Delay(80);
@@ -361,13 +371,27 @@ public sealed partial class MainWindow
         page = "downloads"; await RenderAsync(); ((FrameworkElement)Content).UpdateLayout();
         await Task.Delay(60);
         var gameVersions = Descendants(PageBody).OfType<ListView>().Single();
+        var downloadForm = Descendants(PageBody).OfType<Grid>().Single(g => g.Tag?.ToString() == "game-download-form");
+        var versionStep = downloadForm.Children.OfType<Border>().Single(card => card.Tag?.ToString() == "game-version-step");
+        var installationStep = downloadForm.Children.OfType<Border>().Single(card => card.Tag?.ToString() == "game-install-step");
+        Check(gameVersions.Items.Count == 2 && gameVersions.SelectedItem == null && versionStep.Visibility == Visibility.Visible && installationStep.Visibility == Visibility.Collapsed, "download first step shows only game version selection");
+        await Task.Delay(350); ((FrameworkElement)Content).UpdateLayout();
+        await Capture(Path.Combine(directory, "game-download-step-1.png"));
+        gameVersions.SelectedItem = "1.21.1"; await Task.Delay(40); ((FrameworkElement)Content).UpdateLayout();
         var gameLoader = Descendants(PageBody).OfType<ComboBox>().Single(c => c.Header?.ToString() == "加载器");
         var installationName = Descendants(PageBody).OfType<TextBox>().Single(c => c.Header?.ToString() == "安装名称");
         var installGame = Descendants(PageBody).OfType<Button>().Single(b => b.Content?.ToString() == "下载并安装");
-        Check(gameVersions.Items.Count == 2 && gameVersions.SelectedItem == null && !gameLoader.IsEnabled && !installationName.IsEnabled && !installGame.IsEnabled, "official game versions load without enabling installation before selection");
-        gameVersions.SelectedItem = "1.21.1";
+        Check(versionStep.Visibility == Visibility.Collapsed && installationStep.Visibility == Visibility.Visible, "choosing a game version automatically opens installation step");
         Check(gameLoader.IsEnabled && installationName.IsEnabled && installGame.IsEnabled, "selecting a game version enables installation controls");
         Check(installationName.Text == "1.21.1", "vanilla installation name defaults to selected Minecraft version");
+        var installationBack = Descendants(PageBody).OfType<Button>().Single(button => button.Tag?.ToString() == "game-download-back");
+        ((IInvokeProvider)new ButtonAutomationPeer(installationBack).GetPattern(PatternInterface.Invoke)).Invoke(); await Task.Delay(40);
+        Check(versionStep.Visibility == Visibility.Visible && installationStep.Visibility == Visibility.Collapsed && gameVersions.SelectedItem?.ToString() == "1.21.1", "installation back returns to version selection and preserves current version");
+        gameVersions.SelectedItem = "1.20.1"; await Task.Delay(40);
+        Check(installationStep.Visibility == Visibility.Visible && installationName.Text == "1.20.1", "choosing another version updates the installation step");
+        ((IInvokeProvider)new ButtonAutomationPeer(installationBack).GetPattern(PatternInterface.Invoke)).Invoke(); await Task.Delay(40);
+        gameVersions.SelectedItem = "1.21.1"; await Task.Delay(40);
+        await Capture(Path.Combine(directory, "game-download-step-2.png"));
         installationName.Text = instance.Name;
         await Task.Delay(30);
         Check(!installGame.IsEnabled && Descendants(PageBody).OfType<TextBlock>().Any(t => t.Text.Contains("已存在同名版本") && t.Visibility == Visibility.Visible), "duplicate version name shows inline error and prevents installation");
@@ -383,6 +407,16 @@ public sealed partial class MainWindow
         Check(installationName.Text == "My custom name", "loader changes preserve a manually edited version name");
         installationName.Text = ""; gameLoader.SelectedIndex = 0;
         Check(installationName.Text == "1.21.1" && installGame.IsEnabled, "switching back to vanilla restores automatic base version name");
+        var savedLoaderBuilds = fetchDownloadLoaderBuilds;
+        fetchDownloadLoaderBuilds = (_, _, _) => Task.FromException<List<string>>(new HttpRequestException("loader fixture failure"));
+        gameLoader.SelectedIndex = 1; await Task.Delay(50);
+        var retryLoader = Descendants(PageBody).OfType<Button>().Single(b => b.Tag?.ToString() == "game-loader-retry");
+        Check(retryLoader.Visibility == Visibility.Visible && !installGame.IsEnabled, "failed loader lookup offers retry and blocks installation");
+        fetchDownloadLoaderBuilds = savedLoaderBuilds;
+        ((IInvokeProvider)new ButtonAutomationPeer(retryLoader).GetPattern(PatternInterface.Invoke)).Invoke(); await Task.Delay(80);
+        Check(retryLoader.Visibility == Visibility.Collapsed && installGame.IsEnabled, "loader retry restores installation without changing the selection");
+        gameLoader.SelectedIndex = 0; await Task.Delay(30);
+        ((IInvokeProvider)new ButtonAutomationPeer(installationBack).GetPattern(PatternInterface.Invoke)).Invoke(); await Task.Delay(40);
         var releaseTypes = Descendants(PageBody).OfType<RadioButton>().Where(b => b.Content?.ToString() is "正式版" or "快照" or "愚人节").ToArray();
         void SelectReleaseType(string label) => releaseTypes.Single(b => b.Content?.ToString() == label).IsChecked = true;
         SelectReleaseType("快照");
@@ -392,12 +426,32 @@ public sealed partial class MainWindow
         SelectReleaseType("正式版");
         gameVersions.SelectedItem = "1.20.1";
         ((FrameworkElement)Content).UpdateLayout(); await Task.Delay(450);
-        Check(gameLoader.TransformToVisual(PageBody).TransformPoint(new Windows.Foundation.Point()).X < gameVersions.TransformToVisual(PageBody).TransformPoint(new Windows.Foundation.Point()).X, "installation options appear to the left of the game version list");
+        Check(installationStep.Visibility == Visibility.Visible && versionStep.Visibility == Visibility.Collapsed, "release selection advances to installation after changing category");
+        ((IInvokeProvider)new ButtonAutomationPeer(installationBack).GetPattern(PatternInterface.Invoke)).Invoke(); await Task.Delay(40);
+        var versionSearch = Descendants(PageBody).OfType<TextBox>().Single(t => t.Tag?.ToString() == "game-version-search");
+        versionSearch.Text = "1.21"; await Task.Delay(50);
+        Check(gameVersions.Items.Count == 1 && gameVersions.Items[0]?.ToString() == "1.21.1" && gameVersions.SelectedItem == null && !installGame.IsEnabled, "version search filters catalog and clears an incompatible selection");
+        versionSearch.Text = "no-such-version"; await Task.Delay(50);
+        Check(gameVersions.Items.Count == 0 && !installGame.IsEnabled, "empty version search cannot enable installation");
+        versionSearch.Text = ""; await Task.Delay(50);
+        Check(gameVersions.Items.Count == 2, "clearing version search restores catalog");
+        foreach (var width in new[] { 740, 1600 })
+        {
+            AppWindow.Resize(new Windows.Graphics.SizeInt32(width, 820)); await Task.Delay(350); ((FrameworkElement)Content).UpdateLayout();
+            Check(versionStep.Visibility == Visibility.Visible && installationStep.Visibility == Visibility.Collapsed, width + " first download step hides installation options");
+            Check(releaseTypes.All(button => button.ActualHeight < 60), width + " release category labels do not wrap into vertical text");
+            await Capture(Path.Combine(directory, "game-download-select-" + width + ".png"));
+            gameVersions.SelectedItem = null; gameVersions.SelectedItem = "1.21.1"; await Task.Delay(50); ((FrameworkElement)Content).UpdateLayout();
+            Check(installationStep.Visibility == Visibility.Visible && versionStep.Visibility == Visibility.Collapsed && installGame.ActualWidth > 0 && installGame.ActualWidth <= PageViewport.ActualWidth, width + " second download step fits viewport");
+            await Capture(Path.Combine(directory, "game-download-install-" + width + ".png"));
+            ((IInvokeProvider)new ButtonAutomationPeer(installationBack).GetPattern(PatternInterface.Invoke)).Invoke(); await Task.Delay(40);
+        }
         await Capture(Path.Combine(directory, "download-version-types.png"));
         fetchVersions = ct => Task.FromException<List<GameRelease>>(new HttpRequestException("fixture network failure"));
         page = "downloads"; await RenderAsync(); await Task.Delay(60);
         Check(Descendants(PageBody).OfType<ListView>().Single().Items.Count == 2 && Descendants(PageBody).OfType<TextBlock>().Any(t => t.Text.Contains("已保留上次列表")), "version refresh failure retains previous list and explains retry");
         Check(Descendants(Content).OfType<TextBlock>().Any(t => t.Text == "版本下载"), "download page uses the version download heading");
+        Descendants(PageBody).OfType<ListView>().Single().SelectedItem = "1.21.1"; await Task.Delay(40); ((FrameworkElement)Content).UpdateLayout();
         var dropdowns = Descendants(PageBody).OfType<BelowComboBox>().ToArray();
         Check(dropdowns.Length >= 1 && Descendants(PageBody).OfType<ComboBox>().Count() == dropdowns.Length, "all dropdowns use the bottom anchored native control");
         dropdowns[0].ApplyTemplate();
@@ -418,7 +472,7 @@ public sealed partial class MainWindow
         store.Config.Settings.LauncherLanguage = "zh_cn"; await RenderAsync();
         communityGameCategory = "快照"; await Task.Delay(50);
         page = "packs"; await RenderAsync(); await Task.Delay(60);
-        Check(resourceRequests.Last() == "modpack" && resourceVersionFilters.Last() == null, "modpack search ignores prior version category filter");
+        Check(resourceRequests.Last() == "modpack", "modpack search ignores prior version category filter");
         communityGameCategory = "全部";
         var modalCalls = 0; showInstallDialog = _ => { modalCalls++; return Task.FromResult(ContentDialogResult.None); };
         page = "mods"; await RenderAsync(); await Task.Delay(80);
@@ -668,7 +722,7 @@ public sealed partial class MainWindow
         await SetMinecraftFolder(minecraftRoot); await SetMinecraftFolder(minecraftRoot);
         Check(store.MinecraftRoot == minecraftRoot && new Store(store.Root).MinecraftRoot == minecraftRoot, "Minecraft folder setting persists across reloads");
         Check(store.Config.Instances.Count(i => i.ImportRoot == minecraftRoot) == 1 && store.GameDirectory(instance) == oldGameDirectory, "folder scans import existing versions once and preserve old locations");
-        searchResources = (_, type, _, _, _, _) => Task.FromResult(new List<SearchResult> { new("responsive", "BattleArmory TACZ 长标题布局测试 Long Resource Title", new string('测', 250), type, "") });
+        searchResourcePage = (_, type, _, offset, limit) => Task.FromResult(new CommunitySearchPage([new("responsive", "BattleArmory TACZ 长标题布局测试 Long Resource Title", new string('测', 250), type, "")], offset, limit, 1));
         page = "download-mod"; await RenderAsync();
         // 用长标题和不同窗口宽度检查操作按钮是否仍在可见范围内。
         foreach (var width in new[] { 900, 740, 1280 })

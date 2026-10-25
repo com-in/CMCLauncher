@@ -69,6 +69,7 @@ internal static class Program
     static async Task CoreTests()
     {
         await CurseForgeClientTests.Run(); Pass("reserved CurseForge API authentication, consent, transport and failure boundaries");
+        await ModrinthPaginationTests.Run(Path.Combine(root, "pagination")); Pass("community rankings and searches paginate with offsets and total counts");
         CertificatePolicyTests.Run(); Pass("compromised CA public keys and supplied certificate chains");
         var origin = new System.Net.Sockets.TcpListener(IPAddress.Loopback, 0); origin.Start();
         var unavailableProxy = new System.Net.Sockets.TcpListener(IPAddress.Loopback, 0); unavailableProxy.Start();
