@@ -119,6 +119,7 @@ public sealed partial class MainWindow : Window
         await store.Save();
         LocalizeStaticChrome();
         NavigationMenu.Children.Clear(); navigationButtons.Clear(); navigationIndicators.Clear(); navigationSubmenus.Clear(); animatedSubmenus.Clear();
+        animatedNavigationIndicators.Clear(); selectedRootIndicator = selectedPageIndicator = null;
         BuildNavigation();
         Render();
     }
