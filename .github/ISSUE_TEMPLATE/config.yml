@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: README / User guide
+    url: https://github.com/com-in/CMCLauncher#readme
+    about: Read installation steps, usage instructions, and known limitations.

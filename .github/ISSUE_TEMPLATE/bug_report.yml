@@ -1,0 +1,58 @@
+name: Bug report
+description: Report a crash, error, or unexpected behavior in CMCLauncher.
+title: "[Bug] "
+labels: ["- BUG", "New issue"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Search existing issues before submitting a new report.
+        Remove access tokens, device authorization codes, email addresses, and other personal information from logs and screenshots. Do not upload settings.json or account files.
+  - type: input
+    id: launcher-version
+    attributes:
+      label: CMCLauncher version
+      description: For a source build, include the commit SHA.
+      placeholder: 0.9.3-beta / commit SHA
+    validations:
+      required: true
+  - type: input
+    id: windows-version
+    attributes:
+      label: Windows version
+      placeholder: Windows 11 24H2 x64
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: Describe the actual behavior and what you expected to happen.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open...
+        2. Click...
+        3. Observe...
+    validations:
+      required: true
+  - type: textarea
+    id: game-environment
+    attributes:
+      label: Game and Java environment (if applicable)
+      description: Include the Minecraft version, mod loader and version, Java version, and modpack name if used.
+      placeholder: Minecraft 1.21.1 / Fabric / Java 21
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs, error messages, and screenshots
+      description: Paste relevant errors or attach logs and screenshots. Launcher logs are in the logs folder beside the executable; game logs are in the instance's logs folder.
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional context
+      description: Does this happen every time? Are you using a proxy? What troubleshooting have you tried?

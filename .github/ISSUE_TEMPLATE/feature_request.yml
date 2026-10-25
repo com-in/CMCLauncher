@@ -1,0 +1,32 @@
+name: Feature request
+description: Suggest a new feature or an improvement to existing functionality.
+title: "[Feature] "
+labels: ["- FEAT", "New issue"]
+body:
+  - type: markdown
+    attributes:
+      value: Search existing requests first. Keep each issue focused on one suggestion so it is easier to discuss and track.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Use case and problem
+      description: When would you need this feature? What is difficult or inconvenient about the current workflow?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed improvement
+      description: Describe how you would like it to work. Sketches and screenshots are welcome.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives
+      description: How do you handle this today, and what are the limitations?
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Add relevant documentation, reference links, or examples.

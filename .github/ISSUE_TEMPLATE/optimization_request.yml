@@ -1,0 +1,34 @@
+name: Optimization request
+description: Suggest improvements to performance, usability, or an existing workflow.
+title: "[Optimization] "
+labels: ["- OPT", "New issue"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Search existing issues before submitting a suggestion.
+        Use Feature request for new functionality and Bug report for errors or broken behavior.
+  - type: textarea
+    id: current-behavior
+    attributes:
+      label: What could work better?
+      description: Describe the existing feature or workflow and what makes it slow or inconvenient.
+    validations:
+      required: true
+  - type: textarea
+    id: improvement
+    attributes:
+      label: Suggested improvement
+      description: Describe the change you would like and how it would help.
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment and measurements (if applicable)
+      description: For performance issues, include launcher and Windows versions, relevant hardware, and any timings or memory measurements.
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Add examples, screenshots, or reference links. Remove private information before sharing.

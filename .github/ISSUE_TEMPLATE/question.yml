@@ -1,0 +1,36 @@
+name: Help and questions
+description: Ask about installation, configuration, launching games, or general usage.
+title: "[Question] "
+labels: ["New issue"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Read the README and search existing issues first.
+        For a reproducible application error, use the Bug report form. Do not upload tokens, device authorization codes, account files, or other private information.
+  - type: textarea
+    id: question
+    attributes:
+      label: What do you need help with?
+      description: Describe your goal and where you are stuck.
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Launcher and Windows versions
+      placeholder: CMCLauncher 0.9.3-beta / Windows 11 24H2 x64
+    validations:
+      required: true
+  - type: textarea
+    id: tried
+    attributes:
+      label: What have you tried?
+      description: Include any instructions you followed and troubleshooting steps you took.
+    validations:
+      required: true
+  - type: textarea
+    id: details
+    attributes:
+      label: Relevant environment, logs, or screenshots
+      description: For game-related questions, include the Minecraft, mod loader, and Java versions. Check logs for private information before sharing.
