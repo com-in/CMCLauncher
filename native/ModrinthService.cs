@@ -194,6 +194,14 @@ public sealed class ModrinthService(LauncherCore core, Store store)
         try
         {
             var files = manifest["files"].Items().Where(f => f["env"].S("client") != "unsupported").ToArray();
+            // CurseForge 整合包：先解析所有文件的下载链接和文件名
+            if (files.Any(f => f["projectID"] != null && f["fileID"] != null))
+            {
+                Status?.Invoke("解析 CurseForge 文件链接…");
+                var fileArray = new JsonArray(files.Select(f => f).ToArray());
+                await new CurseForgeService(core).ResolveFiles(fileArray, ct);
+                // ResolveFiles 直接修改了 fileArray 中的元素，files 也指向同一对象
+            }
             if (files.Length > 20000 || files.Sum(f => f["fileSize"]?.GetValue<long>() ?? 0) > 20L * 1024 * 1024 * 1024) throw new Exception("整合包内容超过支持上限");
             var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             var jobs = files.Select(f =>
@@ -256,8 +264,15 @@ public sealed class ModrinthService(LauncherCore core, Store store)
         var indexes = zip.Entries.Where(e => e.Name is "modrinth.index.json" or "mmc-pack.json").ToArray();
         if (indexes.Length != 1)
         {
+            // CurseForge ZIP — 使用 CurseForgeService 将 manifest.json 转换为内部格式
             if (zip.Entries.Any(e => e.Name == "manifest.json"))
-                throw new Exception("This ZIP appears to be a CurseForge pack. CurseForge file downloads are not supported yet; use a Modrinth .mrpack or a MultiMC/Prism ZIP export.");
+            {
+                var cfEntry = zip.Entries.First(e => e.Name == "manifest.json");
+                var cfPrefix = cfEntry.FullName[..^cfEntry.Name.Length];
+                using var cfReader = new StreamReader(cfEntry.Open());
+                var cfManifest = JsonNode.Parse(cfReader.ReadToEnd()) ?? throw new Exception("CurseForge 整合包清单无效");
+                return CurseForgeService.ParseManifest(cfManifest, fallbackName);
+            }
             throw new Exception("Unrecognized modpack. Choose a Modrinth .mrpack or ZIP, or a MultiMC/Prism ZIP export containing mmc-pack.json.");
         }
         var index = indexes[0];
