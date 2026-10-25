@@ -16,6 +16,7 @@ public sealed partial class MainWindow
     // Runs against a dedicated Store only, never the user's launcher configuration.
     internal async Task VerifyUi(string directory)
     {
+        // 用固定项目和搜索结果替换网络入口，交互断言不依赖社区服务的实时数据。
         var passed = new List<string>();
         var resourceRequests = new List<string>();
         var resourceVersionFilters = new List<IReadOnlyCollection<string>?>();
@@ -69,6 +70,7 @@ public sealed partial class MainWindow
         Check(!File.Exists(Path.ChangeExtension(Environment.ProcessPath, ".pdb")), "published launcher does not ship debug symbols");
         var stagedLanguages = Directory.GetDirectories(AppContext.BaseDirectory).Select(Path.GetFileName).Where(name => name is not null && System.Text.RegularExpressions.Regex.IsMatch(name, "^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})+$")).ToArray();
         Check(stagedLanguages.Length == Program.LoadedMuiLanguages.Count, "only preferred WinUI language folders staged beside executable");
+        // 后续导入、筛选和安装位置检查都使用隔离配置中的测试实例。
         var instance = new Instance { Name = "测试世界", GameVersion = "1.21.1", Loader = "fabric" };
         store.Config.Instances.Add(instance); selected = instance;
         foreach (var loader in new[] { "vanilla", "forge", "neoforge", "quilt" }) store.Config.Instances.Add(new Instance { Name = "测试 " + loader, GameVersion = "1.20.1", Loader = loader });
@@ -338,6 +340,7 @@ public sealed partial class MainWindow
         });
         Check(activeWork == null && TaskCountBadge.Visibility == Visibility.Collapsed, "completed download clears active task");
         TaskDrawer.IsPaneOpen = false; page = "home"; await RenderAsync();
+        // 人工送入倒序进度，验证主页进度不回退，也不计入普通下载任务角标。
         launching = true; launchProgressValue = 0;
         UpdateLaunchProgress(60, "游戏资源 25/100"); UpdateLaunchProgress(55, "游戏资源 20/100");
         Check(launchCardProgress!.Value == 60 && launchCardPercent!.Text == "60%" && launchStatusText!.Text.Contains("游戏资源"), "home launch progress stays monotonic and separates stage from percentage");
@@ -634,6 +637,7 @@ public sealed partial class MainWindow
         store.Config.Instances.Add(disposable); await store.Save();
         page = "instances"; instanceFilter = "全部实例"; await RenderAsync();
         var disposableCard = Descendants(PageBody).OfType<Border>().Single(b => b.Tag?.ToString() == "instance-card" && Descendants(b).OfType<TextBlock>().Any(t => t.Text == disposable.Name));
+        // 记录回收站调用参数来验证删除流程，不在验证期间触碰系统回收站。
         var recycledDirectory = "";
         showInstanceDeleteDialog = _ => Task.FromResult(ContentDialogResult.Primary);
         recycleInstanceDirectory = path => { recycledDirectory = path; Directory.Delete(path, true); };
@@ -653,6 +657,7 @@ public sealed partial class MainWindow
         Check(store.Config.Instances.Count(i => i.ImportRoot == minecraftRoot) == 1 && store.GameDirectory(instance) == oldGameDirectory, "folder scans import existing versions once and preserve old locations");
         searchResources = (_, type, _, _, _, _) => Task.FromResult(new List<SearchResult> { new("responsive", "BattleArmory TACZ 长标题布局测试 Long Resource Title", new string('测', 250), type, "") });
         page = "download-mod"; await RenderAsync();
+        // 用长标题和不同窗口宽度检查操作按钮是否仍在可见范围内。
         foreach (var width in new[] { 900, 740, 1280 })
         {
             AppWindow.Resize(new Windows.Graphics.SizeInt32(width, 820)); await Task.Delay(500); ((FrameworkElement)Content).UpdateLayout();
@@ -671,6 +676,7 @@ public sealed partial class MainWindow
     {
         for (var i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++) { var child = VisualTreeHelper.GetChild(parent, i); yield return child; foreach (var nested in Descendants(child)) yield return nested; }
     }
+    // 截取当前 XAML 内容，不含系统窗口边框；保存 PNG 供人工核对布局。
     async Task Capture(string path)
     {
         var bitmap = new RenderTargetBitmap(); await bitmap.RenderAsync((FrameworkElement)Content);

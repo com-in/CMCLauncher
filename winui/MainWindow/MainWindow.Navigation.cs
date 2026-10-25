@@ -23,6 +23,7 @@ public sealed partial class MainWindow
     readonly Dictionary<string, AnimatedSubmenu> animatedSubmenus = new();
     string expandedNavigation = "home";
 
+    // 侧栏只构建一次；页面正文按需重建，选中态由 SyncNavigation 单独同步。
     void BuildNavigation()
     {
         NavigationMenu.Children.Add(NavButton("主页", "\uE80F", "root:home", () => { if (page == "home" && expandedNavigation == "home") return; expandedNavigation = "home"; page = "home"; Render(); }));
@@ -119,8 +120,10 @@ public sealed partial class MainWindow
     void Download_Click(object sender, RoutedEventArgs e) { page = "downloads"; Render(); }
     void Cancel_Click(object sender, RoutedEventArgs e) => task?.Cancel();
     async void Render() { await RenderAsync(); }
+    // 每次渲染使用新的正文容器，旧异步请求不能把结果挂到新页面上。
     async Task RenderAsync()
     {
+        // 离开页面时取消搜索，同时用代次挡住未及时响应取消的结果。
         var generation = ++renderVersion;
         var nextBody = new StackPanel { Spacing = 11 };
         PageBody = nextBody;
@@ -144,6 +147,7 @@ public sealed partial class MainWindow
             DispatcherQueue.TryEnqueue(ApplyPersonalization);
         }
     }
+    // 用新 Page 触发 WinUI 导航过渡；应用自己的返回逻辑不依赖 Frame 回退栈。
     void NavigatePage(StackPanel body)
     {
         if (!PageFrame.Navigate(typeof(LauncherContentPage), body, new EntranceNavigationTransitionInfo()))

@@ -6,6 +6,7 @@ using Windows.Foundation;
 
 namespace CraftLauncher.WinUI;
 
+// 通过裁剪容器播放高度动画，收起过程中的内容不会溢出到相邻菜单。
 internal sealed class AnimatedSubmenu
 {
     readonly StackPanel content;
@@ -26,6 +27,7 @@ internal sealed class AnimatedSubmenu
     {
         if (expanded == value) return;
         expanded = value;
+        // 连续点击时从当前画面接着播，不从上一次动画的起点重新跳起。
         var currentHeight = viewport.ActualHeight;
         var currentOpacity = viewport.Opacity;
         animation?.Stop(); animation = null;
@@ -41,6 +43,7 @@ internal sealed class AnimatedSubmenu
         animation = storyboard;
         storyboard.Completed += (_, _) =>
         {
+            // 旧动画的完成回调可能晚到，不能让它覆盖新动画的展开状态。
             if (!ReferenceEquals(animation, storyboard)) return;
             storyboard.Stop(); animation = null; Finish();
         };
@@ -54,6 +57,7 @@ internal sealed class AnimatedSubmenu
         }
         void Finish()
         {
+            // 展开完成后恢复自动高度，后续字号和内容变化仍能正常参与布局。
             viewport.Height = value ? double.NaN : 0; viewport.Opacity = value ? 1 : 0;
             viewport.Visibility = value ? Visibility.Visible : Visibility.Collapsed;
             content.Visibility = value ? Visibility.Visible : Visibility.Collapsed;

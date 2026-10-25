@@ -1,4 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">
+  <!-- 核心编译成独立库供测试使用；WinUI 项目也会直接链接这些源码。 -->
   <PropertyGroup>
     <OutputType>Library</OutputType>
     <TargetFramework>net8.0-windows</TargetFramework>
@@ -8,6 +9,7 @@
     <RootNamespace>CraftLauncher</RootNamespace>
     <Version>0.3.0</Version>
   </PropertyGroup>
+  <!-- 本地构建可嵌入公开 OAuth 客户端 ID，源文件不进入发行包。 -->
   <ItemGroup>
     <EmbeddedResource Include="../winui/clientid.local.json" LogicalName="CMCLauncher.MicrosoftClient" Condition="Exists('../winui/clientid.local.json')" />
   </ItemGroup>

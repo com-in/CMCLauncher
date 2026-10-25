@@ -111,6 +111,7 @@ public static class ContentManager
         return Directory.Exists(root) ? Directory.EnumerateDirectories(root).Where(p => !File.GetAttributes(p).HasFlag(FileAttributes.ReparsePoint) && File.Exists(Path.Combine(p, "level.dat"))).Select(p => Path.GetFileName(p)).ToList() : [];
     }
     static string Plain(JsonNode? value) => value switch { JsonValue v => v.ToString(), JsonArray a => string.Join("", a.Select(Plain)), JsonObject o => o.S("text", o.S("translate")) + Plain(o["extra"]), _ => "" };
+    // 识别失败仍返回可展示的条目，用户可以继续管理这个文件。
     public static ContentItem Inspect(string file, string kind, bool enabled = true)
     {
         var name = Regex.Replace(Path.GetFileName(file), @"\.(jar|zip)(\.disabled)?$", "", RegexOptions.IgnoreCase);
@@ -226,6 +227,7 @@ public static class ContentManager
     {
         return ListFiles(game, kind, world).Select(item => Inspect(Locate(game, kind, world, item.File), kind, item.Enabled) with { File = item.File }).ToList();
     }
+    // 这里只枚举文件，不打开每个压缩包；界面随后再逐项识别元数据。
     public static List<ContentItem> ListFiles(string game, string kind, string? world = null)
     {
         var root = Folder(game, kind, world); var result = new List<ContentItem>();
@@ -244,6 +246,7 @@ public static class ContentManager
         }
         return result;
     }
+    // 停用条目的 .disabled 是列表标记，实际文件可能在旁边的保管目录里。
     public static string Locate(string game, string kind, string? world, string file)
     {
         if (Path.GetFileName(file) != file) throw new Exception("内容文件不存在");
@@ -260,6 +263,7 @@ public static class ContentManager
         }
         return Checked(Store.SafePath(root, file));
     }
+    // 移入独立停用目录，整包目录和 JAR 都能停用，也不会被游戏继续扫描到。
     public static void Toggle(string game, string kind, string? world, string file)
     {
         var source = Locate(game, kind, world, file); var root = Folder(game, kind, world); bool enabling = file.EndsWith(".disabled");

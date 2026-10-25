@@ -12,6 +12,7 @@ namespace CraftLauncher.WinUI;
 
 public sealed partial class MainWindow
 {
+    // 同一会话中相同 UUID 共用皮肤请求，账号列表和主页不会各下载一遍。
     readonly Dictionary<string, Task<byte[]?>> skinRequests = new();
     UIElement AccountAvatar(Account? account, int size = 40)
     {
@@ -19,6 +20,7 @@ public sealed partial class MainWindow
         if (account?.Type == "microsoft" && Guid.TryParse(account.Uuid, out var id)) _ = LoadAvatar(holder, id.ToString("N"));
         return holder;
     }
+    // 优先使用一天内的缓存，网络失败时仍可回退到旧皮肤。
     async Task<byte[]?> FetchSkin(string uuid)
     {
         var cache = Path.Combine(store.Root, "skin-cache", uuid + ".png");
@@ -52,6 +54,7 @@ public sealed partial class MainWindow
             stream.Seek(0); var decoder = await BitmapDecoder.CreateAsync(stream);
             if (decoder.PixelWidth != 64 || decoder.PixelHeight is not (32 or 64)) return;
             var pixels = (await decoder.GetPixelDataAsync(BitmapPixelFormat.Bgra8, BitmapAlphaMode.Straight, new BitmapTransform(), ExifOrientationMode.IgnoreExifOrientation, ColorManagementMode.DoNotColorManage)).DetachPixelData();
+            // 截取皮肤上的 8×8 脸部和帽子层，放大时按整像素取样，保留像素边缘。
             var image = new byte[64 * 64 * 4];
             for (var y = 0; y < 64; y++) for (var x = 0; x < 64; x++)
             {

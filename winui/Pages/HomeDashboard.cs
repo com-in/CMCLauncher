@@ -20,6 +20,7 @@ public sealed partial class MainWindow
     void Home() => HomeDashboard();
     void HomeCustomize_Click(object sender, RoutedEventArgs e) { homeCustomizeMode = !homeCustomizeMode; Render(); }
     async Task SaveHomeLayout() { try { await store.Save(); } catch (Exception ex) { await Error(ex); } }
+    // 卡片顺序与尺寸来自配置，编辑布局后保存并重建主页。
     void HomeDashboard()
     {
         Header("主页", "");
@@ -64,6 +65,7 @@ public sealed partial class MainWindow
                 var wrapper = new StackPanel { Spacing = 8, Children = { tools, card } };
                 item = wrapper;
             }
+            // 全宽卡片不能从第二列开始；上一行只占半宽时先换行。
             var fullWidth = placement.Width != 1;
             if (columnIndex == 1 && fullWidth) { rowIndex++; columnIndex = 0; }
             while (dashboard.RowDefinitions.Count <= rowIndex) dashboard.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
@@ -81,6 +83,7 @@ public sealed partial class MainWindow
         button.Click += async (_, _) => { button.IsEnabled = false; try { await action(); } catch (Exception ex) { await Error(ex); } finally { if (button.IsLoaded) button.IsEnabled = true; } };
         return button;
     }
+    // 账号和游戏卡片保留固定职责，其他卡片按保存的 ID 构建。
     Border BuildHomeCard(HomeCardPlacement placement)
     {
         TextBlock Muted(string value, double size = 12) { var label = Text(value, size); label.Foreground = Brush(lightTheme ? "#73786F" : "#AAAAB7"); return label; }

@@ -8,6 +8,7 @@ namespace CraftLauncher.WinUI;
 
 public sealed partial class MainWindow
 {
+    // 界面只登记已检查过的 Java，发现、版本探测和下载细节交给 JavaManager。
     void JavaSettings()
     {
         Header("Java 管理", "");
@@ -51,6 +52,7 @@ public sealed partial class MainWindow
             PageBody.Children.Add(CompactCard(panel));
         }
     }
+    // 目录枚举移到后台，逐个探测候选 Java；失效路径记入日志后继续扫描。
     async Task ScanJava(string? folder)
     {
         var settings = store.Config.Settings; int added = 0;

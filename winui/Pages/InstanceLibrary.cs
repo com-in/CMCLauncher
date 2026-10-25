@@ -12,6 +12,7 @@ public sealed partial class MainWindow
     Func<ContentDialog, Task<ContentDialogResult>> showInstanceDeleteDialog = async dialog => await dialog.ShowAsync();
     Action<string> recycleInstanceDirectory = path => Microsoft.VisualBasic.FileIO.FileSystem.DeleteDirectory(path, Microsoft.VisualBasic.FileIO.UIOption.OnlyErrorDialogs, Microsoft.VisualBasic.FileIO.RecycleOption.SendToRecycleBin);
 
+    // 列表和平铺共用筛选结果，收藏优先，再按加载器分组展示。
     void Instances()
     {
         Header("切换版本", "");
@@ -87,6 +88,7 @@ public sealed partial class MainWindow
         }
     }
 
+    // 只有独立且没有被其他版本引用的目录才允许删除；无法确认时保留磁盘文件。
     string? DeletableInstanceDirectory(Instance instance)
     {
         var storage = Path.GetFullPath(store.StorageDirectory(instance)).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
@@ -149,6 +151,7 @@ public sealed partial class MainWindow
         await DeleteInstance(instance, deleteFiles.IsChecked == true ? directory : null);
     }
 
+    // 先保存配置再移入回收站；出错时恢复列表位置和选中项。
     async Task DeleteInstance(Instance instance, string? directory)
     {
         var index = store.Config.Instances.IndexOf(instance);
@@ -198,6 +201,7 @@ public sealed partial class MainWindow
         var picker = new FolderPicker(); picker.FileTypeFilter.Add("*"); InitializeWithWindow.Initialize(picker, WindowNative.GetWindowHandle(this));
         return (await picker.PickSingleFolderAsync())?.Path;
     }
+    // 扫描只登记已有版本，不移动原目录；单个损坏版本不会中断其他版本导入。
     async Task SetMinecraftFolder(string path)
     {
         await Run(async ct =>
@@ -228,6 +232,7 @@ public sealed partial class MainWindow
             Report($"已设置 .minecraft 文件夹，发现 {pending.Count} 个新版本" + (failed > 0 ? $"，{failed} 个版本读取失败，详情见日志" : ""));
         });
     }
+    // 名称修改只影响展示；新图标复制到配置目录，避免依赖用户原图片的位置。
     async Task EditInstance()
     {
         if (selected is not { } instance) return;

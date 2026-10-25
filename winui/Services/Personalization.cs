@@ -19,8 +19,10 @@ public sealed partial class MainWindow
         public double FontSize, Height, MinHeight, MinWidth;
         public Thickness Padding;
     }
+    // 按控件保存原始尺寸，每次都从原值缩放，避免反复应用后越变越大；控件回收时记录随之释放。
     readonly ConditionalWeakTable<DependencyObject, OriginalAppearance> originalAppearances = new();
 
+    // 遍历页面持有的内容，包括抽屉 Pane；无需进入每个原生控件的内部模板。
     static IEnumerable<DependencyObject> AppearanceElements(DependencyObject node)
     {
         yield return node;
@@ -38,6 +40,7 @@ public sealed partial class MainWindow
         foreach (var child in children) foreach (var descendant in AppearanceElements(child)) yield return descendant;
     }
 
+    // 图标字体按字形绘制，不能跟普通文本一起替换为用户字体。
     void ApplyPersonalization()
     {
         if (Content == null) return;
@@ -231,6 +234,7 @@ public sealed partial class MainWindow
         }));
     }
 
+    // 合并系统和用户安装字体，同时保留当前名称，避免缺失字体让下拉框丢失选中项。
     static IReadOnlyList<string> InstalledFontFamilies(string current)
     {
         var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
@@ -261,6 +265,7 @@ public sealed partial class MainWindow
         return JsonSerializer.Serialize(new { format = "CMCLauncher.Personalization", version = 1, s.Theme, s.ColorPreset, s.CustomLightColors, s.CustomDarkColors, s.UiScale, s.UiButtonScale, s.UiMenuScale, s.UiFontFamily, s.UiFontSize }, Store.JsonOptions);
     }
 
+    // 导入前检查格式版本和数值范围，不把任意 JSON 当作启动器配置应用。
     static CustomAppearancePreset ImportAppearancePreset(string json, string name)
     {
         using var document = JsonDocument.Parse(json);

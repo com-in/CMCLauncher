@@ -15,6 +15,7 @@ namespace CraftLauncher.WinUI;
 
 public sealed partial class MainWindow
 {
+    // 先建好页面，再逐项识别内容，让较大的 Mod 目录也能逐步显示结果。
     Task Manage(string contentType)
     {
         if (page != "version-settings")
@@ -80,6 +81,7 @@ public sealed partial class MainWindow
         PageBody.Children.Add(loading); PageBody.Children.Add(contentRows);
         contentLoad = LoadContent();
         return Task.CompletedTask;
+        // 整个加载过程记住实例和页面代次，切换页面后停止往旧容器追加。
         async Task LoadContent()
         {
         await Task.Yield();
@@ -148,6 +150,7 @@ public sealed partial class MainWindow
                     var contentCard = CompactCard(compact);
                     if (contentType == "mod") { contentCard.Padding = new Thickness(6, 3, 6, 3); contentCard.BorderBrush = Brush(lightTheme ? "#E6E3EF" : "#373341"); }
                     contentRows.Children.Add(contentCard);
+                    // 每添加一项让出一次 UI 线程，避免连续构造卡片阻塞交互。
                     await Task.Yield();
                 }
                 if (version != renderVersion) return;

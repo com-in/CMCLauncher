@@ -1,3 +1,4 @@
+# 把发布目录顶层的语言资源归入 languages，启动时再暂放用户需要的语言。
 param([Parameter(Mandatory = $true)][string]$PublishDir)
 $ErrorActionPreference = 'Stop'
 
@@ -14,6 +15,7 @@ foreach ($directory in $cultureDirectories) {
     foreach ($file in Get-ChildItem -LiteralPath $directory.FullName -File) {
         Move-Item -LiteralPath $file.FullName -Destination (Join-Path $destination $file.Name) -Force
     }
+    # 只移走文件并删除空目录，不递归删除仍有其他内容的语言目录。
     if ((Get-ChildItem -LiteralPath $directory.FullName -Force | Measure-Object).Count -eq 0) {
         Remove-Item -LiteralPath $directory.FullName
     }

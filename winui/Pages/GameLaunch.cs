@@ -21,6 +21,7 @@ public sealed partial class MainWindow
     ProgressBar? launchCardProgress;
     Button? launchCardCancel;
 
+    // 先验证账号并补全依赖，出现游戏窗口后才把启动任务标记完成。
     async Task Launch(Instance instance)
     {
         if (task != null) throw new Exception("已有任务进行中，请稍候或取消当前任务");
@@ -43,6 +44,7 @@ public sealed partial class MainWindow
                 var launchedGame = await core.Launch(instance, account, CredentialVault.Read(account), ct, progress);
                 game = launchedGame;
                 instance.LastPlayed = DateTime.Now; await store.Save();
+                // 用户取消启动导致的退出不弹崩溃报告，其他异常退出交给报告逻辑判断。
                 var cancelledByLauncher = false;
                 launchedGame.Exited += (_, _) =>
                 {
@@ -71,6 +73,7 @@ public sealed partial class MainWindow
             launching = false; RefreshLaunchCard();
         }
     }
+    // 并发依赖的进度回调可能乱序，显示值只前进，不往回跳。
     void UpdateLaunchProgress(double value, string stage)
     {
         if (!launching) return;

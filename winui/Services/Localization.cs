@@ -4,6 +4,7 @@ namespace CraftLauncher.WinUI;
 
 public sealed partial class MainWindow
 {
+    // 动态消息保留后面的版本号、文件名和数量，只替换已知中文前缀。
     static readonly (string Prefix, string English)[] EnglishStatusPrefixes =
     [
         ("下载整合包原版游戏文件 · Minecraft ", "Downloading modpack vanilla game files · Minecraft "),
@@ -124,11 +125,13 @@ public sealed partial class MainWindow
             ("版本下载", "Download game versions"), ("主页卡片", "Home cards"), ("敬请期待", "Coming soon"), ("当前没有进行中的任务。", "No tasks are currently running."));
     }
 
+    // 补充词条可以覆盖基础字典；页面未提供单独英文文本时会从这里查找。
     static void AddEnglishText(params (string Key, string Value)[] entries)
     {
         foreach (var (key, value) in entries) EnglishText[key] = value;
     }
 
+    // 这些控件不会随正文重建，切换语言时要主动更新文字和辅助功能名称。
     void LocalizeStaticChrome()
     {
         TaskDrawerTitle.Text = Ui("进行中的任务", "Tasks in progress");

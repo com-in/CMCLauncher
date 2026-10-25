@@ -36,6 +36,7 @@ internal static class Program
         PrepareMuiResources();
         StartMuiCleanupWorker();
         WinRT.ComWrappersSupport.InitializeComWrappers();
+        // 文件拖放依赖 OLE，在 STA 主线程初始化，并在消息循环退出后成对清理。
         var oleResult = OleInitialize(IntPtr.Zero);
         if (oleResult < 0) Marshal.ThrowExceptionForHR(oleResult);
         try { Application.Start(callback =>
@@ -69,6 +70,7 @@ internal static class Program
             var root = Path.Combine(AppContext.BaseDirectory, culture);
             var source = Path.Combine(AppContext.BaseDirectory, "languages", culture);
             if (!Directory.Exists(root) || !Directory.Exists(source)) continue;
+            // 只清理本程序暂放且与源文件相同的 MUI；目录里有其他内容时保留。
             var stagedFiles = Directory.GetFiles(root, "*.mui", SearchOption.TopDirectoryOnly);
             var sourceFiles = Directory.GetFiles(source, "*.mui", SearchOption.TopDirectoryOnly);
             if (stagedFiles.Length == 0 || stagedFiles.Length != sourceFiles.Length || Directory.GetFileSystemEntries(root).Length != stagedFiles.Length) continue;
@@ -171,6 +173,7 @@ internal static class Program
             if (directory is not null) Directory.CreateDirectory(directory);
             File.WriteAllBytes(destination, data);
         }
+        // 所有伴生文件写完才更新版本标记，中断后下次启动仍会重新解包。
         File.WriteAllText(marker, CompanionData.CompanionVersion);
     }
 #endif
@@ -189,6 +192,7 @@ public sealed partial class CraftApp : Application
             try { File.AppendAllText(Path.Combine(Path.GetTempPath(), "CraftLauncher.WinUI-error.log"), DateTime.Now + " " + e.Exception + Environment.NewLine); } catch { }
         };
     }
+    // 验证模式也启动真实窗口，失败信息写入指定目录后退出应用。
     protected override async void OnLaunched(LaunchActivatedEventArgs args)
     {
         window = new MainWindow(this.args); window.Activate();

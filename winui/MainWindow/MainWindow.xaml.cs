@@ -22,6 +22,7 @@ public sealed partial class MainWindow : Window
     string instanceFilter = "全部实例", instanceQuery = "", modFilter = "全部 Mods", modQuery = "";
     Instance? selected;
     string? world;
+    // 每次重绘递增；异步页面返回时用它判断结果是否已过期。
     int renderVersion;
     CancellationTokenSource? resourceSearch;
     SearchResult? selectedProject;
@@ -36,6 +37,7 @@ public sealed partial class MainWindow : Window
     TextBox? logView;
     bool dialogOpen;
     StackPanel PageBody = new() { Spacing = 11 };
+    // UI 验证使用单独的数据目录，避免改动日常使用的实例和账号配置。
     public MainWindow(string[] args)
     {
         store = new Store(args.Length == 2 && args[0] == "--verify-ui" ? Path.Combine(Path.GetFullPath(args[1]), "data") : null);
@@ -55,6 +57,7 @@ public sealed partial class MainWindow : Window
         SetTitleBar(CustomTitleBar);
         CustomTitleBar.SizeChanged += (_, _) => UpdateTitleBarInset();
         AppWindow.Changed += (_, _) => UpdateTitleBarInset();
+        // Frame 加载前先缓存正文，等它准备好后再执行首次导航。
         PageFrame.Loaded += (_, _) =>
         {
             pageFrameReady = true;
@@ -74,6 +77,7 @@ public sealed partial class MainWindow : Window
         core.DownloadBytes += bytes => { if (activeWork is { } work) Interlocked.Add(ref work.Bytes, bytes); };
         taskViewTimer = DispatcherQueue.CreateTimer(); taskViewTimer.Interval = TimeSpan.FromMilliseconds(500);
         taskViewTimer.Tick += (_, _) => RefreshTaskMetrics(); taskViewTimer.Start();
+        // 捕获回调所属任务，排队期间任务若已结束或更换，就丢弃这次进度。
         core.DownloadProgress += value =>
         {
             var activeTask = task;
@@ -87,6 +91,7 @@ public sealed partial class MainWindow : Window
         RuntimeLog.Write("INFO", "应用启动 · 程序目录=" + AppContext.BaseDirectory);
         Closed += (_, _) => { RuntimeLog.Write("INFO", "应用关闭"); taskViewTimer.Stop(); resourceSearch?.Cancel(); systemUi.ColorValuesChanged -= SystemThemeChanged; task?.Cancel(); core.Dispose(); };
     }
+    // 日志始终记录，但只有仍属于当前任务的消息才能更新任务阶段。
     void Report(string message)
     {
         var reportingTask = task;

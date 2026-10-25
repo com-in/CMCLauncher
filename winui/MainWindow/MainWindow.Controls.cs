@@ -15,6 +15,7 @@ namespace CraftLauncher.WinUI;
 
 public sealed partial class MainWindow
 {
+    // 优先使用调用方给出的译文，动态状态消息再按字典和前缀补译。
     string Ui(string text, string? english = null)
     {
         if (store.Config.Settings.LauncherLanguage != "en_us") return text;
@@ -41,6 +42,7 @@ public sealed partial class MainWindow
         return block;
     }
     Button Action(string label, System.Action<object, RoutedEventArgs> click, bool primary = false) => Action(label, (sender, args) => { click(sender, args); return Task.CompletedTask; }, primary);
+    // 页面操作共用异常处理和防重复点击逻辑，创建时也登记到任务按钮列表。
     Button Action(string label, Func<object, RoutedEventArgs, Task> click, bool primary = false)
     {
         var button = new Button { Content = Ui(label), Padding = new Thickness(12, 7, 12, 7), MinWidth = 84, MinHeight = 34, CornerRadius = new CornerRadius(5), IsEnabled = task == null };
@@ -56,6 +58,7 @@ public sealed partial class MainWindow
         button.Click += async (sender, args) => { RuntimeLog.Write("ACTION", "点击按钮 · " + label); button.IsEnabled = false; try { await click(sender, args); RuntimeLog.Write("ACTION", "按钮完成 · " + label); } catch (OperationCanceledException) { Report("操作已取消"); RuntimeLog.Write("CANCEL", label); } catch (Exception ex) { RuntimeLog.Write("ERROR", label + " · " + ex); await Error(ex); } finally { button.IsEnabled = task == null; } };
         taskButtons.Add(button); return button;
     }
+    // 同时发生的错误只开一个对话框，完整异常由日志保留。
     async Task Error(Exception ex)
     {
         Report(ex.Message);
@@ -95,6 +98,7 @@ public sealed partial class MainWindow
     }
     ComboBox InstanceSelector() { var combo = new BelowComboBox { ItemsSource = store.Config.Instances, DisplayMemberPath = nameof(Instance.Name), SelectedItem = selected, PlaceholderText = Ui("选择实例", "Select an instance"), HorizontalAlignment = HorizontalAlignment.Stretch }; combo.SelectionChanged += async (_, _) => { if (combo.SelectedItem is Instance instance && instance != selected) { await SelectInstance(instance); Render(); } }; return combo; }
     StackPanel Buttons(params Button[] buttons) { var panel = new StackPanel { Spacing = 8, Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Left }; foreach (var button in buttons) panel.Children.Add(button); return panel; }
+    // 先用包内图标，再查项目图标缓存；读取或解码失败就显示占位图标。
     async Task<UIElement> ContentIcon(string file, string? project = null, byte[]? knownIcon = null, bool inspected = false)
     {
         var bytes = await Task.Run(() =>

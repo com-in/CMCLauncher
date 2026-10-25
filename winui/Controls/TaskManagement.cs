@@ -10,6 +10,7 @@ public sealed partial class MainWindow
     CancellationTokenSource? task;
     readonly List<Button> taskButtons = new();
 
+    // 下载回调可以跨线程累计字节数，显示和状态切换统一在窗口线程处理。
     sealed class WorkItem
     {
         internal string Name = "", Stage = "", State = "进行中";
@@ -92,6 +93,7 @@ public sealed partial class MainWindow
         TaskCountText.Text = Math.Max(0, count).ToString(System.Globalization.CultureInfo.InvariantCulture);
         TaskCountBadge.Visibility = count > 0 ? Visibility.Visible : Visibility.Collapsed;
     }
+    // 按采样间隔计算速度，不用每个下载块都重绘任务面板。
     void RefreshTaskMetrics()
     {
         UpdateTaskCount(activeWork is { Launch: false } ? 1 : 0);
@@ -125,6 +127,7 @@ public sealed partial class MainWindow
     {
         if (activeWork != null && !launching) { activeWork.Progress = value; RefreshTaskMetrics(); }
     }
+    // 窗口一次只运行一个受管任务，统一负责取消、按钮禁用和历史记录。
     async Task Run(Func<CancellationToken, Task> operation, string? name = null)
     {
         if (task != null) throw new Exception("已有任务进行中，请稍候或取消当前任务");
@@ -166,6 +169,7 @@ public sealed partial class MainWindow
         finally
         {
             work.Clock.Stop();
+            // 完成后固定耗时，最近任务列表不会继续增加计时。
             work.CompletedElapsed = work.Clock.Elapsed;
             recentWork.Insert(0, work);
             if (recentWork.Count > 12) recentWork.RemoveAt(recentWork.Count - 1);

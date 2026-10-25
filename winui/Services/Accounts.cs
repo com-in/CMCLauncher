@@ -15,6 +15,7 @@ namespace CraftLauncher.WinUI;
 
 public sealed partial class MainWindow
 {
+    // 设备代码只代表授权开始，账号通过 Minecraft 档案验证后才写入列表。
     void Accounts()
     {
         Header("账号管理", "");
@@ -68,6 +69,7 @@ public sealed partial class MainWindow
             catch (OperationCanceledException) { loginStatus.Text = Ui("登录已取消", "Sign-in canceled"); throw; }
             catch { loginStatus.Text = Ui("登录未完成，请查看错误详情；浏览器授权完成后仍需通过 Xbox 和 Minecraft 服务验证。", "Sign-in incomplete. See the error details; browser authorization must still be verified by Xbox and Minecraft services."); throw; }
         }, true)); PageBody.Children.Add(codePanel);
+        // 本地至少保留一个已验证的 Microsoft 账号，才显示离线身份入口。
         if (store.Config.Accounts.Any(MicrosoftAuth.IsVerifiedMinecraftPlayer))
         {
             var input = new TextBox { Header = Ui("离线玩家名", "Offline player name"), PlaceholderText = Ui("3–16 位字母、数字或下划线", "3–16 letters, numbers, or underscores"), MaxLength = 16 }; PageBody.Children.Add(input);
@@ -111,6 +113,7 @@ public sealed partial class MainWindow
         }
     }
     async Task SaveAccount(Account account) { MicrosoftAuth.EnsureAccountAllowed(store.Config.Accounts, account); store.Config.Accounts.RemoveAll(a => a.Uuid == account.Uuid); store.Config.Accounts.Add(account); store.Config.SelectedAccount = account.Uuid; await store.Save(); }
+    // 移除账号后重新检查选中项；失去正版验证条件的离线身份也不能继续选中。
     async Task ForgetAccount(Account account)
     {
         store.Config.Accounts.RemoveAll(a => a.Uuid == account.Uuid);

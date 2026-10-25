@@ -8,6 +8,7 @@ namespace CraftLauncher.WinUI;
 
 public sealed partial class MainWindow
 {
+    // 正常退出且没有本次新产生的崩溃文件时，不弹报告对话框。
     async Task HandleGameExit(Instance instance, Process process, DateTimeOffset launchStarted)
     {
         try
@@ -57,6 +58,7 @@ public sealed record CrashReport(string FileName, string Summary, string Text)
         var directory = Path.Combine(store.GameDirectory(instance), "crash-reports");
         return Directory.Exists(directory) ? Directory.GetFiles(directory, "*.txt").OrderByDescending(File.GetLastWriteTimeUtc).FirstOrDefault() : null;
     }
+    // 汇总游戏崩溃文件和日志片段，某份日志读不到也要能导出其他诊断信息。
     public static CrashReport Build(Store store, Instance instance, Process process, IEnumerable<string> launcherLog)
     {
         var gameDir = store.GameDirectory(instance);

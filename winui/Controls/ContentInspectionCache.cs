@@ -4,6 +4,7 @@ using System.Text.Json;
 
 namespace CraftLauncher.WinUI;
 
+// 元数据按内容哈希落盘，相同文件换名或在不同实例中出现时可以复用识别结果。
 internal static class ContentInspectionCache
 {
     sealed record Entry(string Name, string Version, string Loader, string Description, bool Recognized);
@@ -23,6 +24,7 @@ internal static class ContentInspectionCache
         var directory = Path.Combine(cacheRoot, "content-metadata");
         var metadataPath = Path.Combine(directory, key.Replace(':', '-') + ".json");
         var iconPath = Path.Combine(directory, key.Replace(':', '-') + ".icon");
+        // 同一内容的并发请求共用一次识别任务，失败后会移除，以便下次重试。
         var lazy = Pending.GetOrAdd(key, _ => new Lazy<Task<Entry>>(() => LoadOrInspect(file, kind, metadataPath)));
         try
         {
@@ -72,6 +74,7 @@ internal static class ContentInspectionCache
         }
     }
 
+    // 路径、长度和修改时间未变时复用哈希，减少反复进入页面时的大文件读取。
     static async Task<string> Hash(string file)
     {
         var info = new FileInfo(file);

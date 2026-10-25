@@ -24,6 +24,7 @@
     <Version>0.9.3-beta</Version>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>Assets/cmc-logo.ico</ApplicationIcon>
+    <!-- 使用 Program.cs 中的自定义入口，负责 OLE 初始化和资源准备。 -->
     <DefineConstants>$(DefineConstants);DISABLE_XAML_GENERATED_MAIN</DefineConstants>
     <EnableMsixTooling Condition="'$(PublishSingleFile)' == 'true'">true</EnableMsixTooling>
     <IncludeNativeLibrariesForSelfExtract Condition="'$(PublishSingleFile)' == 'true'">true</IncludeNativeLibrariesForSelfExtract>
@@ -37,6 +38,7 @@
     <None Update="Assets/cmc-logo.ico" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <PackageReference Include="Markdig" Version="1.4.2" />
     <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.8.260921001" />
+    <!-- 核心源码直接编入桌面程序集，认证资源也随当前程序集一起读取。 -->
     <Compile Include="../native/Models.cs" Link="Core/Models.cs" />
     <Compile Include="../native/GameMemory.cs" Link="Core/GameMemory.cs" />
     <Compile Include="../native/JavaManager.cs" Link="Core/JavaManager.cs" />
@@ -48,6 +50,7 @@
     <Compile Include="../native/MicrosoftAuth.cs" Link="Core/MicrosoftAuth.cs" />
     <Compile Include="../native/GlobalUsings.cs" Link="Core/GlobalUsings.cs" />
   </ItemGroup>
+  <!-- 普通发布复制外部 WinUI 资源；单文件发布由伴生数据释放资源。 -->
   <Target Name="PublishWinUIResources" AfterTargets="Publish" Condition="'$(PublishSingleFile)' != 'true'">
     <ItemGroup>
       <WinUIResource Include="$(TargetDir)*.pri;$(TargetDir)*.xbf" />

@@ -10,19 +10,20 @@ namespace CraftLauncher.WinUI;
 public sealed partial class MainWindow
 {
     bool lightTheme;
-    // 需要在主题切换时更新的卡片边框列表
+    // 记住当前页面的卡片，换主题时同时改背景和边框；导航到别页时会清空。
     readonly List<Border> themeCards = new();
     readonly UISettings systemUi = new();
 
+    // 系统通知不保证在 UI 线程触发，先排回窗口线程再操作控件。
     void SystemThemeChanged(UISettings sender, object args) => DispatcherQueue.TryEnqueue(() => { if (store.Config.Settings.Theme == "system") ApplyTheme(); });
 
-    // 应用浅/深主题到窗口全局
-    // 流程：监听系统主题 → 切换 RequestedTheme → 刷新所有缓存的画刷 → 更新标题栏
+    // 设置变更和系统主题通知都会走这里，颜色预设与浅/深模式分别处理。
     void ApplyTheme()
     {
         LocalizeStaticChrome();
         var systemBackground = systemUi.GetColorValue(UIColorType.Background);
         lightTheme = store.Config.Settings.Theme == "light" || (store.Config.Settings.Theme == "system" && systemBackground.R + systemBackground.G + systemBackground.B > 382);
+        // 先让 XAML 的系统资源换到目标主题，再读取 Native* 的颜色刷新画刷。
         if (Content is FrameworkElement themedRoot) themedRoot.RequestedTheme = lightTheme ? ElementTheme.Light : ElementTheme.Dark;
         RefreshPaletteBrushes();
         var bg = lightTheme ? ThemeTokens.LightBg : ThemeTokens.DarkBg;
@@ -46,6 +47,7 @@ public sealed partial class MainWindow
             card.Background = Brush(lightTheme ? ThemeTokens.White : ThemeTokens.DarkSurface);
             card.BorderBrush = Brush(lightTheme ? ThemeTokens.LightBorder : ThemeTokens.DarkBorder);
         }
+        // 标题栏按钮由系统绘制，不会跟随 XAML 画刷刷新，需要单独赋色。
         if (AppWindowTitleBar.IsCustomizationSupported())
         {
             var bar = AppWindow.TitleBar;
@@ -62,15 +64,17 @@ public sealed partial class MainWindow
     void UpdateTitleBarInset()
     {
         var scale = CustomTitleBar.XamlRoot?.RasterizationScale ?? 1;
+        // RightInset 是物理像素，XAML 的宽度要先除以显示缩放比例。
         CaptionButtonInset.Width = Math.Max(138, AppWindow.TitleBar.RightInset / scale);
     }
-    // 创建可随主题刷新的 SolidColorBrush。hex 必须是 ThemeTokens 常量
+    // 创建并登记可刷新配色的 SolidColorBrush，hex 为 #RRGGBB 基础色值，优先使用 ThemeTokens。
+    // native/custom 按已知基础色值映射角色；未识别的色值会按 border 处理。
     SolidColorBrush Brush(string hex)
     {
         var brush = new SolidColorBrush(PaletteColor(hex));
         paletteBrushes.Add((new WeakReference<SolidColorBrush>(brush), hex));
         return brush;
     }
-    // 主色调 hex，供 TaskCountBadge 等小控件直接取色
+    // 当前浅/深模式的基础强调色 hex，传入 Brush 后再按当前配色预设解析
     string PrimaryColor => lightTheme ? ThemeTokens.LightAccent : ThemeTokens.DarkAccent;
 }

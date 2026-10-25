@@ -25,6 +25,7 @@ public sealed class BelowComboBox : ComboBox
     internal Popup? DropDownPopup => GetTemplateChild("Popup") as Popup;
     internal Microsoft.UI.Xaml.FrameworkElement? InputBorder => GetTemplateChild("Background") as Microsoft.UI.Xaml.FrameworkElement;
 
+    // 模板应用和下拉打开时都重新定位，窗口尺寸和滚动位置可能已经变化。
     void AnchorPopup()
     {
         if (DropDownPopup is not { } popup) return;
@@ -41,6 +42,7 @@ public sealed class BelowComboBox : ComboBox
         if (XamlRoot?.Content is not FrameworkElement root || !target.IsLoaded) return;
         var bottom = target.TransformToVisual(root).TransformPoint(new Point(0, target.ActualHeight)).Y;
         var available = root.ActualHeight - bottom - 8;
+        // 底部空间不足时先把输入框滚上来，排队后再按新的位置计算弹层高度。
         if (available < 180)
         {
             for (DependencyObject? parent = VisualTreeHelper.GetParent(this); parent != null; parent = VisualTreeHelper.GetParent(parent))

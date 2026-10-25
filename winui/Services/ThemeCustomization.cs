@@ -1,22 +1,8 @@
-// ============================================================================
-// 主题配色系统
-//
-// 整体流程：
-//   UI 元素调用 Brush(hex) 创建画刷
-//   → Brush() 将 hex 传入 PaletteColor() 解析为实际 Color
-//   → PaletteColor() 根据当前预设 (craft/lakecyan/native/custom) 决定颜色
-//   → 画刷存入 paletteBrushes 弱引用列表，主题切换时批量刷新
-//
-// 预设类型：
-//   craft/清新绿 — PaletteColor 直接返回原 hex (预设颜色的 hex 就是最终色值)
-//   lakecyan/浅湖青 — 通过 LakeCyan 字典一对一替换 hex 再返回
-//   native/WinUI原生 — 从系统主题资源读取颜色
-//   custom/自定义   — 用户在 PaletteDefaults 基础上自定义每项角色色值
-//
-// 新增预设只需：
-//   1. ThemeCustomization.cs 加一个类似 LakeCyan 的字典
-//   2. ThemeEditor 下拉列表加一项 + ColorPreset 映射加一行
-// ============================================================================
+// 控件传入的是基础配色的 hex，实际显示什么颜色由 PaletteColor 决定。
+// 清新绿直接用原色，浅湖青查替换表，原生和自定义配色则按颜色用途取值。
+// 加预设时，除了替换表，还要改 PaletteColor 的分支和 ThemeEditor 的选项、索引、
+// 编辑器显隐及默认值重置条件。Personalization.cs 的恢复索引和导入校验也要一起改，
+// 否则下拉框能选到，保存恢复或导入时仍可能不认这个预设。
 using Microsoft.UI;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -25,14 +11,16 @@ using Windows.UI;
 
 namespace CraftLauncher.WinUI;
 
-// 所有主题色值的唯一定义点。UI 代码和预设字典都引用这里，不再散落裸 hex。
+// 基础主题色值常量，供配色映射等代码复用；部分 UI 仍直接传入相同的 hex，
+// LakeCyan 的目标色值、XAML 初始色值和用户自定义色值也在各自位置定义。
 static class ThemeTokens
 {
     // 背景色 — 窗口主内容区域底色
     public const string LightBg = "#F6F8F4", DarkBg = "#181922", DarkBgAlt = "#171820";
     // 侧边栏
     public const string LightSidebar = "#EAF0E4", DarkSidebar = "#20212D";
-    // 表面色 — 卡片/浮层背景，白色在 dark 模式也保持白色
+    // 表面色 — 卡片/浮层背景；White 在 craft/lakecyan 中保留白色，
+    // 在 native/custom 中映射为 surface，随当前浅/深模式取色
     public const string White = "#FFFFFF", DarkSurface = "#242530", LightSurface = "#F1F2F5";
     public const string LightSurfaceAlt = "#EEEAF7", DarkSurfaceAlt = "#343044";
     // 正文颜色
@@ -61,9 +49,10 @@ static class ThemeTokens
 }
 public sealed partial class MainWindow
 {
-    // 所有通过 Brush() 创建的画刷弱引用列表，主题切换时用 RefreshPaletteBrushes() 批量刷新
+    // 页面切走后，旧控件和画刷应能正常回收；这里只留弱引用，避免刷新列表一直持有它们。
+    // 同时记住原始 hex，换预设时才能重新查色，而不是拿上一次转换后的颜色再查一遍。
     readonly List<(WeakReference<SolidColorBrush> Brush, string Source)> paletteBrushes = [];
-    // 每个角色在浅/深模式下的默认色值 (用于自定义模式时的回退)
+    // 七个可编辑角色在浅/深模式下的默认色值；缺失或非法的自定义值回退到这里
     static readonly Dictionary<string, (string Light, string Dark)> PaletteDefaults = new()
     {
         ["background"] = (ThemeTokens.LightBg, ThemeTokens.DarkBg),
@@ -74,7 +63,7 @@ public sealed partial class MainWindow
         ["border"] = (ThemeTokens.LightBorder, ThemeTokens.DarkBorder),
         ["accent"] = (ThemeTokens.LightAccent, ThemeTokens.DarkAccent)
     };
-    // 浅湖青预设 — 每项 key 是清新绿的色值，value 是替换后的湖泊青色值
+    // 用清新绿的色值作键，这样现有控件不用为浅湖青另写一套取色代码。
     static readonly Dictionary<string, string> LakeCyan = new(StringComparer.OrdinalIgnoreCase)
     {
         [ThemeTokens.LightBg] = "#EDF4F6", [ThemeTokens.DarkBg] = "#172427", [ThemeTokens.DarkBgAlt] = "#172427",
@@ -95,10 +84,7 @@ public sealed partial class MainWindow
     };
     Color RawColor(string hex) => ColorHelper.FromArgb(255, Convert.ToByte(hex[1..3], 16), Convert.ToByte(hex[3..5], 16), Convert.ToByte(hex[5..7], 16));
 
-    // 核心方法 — 将 ThemeTokens hex 解析为最终的 WinUI Color
-    // craft/lakecyan: 直接或映射后返回 hex 颜色
-    // native:          从系统主题资源取色，hove/pressed/selection 用 alpha 混合模拟
-    // custom:          从用户自定义字典取色，无效 hex 回退到 PaletteDefaults
+    // hex 可以来自 ThemeTokens，也可以是已有 UI 传入的同值字符串。
     Color PaletteColor(string hex)
     {
         if (store.Config.Settings.ColorPreset is "craft" or "lakecyan")
@@ -107,7 +93,8 @@ public sealed partial class MainWindow
                 hex = LakeCyan.GetValueOrDefault(hex, hex);
             return RawColor(hex);
         }
-        // 将 hex 映射为语义角色。craft 预设跳过这里，直接在上方返回。
+        // 原生和自定义配色只区分颜色用途，不保留基础配色中同类颜色的细微差别。
+        // 新增基础色时要检查这里；没匹配到的颜色会落到 border。
         var role = hex.ToUpperInvariant() switch
         {
             ThemeTokens.LightBg or ThemeTokens.DarkBg or ThemeTokens.DarkBgAlt => "background",
@@ -123,7 +110,8 @@ public sealed partial class MainWindow
             _ => "border"
         };
         if (role == "white") role = "surface";
-        // WinUI 3 原生主题 — 从系统控件采样颜色
+        // Native* 是 XAML 中绑定了 ThemeResource 的隐藏 Border，随 RequestedTheme 换色。
+        // surface/selection 的半透明色在这里叠到背景上；hover/pressed 仍保留系统给出的 alpha。
         if (store.Config.Settings.ColorPreset == "native")
         {
             Color From(Border border)
@@ -139,7 +127,7 @@ public sealed partial class MainWindow
                 "selection" => Composite(From(NativeSelection), From(NativeBackground)), _ => From(NativeStroke)
             };
         }
-        // 自定义配色 — 从用户保存的 hex 字典取色，格式非法则回退到 PaletteDefaults
+        // 配置可能来自旧文件或手工编辑。缺项、格式不对时用默认色，避免 RawColor 解析失败。
         var colors = lightTheme ? store.Config.Settings.CustomLightColors : store.Config.Settings.CustomDarkColors;
         Color Get(string name)
         {
@@ -148,7 +136,8 @@ public sealed partial class MainWindow
             return RawColor(System.Text.RegularExpressions.Regex.IsMatch(value ?? "", "^#[0-9A-Fa-f]{6}$") ? value! : fallback);
         }
         if (role == "onAccent") return RawColor(ThemeTokens.White);
-        // selection / hover / pressed 通过 accent 色与背景色按比例混合生成
+        // 选中背景只混入少量强调色，免得盖过文字；悬停和按下的按钮则保留较多强调色。
+        // selection 的底色取 sidebar，hover/pressed 的底色取 background。
         if (role is "selection" or "hover" or "pressed")
         {
             var accent = Get("accent"); var target = Get(role == "selection" ? "sidebar" : "background");
@@ -157,20 +146,21 @@ public sealed partial class MainWindow
         }
         return Get(role);
 
-        // 前景色叠加到背景色上 (alpha 混合)，用于 native 主题取半透明系统色时还原
+        // 系统表面色可能带透明度，叠到窗口背景后再给需要实色的地方使用。
         static Color Composite(Color foreground, Color background)
         {
             var alpha = foreground.A / 255d;
             return ColorHelper.FromArgb(255, (byte)(foreground.R * alpha + background.R * (1 - alpha)), (byte)(foreground.G * alpha + background.G * (1 - alpha)), (byte)(foreground.B * alpha + background.B * (1 - alpha)));
         }
     }
-    // 主题切换后批量刷新所有已缓存画刷的颜色，无需销毁重建整个 UI
+    // 按创建时记录的源 hex 刷新存活画刷，并清理失效弱引用。
+    // 此处不替换浅/深模式的源 hex；ApplyTheme 另行重设窗口和卡片等元素的画刷。
     void RefreshPaletteBrushes()
     {
         paletteBrushes.RemoveAll(entry => !entry.Brush.TryGetTarget(out _));
         foreach (var entry in paletteBrushes) if (entry.Brush.TryGetTarget(out var brush)) brush.Color = PaletteColor(entry.Source);
     }
-    // 构建设置页面的「主题配色」编辑区域 — 预设下拉 + 自定义 7 色色板
+    // 浅色和深色各存一套自定义颜色，编辑哪套由 mode 决定，不必切换整个窗口的主题。
     UIElement ThemeEditor(System.Action? defaultsChanged = null)
     {
         var panel = new StackPanel { Spacing = 12 };
@@ -181,6 +171,7 @@ public sealed partial class MainWindow
         var swatches = new StackPanel { Spacing = 8 };
         void BuildSwatches()
         {
+            // 切换编辑模式时重建色板，让每个 ColorChanged 回调写入对应的那套字典。
             swatches.Children.Clear();
             var colors = mode.SelectedIndex == 0 ? store.Config.Settings.CustomLightColors : store.Config.Settings.CustomDarkColors;
             foreach (var (role, label) in english
@@ -190,6 +181,7 @@ public sealed partial class MainWindow
                 var defaults = PaletteDefaults[role]; var fallback = mode.SelectedIndex == 0 ? defaults.Light : defaults.Dark;
                 var value = colors.GetValueOrDefault(role, fallback);
                 if (!System.Text.RegularExpressions.Regex.IsMatch(value ?? "", "^#[0-9A-Fa-f]{6}$")) value = fallback;
+                // 色板展示的是配置原值，不能走 Brush，否则当前预设会再次转换颜色。
                 var swatch = new SolidColorBrush(RawColor(value!));
                 var picker = new ColorPicker { Color = swatch.Color, IsAlphaEnabled = false, IsMoreButtonVisible = false, IsColorChannelTextInputVisible = true, IsHexInputVisible = true, IsColorPreviewVisible = true };
                 var button = new Button { Width = 44, Height = 28, Padding = new Thickness(3), Content = new Border { Background = swatch, Width = 32, Height = 18, CornerRadius = new CornerRadius(2) }, Flyout = new Flyout { Content = picker } };
@@ -211,6 +203,7 @@ public sealed partial class MainWindow
             store.Config.Settings.ColorPreset = preset.SelectedIndex switch { 1 => "native", 2 => "lakecyan", 3 => "custom", _ => "craft" };
             if (preset.SelectedIndex is 0 or 1 or 2)
             {
+                // 内置预设连同字号、缩放一起恢复默认值；切到自定义时保留用户的设置。
                 store.Config.Settings.UiScale = 1;
                 store.Config.Settings.UiButtonScale = 1;
                 store.Config.Settings.UiMenuScale = 1;

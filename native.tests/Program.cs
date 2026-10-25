@@ -9,6 +9,7 @@ using System.Net.Security;
 using System.Text;
 using System.Text.Json.Nodes;
 
+// 无测试框架的回归入口：断言失败即退出非零状态，测试文件都放在临时根目录。
 internal static class Program
 {
     static int passed;
@@ -38,6 +39,7 @@ internal static class Program
         catch (Exception e) { Console.Error.WriteLine(e); return 1; }
         finally { Directory.Delete(root, true); }
     }
+    // 手动诊断入口会实际启动本机版本；常规测试不会进入这个分支。
     static async Task DiagnoseLocalProfile(string profile)
     {
         var file = Path.GetFullPath(profile); var versionDirectory = Path.GetDirectoryName(file)!;
@@ -63,6 +65,7 @@ internal static class Program
         }
         finally { if (!process.HasExited) { process.Kill(true); await process.WaitForExitAsync(); } }
     }
+    // 覆盖路径、内容识别、账号、下载和整合包流程；多数网络响应由 MockHandler 提供。
     static async Task CoreTests()
     {
         CertificatePolicyTests.Run(); Pass("compromised CA public keys and supplied certificate chains");
@@ -393,6 +396,7 @@ internal static class Program
         Pass("modpack vanilla client predownload");
         Console.WriteLine("Java detected: " + await LauncherCore.InspectJava("java", CancellationToken.None)); Pass("real local Java detection");
     }
+    // 按请求返回固定响应，便于构造损坏下载、依赖和兼容性边界。
     sealed class MockHandler(Func<HttpRequestMessage, HttpResponseMessage> handler) : HttpMessageHandler
     {
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) => Task.FromResult(handler(request));

@@ -107,6 +107,7 @@ public sealed class LauncherCore : IDisposable
             var bytes = algorithm == "sha512" ? await SHA512.HashDataAsync(stream, ct) : algorithm == "sha256" ? await SHA256.HashDataAsync(stream, ct) : await SHA1.HashDataAsync(stream, ct);
             return Convert.ToHexString(bytes).Equals(hash, StringComparison.OrdinalIgnoreCase);
         }
+        // 已有文件先校验，完整时直接复用；重新下载不会直接覆盖旧文件。
         if (await Valid()) return;
         if (!url.StartsWith("https://", StringComparison.OrdinalIgnoreCase)) throw new Exception("下载地址必须使用 HTTPS");
         Directory.CreateDirectory(Path.GetDirectoryName(target)!);
@@ -142,6 +143,7 @@ public sealed class LauncherCore : IDisposable
                 var bytes = algorithm == "sha512" ? await SHA512.HashDataAsync(stream, ct) : algorithm == "sha256" ? await SHA256.HashDataAsync(stream, ct) : await SHA1.HashDataAsync(stream, ct);
                 if (!Convert.ToHexString(bytes).Equals(hash, StringComparison.OrdinalIgnoreCase)) throw new Exception("文件哈希校验失败");
             }
+            // 大小和哈希都通过后才替换目标，失败时 finally 只清理本次临时文件。
             File.Move(temp, target, true);
             DownloadProgress?.Invoke(100);
         }
@@ -173,6 +175,7 @@ public sealed class LauncherCore : IDisposable
         foreach (var pair in child.AsObject()) merged[pair.Key] = pair.Value?.DeepClone();
         merged["downloads"] = parent["downloads"]?.DeepClone();
         if (child["downloads"] is JsonObject downloads) foreach (var pair in downloads) { merged["downloads"] ??= new JsonObject(); merged["downloads"]![pair.Key] = pair.Value?.DeepClone(); }
+        // 同一依赖的版本冲突由子配置优先解决，classifier 和扩展名不同的包仍分别保留。
         var names = new HashSet<string>(); var libs = new JsonArray();
         foreach (var lib in child["libraries"].Items().Concat(parent["libraries"].Items()))
         {
@@ -194,6 +197,7 @@ public sealed class LauncherCore : IDisposable
         var version = File.Exists(file) ? JsonNode.Parse(await File.ReadAllTextAsync(file, ct))! : await Vanilla(id, storage, ct);
         return version.S("inheritsFrom") is { Length: > 0 } parent ? Merge(await Resolve(parent, storage, ct, seen), version) : version;
     }
+    // 导入实例解析本地继承链；新建 Fabric 实例则把加载器配置叠到原版配置上。
     public async Task<JsonNode> VersionFor(Instance instance, CancellationToken ct)
     {
         var storage = store.StorageDirectory(instance);
@@ -376,6 +380,7 @@ public sealed class LauncherCore : IDisposable
         var hmcl = Store.SafePath(game, "hmclversion.cfg");
         if (!File.Exists(hmcl)) await Store.AtomicJson(hmcl, new JsonObject { ["usesGlobal"] = false, ["gameDirType"] = 1 });
     }
+    // 按清单顺序应用匹配规则，后面的规则可以覆盖前面的结果。
     public static bool Allowed(JsonNode? rules)
     {
         if (!rules.Items().Any()) return true;
@@ -396,6 +401,7 @@ public sealed class LauncherCore : IDisposable
         if (p.Length < 3) throw new Exception("无效的依赖坐标");
         return $"{p[0].Replace('.', '/')}/{p[1]}/{p[2]}/{p[1]}-{p[2]}{(p.Length > 3 ? "-" + p[3] : "")}.{(format.Length > 1 ? format[1] : "jar")}";
     }
+    // 解压前检查条目类型和展开大小，目标路径仍统一交给 SafePath 校验。
     public static async Task Extract(ZipArchive zip, string target, string prefix = "", string[]? exclusions = null, CancellationToken ct = default)
     {
         long total = 0;
@@ -425,6 +431,7 @@ public sealed class LauncherCore : IDisposable
         if (version["downloads"]?["client"] is JsonNode client) await Download(client.S("url"), jar, client.S("sha1"), size: client.Int("size"), ct: ct);
         else if (!File.Exists(jar)) throw new Exception("本地版本缺少客户端 JAR");
         var libraries = version["libraries"].Items().Where(l => Allowed(l["rules"])).ToList(); int done = 0;
+        // 下载可以并发完成，但 classpath 仍按清单索引收集，避免完成顺序影响类加载。
         var classpathParts = new string?[libraries.Count]; var nativeFiles = new string?[libraries.Count];
         progress?.Report((20, "校验与下载游戏依赖"));
         await DownloadMany(libraries.Select((lib, index) => (lib, index)), async (item, token) =>
@@ -482,6 +489,7 @@ public sealed class LauncherCore : IDisposable
         await ContentManager.Language(game, store.Config.Settings.GameLanguage);
         var args = BuildArguments(version, storage, game, natives, classpath, account, credentials, store.Config.Settings, account.Type == "microsoft" ? MicrosoftAuth.ConfiguredClientId : null);
         var start = new ProcessStartInfo(java) { WorkingDirectory = game, UseShellExecute = false, RedirectStandardOutput = true, RedirectStandardError = true, CreateNoWindow = true };
+        // 逐个添加参数，让运行时处理带空格的路径，不自行拼接命令行引号。
         foreach (var arg in args) start.ArgumentList.Add(arg);
         Log?.Invoke("执行游戏命令 · " + java + " " + string.Join(" ", args.Select(RedactCommandArgument)) + " · 工作目录=" + game);
         var process = new Process { StartInfo = start, EnableRaisingEvents = true };
@@ -492,6 +500,7 @@ public sealed class LauncherCore : IDisposable
         if (!process.Start()) throw new Exception("游戏进程启动失败"); process.BeginOutputReadLine(); process.BeginErrorReadLine(); return process;
     }
     static string RedactCommandArgument(string value) => value.Contains("accessToken", StringComparison.OrdinalIgnoreCase) || value.Length > 40 && value.All(c => char.IsLetterOrDigit(c) || c is '-' or '_') ? "[REDACTED]" : value;
+    // 兼容新版 arguments 和旧版 minecraftArguments；未知占位符直接报错，避免传给游戏。
     public static List<string> BuildArguments(JsonNode version, string storage, string game, string natives, List<string> classpath, Account account, JsonNode credentials, Settings settings, string? clientId = null)
     {
         // Flattened profiles may repeat libraries; NeoForge's union filesystem rejects duplicate paths.
