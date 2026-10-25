@@ -18,8 +18,8 @@
     <DebugType>none</DebugType>
     <DebugSymbols>false</DebugSymbols>
     <AssemblyName>CMCLauncher</AssemblyName>
-    <Product>CMC Launcher</Product>
-    <Title>CMC Launcher</Title>
+    <Product>CMCLauncher</Product>
+    <Title>CMCLauncher</Title>
     <RootNamespace>CraftLauncher.WinUI</RootNamespace>
     <Version>0.9.3-beta</Version>
     <ApplicationManifest>app.manifest</ApplicationManifest>

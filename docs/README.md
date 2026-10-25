@@ -1,6 +1,6 @@
-# CMC Launcher
+# CMCLauncher
 
-CMC Launcher is a native Windows launcher for Minecraft Java Edition, built with WinUI 3. The website in `index.html` is static and does not require a server-side component.
+CMCLauncher is a native Windows launcher for Minecraft Java Edition, built with WinUI 3. The website in `index.html` is static and does not require a server-side component.
 
 ## Deployment
 

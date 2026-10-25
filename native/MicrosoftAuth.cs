@@ -19,7 +19,7 @@ public static class CredentialVault
         try
         {
             Marshal.Copy(data, 0, input.Data, data.Length);
-            var success = protect ? CryptProtectData(ref input, "CMC Launcher", IntPtr.Zero, IntPtr.Zero, IntPtr.Zero, 1, out output) : CryptUnprotectData(ref input, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero, 1, out output);
+            var success = protect ? CryptProtectData(ref input, "CMCLauncher", IntPtr.Zero, IntPtr.Zero, IntPtr.Zero, 1, out output) : CryptUnprotectData(ref input, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero, 1, out output);
             if (!success) throw new Exception("Windows 凭据加密失败，请重新登录");
             var bytes = new byte[output.Length]; Marshal.Copy(output.Data, bytes, 0, output.Length); return bytes;
         }
@@ -123,7 +123,7 @@ public sealed class MicrosoftAuth(LauncherCore core)
     public async Task<Account> Refresh(Account account, string clientId, CancellationToken ct)
     {
         var credentials = CredentialVault.Read(account);
-        if (credentials.S("source") == "pcl") throw new Exception("此账号来自旧版 PCL 同步，不能用于 CMC Launcher。请重新通过 Microsoft 登录。");
+        if (credentials.S("source") == "pcl") throw new Exception("此账号来自旧版 PCL 同步，不能用于 CMCLauncher。请重新通过 Microsoft 登录。");
         if (!IsVerifiedMinecraftPlayer(account)) throw new Exception("此 Microsoft 账号尚未验证 Minecraft Java Edition 档案，请重新登录并确认账号拥有 Java 版游戏。");
         if (long.TryParse(credentials.S("expiresAt"), out var expiry) && expiry > DateTimeOffset.UtcNow.ToUnixTimeSeconds() + 60) return account;
         if (credentials.S("refreshToken").Length == 0) throw new Exception("Microsoft 登录凭据缺少刷新令牌，请重新登录此账号。");
