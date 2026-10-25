@@ -3,7 +3,7 @@ using System.Text;
 using System.Net.Http;
 using System.Text.Json.Nodes;
 
-namespace CraftLauncher;
+namespace CMCLauncher;
 
 // Windows DPAPI 凭据加密 — 用当前用户身份加密/解密账号 Token
 public static class CredentialVault

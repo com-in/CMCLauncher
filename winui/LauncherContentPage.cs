@@ -2,7 +2,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Navigation;
 
-namespace CraftLauncher.WinUI;
+namespace CMCLauncher.WinUI;
 
 // Each navigation creates a new Page so WinUI can run its navigation transition.
 public sealed partial class LauncherContentPage : Page

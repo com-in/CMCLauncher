@@ -11,7 +11,7 @@ using WinRT.Interop;
 using System.Text.Json.Nodes;
 using Windows.UI.ViewManagement;
 
-namespace CraftLauncher.WinUI;
+namespace CMCLauncher.WinUI;
 
 public sealed partial class MainWindow
 {
@@ -26,9 +26,9 @@ public sealed partial class MainWindow
     // 先展示表单，再异步拉取版本目录；失败时仍保留已有缓存列表。
     Task Downloads()
     {
-        Header("版本下载", Ui("第 1 步：选择要安装的游戏版本。", "Step 1: choose a game version to install."));
+        Header("版本下载", Ui("选择要安装的游戏版本。", "choose a game version to install."));
         var form = new Grid { HorizontalAlignment = HorizontalAlignment.Stretch, Tag = "game-download-form" };
-        var releaseTypes = new[] { "正式版", "快照", "愚人节" };
+        var releaseTypes = new[] { "正式版", "快照版", "愚人节版" };
         var category = new Grid { ColumnSpacing = 6 };
         var categoryButtons = new List<RadioButton>();
         foreach (var value in releaseTypes)
@@ -62,9 +62,10 @@ public sealed partial class MainWindow
         var options = new StackPanel { Spacing = 14, Children = { loader, loaderStatus, loaderRetry, nameSection } };
         var note = Text("", 12); note.Visibility = Visibility.Collapsed;
         note.Foreground = Brush(lightTheme ? "#69745F" : "#ACADBD");
-        var isolation = Text("版本隔离已启用 · 每个版本独立保存 Mods、存档与设置", 12);
-        isolation.Foreground = Brush(lightTheme ? "#69745F" : "#ACADBD");
-        installSection.Children.Add(options); installSection.Children.Add(isolation); installSection.Children.Add(note);
+        // 何意味，不理解这一行提示作用,先暂时注释了↓
+        // var isolation = Text("版本隔离已启用 · 每个版本独立保存 Mods、存档与设置(我去不早说)", 12);
+        // isolation.Foreground = Brush(lightTheme ? "#69745F" : "#ACADBD");
+        installSection.Children.Add(options); installSection.Children.Add(note);
         var versionCard = Card(versionSection); versionCard.Padding = new Thickness(18); versionCard.VerticalAlignment = VerticalAlignment.Top;
         var installCard = Card(installSection); installCard.Padding = new Thickness(18); installCard.VerticalAlignment = VerticalAlignment.Top;
         versionCard.Tag = "game-version-step";
@@ -83,8 +84,8 @@ public sealed partial class MainWindow
             versionCard.Visibility = installation ? Visibility.Collapsed : Visibility.Visible;
             installCard.Visibility = installation ? Visibility.Visible : Visibility.Collapsed;
             PageSubtitle.Text = installation
-                ? Ui("第 2 步：确认安装选项并开始下载。", "Step 2: review installation options and start downloading.")
-                : Ui("第 1 步：选择要安装的游戏版本。", "Step 1: choose a game version to install.");
+                ? Ui("确认安装选项并开始下载。", "Review installation options and start downloading.")
+                : Ui("选择要安装的游戏版本。", "Choose a game version to install.");
             PageViewport.ChangeView(null, 0, null, true);
             DispatcherQueue.TryEnqueue(() =>
             {
@@ -218,7 +219,7 @@ public sealed partial class MainWindow
                 versionStatus.Foreground = Brush(lightTheme ? "#A33A32" : "#FF8A80");
                 versionStatus.Text = (cachedVersions.Count > 0 ? Ui("已保留上次列表。", "The previous list was kept.") + " " : "") +
                     (ex is OperationCanceledException ? Ui("获取版本列表超时。", "Timed out while loading the version list.") : Ui("获取失败：", "Failed to load: ") + ex.Message) +
-                    " " + Ui("请检查网络或下载代理后重试。", "Check your network or download proxy and try again.");
+                    " " + Ui("请检查网络或配置代理后重试。", "Check your network or set up a proxy and try again.");
             }
             finally { loadingVersions = false; if (ReferenceEquals(resourceSearch, request)) resourceSearch = null; }
         }
@@ -247,7 +248,7 @@ public sealed partial class MainWindow
         loader.SelectionChanged += async (_, _) =>
         {
             var requiresJava = loader.SelectedItem?.ToString() is "Forge" or "NeoForge";
-            note.Text = requiresJava ? Ui("Forge / NeoForge 需要本机可用的 Java。", "Forge / NeoForge require a compatible Java runtime.") : "";
+            note.Text = requiresJava ? Ui("安装 Mod加载器 需要可用的 Java。", "Installing a mod loader requires a working Java.") : "";
             note.Visibility = requiresJava ? Visibility.Visible : Visibility.Collapsed;
             await ResolveLoader();
         };

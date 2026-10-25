@@ -8,7 +8,7 @@ using Microsoft.UI.Xaml.Media.Imaging;
 using Windows.Graphics.Imaging;
 using Windows.Storage.Streams;
 
-namespace CraftLauncher.WinUI;
+namespace CMCLauncher.WinUI;
 
 public sealed partial class MainWindow
 {

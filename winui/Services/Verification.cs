@@ -9,7 +9,7 @@ using Windows.Graphics.Imaging;
 using Windows.Security.Cryptography;
 using Windows.Storage;
 
-namespace CraftLauncher.WinUI;
+namespace CMCLauncher.WinUI;
 
 public sealed partial class MainWindow
 {

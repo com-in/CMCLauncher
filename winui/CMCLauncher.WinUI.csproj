@@ -20,7 +20,7 @@
     <AssemblyName>CMCLauncher</AssemblyName>
     <Product>CMCLauncher</Product>
     <Title>CMCLauncher</Title>
-    <RootNamespace>CraftLauncher.WinUI</RootNamespace>
+    <RootNamespace>CMCLauncher.WinUI</RootNamespace>
     <Version>0.9.3-beta</Version>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>assets/cmc-logo.ico</ApplicationIcon>

@@ -8,7 +8,7 @@ using Microsoft.UI.Xaml.Media;
 using Windows.Storage.Pickers;
 using WinRT.Interop;
 
-namespace CraftLauncher.WinUI;
+namespace CMCLauncher.WinUI;
 
 public sealed partial class MainWindow
 {

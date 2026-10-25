@@ -5,8 +5,8 @@
     <TargetFramework>net8.0-windows</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <AssemblyName>CraftLauncher</AssemblyName>
-    <RootNamespace>CraftLauncher</RootNamespace>
+    <AssemblyName>CMCLauncher</AssemblyName>
+    <RootNamespace>CMCLauncher</RootNamespace>
     <Version>0.3.0</Version>
   </PropertyGroup>
   <!-- 本地构建可嵌入公开 OAuth 客户端 ID，源文件不进入发行包。 -->

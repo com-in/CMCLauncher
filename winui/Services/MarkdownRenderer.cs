@@ -7,7 +7,7 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Documents;
 using Microsoft.UI.Xaml.Media;
 
-namespace CraftLauncher.WinUI;
+namespace CMCLauncher.WinUI;
 
 public sealed partial class MainWindow
 {

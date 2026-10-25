@@ -1,6 +1,6 @@
 using System.IO.Compression;
 
-namespace CraftLauncher;
+namespace CMCLauncher;
 
 // 存档导入、导出先写临时位置，取消或失败时由 finally 清理。
 public static class WorldArchive

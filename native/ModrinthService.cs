@@ -1,9 +1,9 @@
-﻿using System.IO.Compression;
+using System.IO.Compression;
 using System.Net.Http;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 
-namespace CraftLauncher;
+namespace CMCLauncher;
 public sealed record SearchResult(string Id, string Name, string Description, string Type, string IconUrl, long Downloads = 0)
 {
     public override string ToString() => Name;

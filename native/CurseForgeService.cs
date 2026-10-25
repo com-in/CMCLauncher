@@ -3,7 +3,7 @@ using System.Net.Http;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 
-namespace CraftLauncher;
+namespace CMCLauncher;
 
 // CurseForge API 服务 — 整合包导入、文件解析、下载链接获取
 // manifest.json → 内部统一格式 → InstallPack 复用现有安装流程

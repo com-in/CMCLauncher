@@ -11,7 +11,7 @@ using WinRT.Interop;
 using System.Text.Json.Nodes;
 using Windows.UI.ViewManagement;
 
-namespace CraftLauncher.WinUI;
+namespace CMCLauncher.WinUI;
 
 public sealed partial class MainWindow
 {

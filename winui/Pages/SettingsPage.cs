@@ -1,10 +1,10 @@
-using CraftLauncher;
+using CMCLauncher;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 
-namespace CraftLauncher.WinUI;
+namespace CMCLauncher.WinUI;
 
-public sealed class SettingsPage : CraftPage
+public sealed class SettingsPage : CMCPage
 {
     public SettingsPage(MainWindow window) : base(window) { }
 

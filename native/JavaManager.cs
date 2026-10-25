@@ -4,7 +4,7 @@ using System.IO.Compression;
 using System.Text.RegularExpressions;
 using Microsoft.Win32;
 
-namespace CraftLauncher;
+namespace CMCLauncher;
 
 // Java 运行时管理：发现、匹配、注册、下载
 // 候选路径来源：PATH 环境变量 → JAVA_HOME → 注册表 → 预置扫描目录 → 用户注册列表

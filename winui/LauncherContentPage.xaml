@@ -1,5 +1,5 @@
 <!-- 页面正文由 OnNavigatedTo 接收导航参数后设置，这里只声明承载容器。 -->
-<Page x:Class="CraftLauncher.WinUI.LauncherContentPage"
+<Page x:Class="CMCLauncher.WinUI.LauncherContentPage"
       xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
       HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch"/>

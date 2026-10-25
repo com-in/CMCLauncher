@@ -9,7 +9,7 @@ $ErrorActionPreference = "Stop"
 $sb = [System.Text.StringBuilder]::new()
 [void]$sb.AppendLine(@"
 // Auto-generated companion data for single-file self-extraction.
-namespace CraftLauncher.WinUI;
+namespace CMCLauncher.WinUI;
 internal static class CompanionData
 {
     public static string CompanionVersion { get; } =

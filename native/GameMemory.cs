@@ -1,6 +1,6 @@
 using System.Runtime.InteropServices;
 
-namespace CraftLauncher;
+namespace CMCLauncher;
 
 // 为 JVM 堆计算预算，读取系统内存失败时使用固定值。
 public static class GameMemory

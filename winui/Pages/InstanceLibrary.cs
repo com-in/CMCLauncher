@@ -6,7 +6,7 @@ using Windows.Storage.Pickers;
 using WinRT.Interop;
 using System.Text.Json.Nodes;
 
-namespace CraftLauncher.WinUI;
+namespace CMCLauncher.WinUI;
 public sealed partial class MainWindow
 {
     Func<ContentDialog, Task<ContentDialogResult>> showInstanceDeleteDialog = async dialog => await dialog.ShowAsync();

@@ -4,7 +4,7 @@ using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Animation;
 using Windows.Foundation;
 
-namespace CraftLauncher.WinUI;
+namespace CMCLauncher.WinUI;
 
 // 通过裁剪容器播放高度动画，收起过程中的内容不会溢出到相邻菜单。
 internal sealed class AnimatedSubmenu

@@ -1,6 +1,6 @@
 using System.Text;
 
-namespace CraftLauncher.WinUI;
+namespace CMCLauncher.WinUI;
 
 // 按天写入程序目录；磁盘不可写时跳过日志，不能拖垮启动器操作。
 static class RuntimeLog

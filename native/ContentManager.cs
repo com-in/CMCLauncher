@@ -3,7 +3,7 @@ using System.IO.Compression;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 
-namespace CraftLauncher;
+namespace CMCLauncher;
 // Mod/资源包元数据容器
 public sealed record ContentItem(string File, string Name, string Version, string Loader, string Description, bool Enabled, bool Recognized)
 {

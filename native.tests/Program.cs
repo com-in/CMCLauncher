@@ -1,4 +1,4 @@
-﻿using CraftLauncher;
+using CMCLauncher;
 using System.IO;
 using System.IO.Compression;
 using System.Net;
@@ -68,6 +68,15 @@ internal static class Program
     // 覆盖路径、内容识别、账号、下载和整合包流程；多数网络响应由 MockHandler 提供。
     static async Task CoreTests()
     {
+        var appData = Path.Combine(root, "appdata");
+        var currentRoot = Path.Combine(appData, "CMCLauncher.Native");
+        var legacyRoot = Path.Combine(appData, "CraftLauncher.Native");
+        Check(Store.DefaultRoot(appData) == currentRoot, "new installations use the renamed data directory");
+        Directory.CreateDirectory(legacyRoot);
+        Check(Store.DefaultRoot(appData) == legacyRoot, "existing installations keep their data directory");
+        Directory.CreateDirectory(currentRoot);
+        Check(Store.DefaultRoot(appData) == currentRoot, "the current directory takes precedence when both exist");
+        Pass("renamed data directory preserves existing installations");
         await CurseForgeClientTests.Run(); Pass("reserved CurseForge API authentication, consent, transport and failure boundaries");
         await ModrinthPaginationTests.Run(Path.Combine(root, "pagination")); Pass("community rankings and searches paginate with offsets and total counts");
         CertificatePolicyTests.Run(); Pass("compromised CA public keys and supplied certificate chains");

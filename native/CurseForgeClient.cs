@@ -3,7 +3,7 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text.Json;
 
-namespace CraftLauncher;
+namespace CMCLauncher;
 
 // 这里只预留查询接口，不接入页面、整合包安装或文件下载。
 public interface ICurseForgeClient

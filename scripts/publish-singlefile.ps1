@@ -7,7 +7,7 @@ param(
 
 $ErrorActionPreference = "Stop"
 $repoRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot ".."))
-$projectPath = Join-Path $repoRoot "winui\CraftLauncher.WinUI.csproj"
+$projectPath = Join-Path $repoRoot "winui\CMCLauncher.WinUI.csproj"
 $targetDir = Join-Path $repoRoot "winui\bin\x64\$Configuration\net8.0-windows10.0.19041.0\$Runtime"
 $genScript = Join-Path $PSScriptRoot "generate-companion-source.ps1"
 $outputPath = Join-Path $repoRoot "winui\CompanionData.g.cs"

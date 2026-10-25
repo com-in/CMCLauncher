@@ -2,7 +2,7 @@ using System.Collections.Concurrent;
 using System.Security.Cryptography;
 using System.Text.Json;
 
-namespace CraftLauncher.WinUI;
+namespace CMCLauncher.WinUI;
 
 // 元数据按内容哈希落盘，相同文件换名或在不同实例中出现时可以复用识别结果。
 internal static class ContentInspectionCache

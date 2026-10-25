@@ -6,7 +6,7 @@ using System.Globalization;
 using System.Text;
 using System.Diagnostics;
 
-namespace CraftLauncher.WinUI;
+namespace CMCLauncher.WinUI;
 
 // 程序入口 — 负责 MUI 语言资源部署、COM 初始化、窗口启动
 internal static class Program
@@ -42,7 +42,7 @@ internal static class Program
         try { Application.Start(callback =>
         {
             SynchronizationContext.SetSynchronizationContext(new DispatcherQueueSynchronizationContext(DispatcherQueue.GetForCurrentThread()));
-            _ = new CraftApp(args);
+            _ = new CMCApp(args);
         }); }
         finally { OleUninitialize(); }
         return 0;
@@ -179,17 +179,17 @@ internal static class Program
 #endif
 }
 // WinUI 3 Application 子类 — 处理未捕获异常、命令行参数、窗口创建
-public sealed partial class CraftApp : Application
+public sealed partial class CMCApp : Application
 {
     readonly string[] args;
     MainWindow? window;
-    public CraftApp(string[] arguments)
+    public CMCApp(string[] arguments)
     {
         args = arguments;
         InitializeComponent();
         UnhandledException += (_, e) =>
         {
-            try { File.AppendAllText(Path.Combine(Path.GetTempPath(), "CraftLauncher.WinUI-error.log"), DateTime.Now + " " + e.Exception + Environment.NewLine); } catch { }
+            try { File.AppendAllText(Path.Combine(Path.GetTempPath(), "CMCLauncher.WinUI-error.log"), DateTime.Now + " " + e.Exception + Environment.NewLine); } catch { }
         };
     }
     // 验证模式也启动真实窗口，失败信息写入指定目录后退出应用。

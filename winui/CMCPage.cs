@@ -2,15 +2,15 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 
-namespace CraftLauncher.WinUI;
+namespace CMCLauncher.WinUI;
 
 // 页面基类 — 将 MainWindow 的共享服务和方法暴露给子页面
 // 每个子页面只需实现 Build()，通过 this.Xxx() 直接调用 UI 和业务能力
-public abstract class CraftPage
+public abstract class CMCPage
 {
     protected readonly MainWindow Window;
 
-    protected CraftPage(MainWindow window) => Window = window;
+    protected CMCPage(MainWindow window) => Window = window;
 
     // 核心服务（只读）
     protected Store Store => Window.Store;

@@ -2,7 +2,7 @@ using System.Net.Security;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 
-namespace CraftLauncher;
+namespace CMCLauncher;
 
 // 启动器自己的 TLS 策略，不会修改 Windows 的证书存储。
 public static class CertificatePolicy

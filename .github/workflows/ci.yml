@@ -23,7 +23,7 @@ jobs:
         with:
           dotnet-version: '8.0.x'
       - name: Run native tests
-        run: dotnet run --project native.tests/CraftLauncher.Tests.csproj -c Release
+        run: dotnet run --project native.tests/CMCLauncher.Tests.csproj -c Release
 
   # 原生测试通过后再构建发行包，避免把已知失败的核心代码打包。
   build:
@@ -47,7 +47,7 @@ jobs:
           if ([string]::IsNullOrWhiteSpace($env:MICROSOFT_CLIENT_ID)) { throw 'Set the MICROSOFT_CLIENT_ID GitHub Actions secret before publishing a tagged release.' }
           @{ clientId = $env:MICROSOFT_CLIENT_ID } | ConvertTo-Json | Set-Content -LiteralPath winui/clientid.local.json -Encoding utf8
       - name: Publish self-contained WinUI app
-        run: dotnet publish winui/CraftLauncher.WinUI.csproj -c Release -p:Platform=x64 -r win-x64 --self-contained true -o dist/cmc-launcher
+        run: dotnet publish winui/CMCLauncher.WinUI.csproj -c Release -p:Platform=x64 -r win-x64 --self-contained true -o dist/cmc-launcher
       - name: Package and scan release archive
         shell: pwsh
         run: ./scripts/package-release.ps1 -PublishDirectory dist/cmc-launcher -ArchivePath dist/CMCLauncher-0.9.3-beta-win-x64.zip

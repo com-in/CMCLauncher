@@ -1,12 +1,12 @@
 using System.Diagnostics;
-using CraftLauncher;
+using CMCLauncher;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media.Imaging;
 using Windows.Storage.Pickers;
 using WinRT.Interop;
 
-namespace CraftLauncher.WinUI;
+namespace CMCLauncher.WinUI;
 
 public sealed partial class MainWindow
 {

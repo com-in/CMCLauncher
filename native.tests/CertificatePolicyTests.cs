@@ -1,4 +1,4 @@
-using CraftLauncher;
+using CMCLauncher;
 using System.IO;
 using System.Net.Security;
 using System.Security.Cryptography;

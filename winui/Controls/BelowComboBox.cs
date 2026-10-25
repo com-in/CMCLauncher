@@ -4,7 +4,7 @@ using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Media;
 using Windows.Foundation;
 
-namespace CraftLauncher.WinUI;
+namespace CMCLauncher.WinUI;
 
 // Keep native keyboard navigation and selection while anchoring the list below its field.
 public sealed class BelowComboBox : ComboBox

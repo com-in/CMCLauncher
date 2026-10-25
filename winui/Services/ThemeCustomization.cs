@@ -9,7 +9,7 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Windows.UI;
 
-namespace CraftLauncher.WinUI;
+namespace CMCLauncher.WinUI;
 
 // 基础主题色值常量，供配色映射等代码复用；部分 UI 仍直接传入相同的 hex，
 // LakeCyan 的目标色值、XAML 初始色值和用户自定义色值也在各自位置定义。

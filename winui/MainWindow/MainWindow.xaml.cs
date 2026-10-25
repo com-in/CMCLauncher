@@ -11,7 +11,7 @@ using WinRT.Interop;
 using System.Text.Json.Nodes;
 using Windows.UI.ViewManagement;
 
-namespace CraftLauncher.WinUI;
+namespace CMCLauncher.WinUI;
 public sealed partial class MainWindow : Window
 {
     readonly Store store;
@@ -24,7 +24,7 @@ public sealed partial class MainWindow : Window
     string? world;
     int renderVersion;
 
-    // 暴露给 CraftPage 子类的内部属性
+    // 暴露给 CMCPage 子类的内部属性
     internal Store Store => store;
     internal LauncherCore Core => core;
     internal ModrinthService ModrinthService => modrinth;

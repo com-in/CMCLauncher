@@ -2,7 +2,7 @@ using System.ComponentModel;
 using System.Runtime.InteropServices;
 using System.Text;
 
-namespace CraftLauncher.WinUI;
+namespace CMCLauncher.WinUI;
 
 // 桌面版用 Win32 剪贴板写 Unicode 文本，错误交给调用方展示。
 internal static class DesktopClipboard

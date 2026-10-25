@@ -4,7 +4,7 @@ using System.Text.Json.Nodes;
 using System.Security.Cryptography;
 using System.Text;
 
-namespace CraftLauncher;
+namespace CMCLauncher;
 
 // settings.json 中的全局偏好；实例和账号另存在 Configuration 的列表里。
 public sealed class Settings
@@ -87,7 +87,7 @@ public sealed record GameRelease(string Id, string Type)
 {
     static readonly HashSet<string> AprilVersions = new(StringComparer.OrdinalIgnoreCase)
     { "2.0", "15w14a", "1.RV-Pre1", "3D Shareware v1.34", "20w14infinite", "22w13oneblockatatime", "23w13a_or_b", "24w14potato", "25w14craftmine", "26w14a" };
-    public string Category => AprilVersions.Contains(Id) ? "愚人节" : Type == "release" ? "正式版" : "快照";
+    public string Category => AprilVersions.Contains(Id) ? "愚人节版" : Type == "release" ? "正式版" : "快照版";
 }
 public sealed class Account
 {
@@ -125,10 +125,17 @@ public sealed class Store
     public Configuration Config { get; }
     public Store(string? root = null)
     {
-        Root = root ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "CraftLauncher.Native");
+        Root = root ?? DefaultRoot(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData));
         System.IO.Directory.CreateDirectory(Library);
         var file = Path.Combine(Root, "settings.json");
         Config = File.Exists(file) ? JsonSerializer.Deserialize<Configuration>(File.ReadAllText(file), JsonOptions) ?? throw new Exception("配置为空") : new();
+    }
+    internal static string DefaultRoot(string appData)
+    {
+        var current = Path.Combine(appData, "CMCLauncher.Native");
+        // 旧安装的配置保存了绝对路径，继续使用原目录，避免改名后丢失实例和账号。
+        var legacy = Path.Combine(appData, "CraftLauncher.Native");
+        return !System.IO.Directory.Exists(current) && System.IO.Directory.Exists(legacy) ? legacy : current;
     }
     // 多个 UI 回调可能同时保存，用锁串行执行写入。
     public async Task Save()

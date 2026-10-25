@@ -10,7 +10,7 @@ try {
     # A fresh directory avoids stale resources and files locked by an earlier test run.
     $runName = Get-Date -Format 'yyyyMMdd-HHmmss-fff'
     $outputDirectory = Join-Path $PSScriptRoot ".artifacts/local-runs/$runName-$([guid]::NewGuid().ToString('N').Substring(0, 8))"
-    $project = Join-Path $PSScriptRoot 'winui/CraftLauncher.WinUI.csproj'
+    $project = Join-Path $PSScriptRoot 'winui/CMCLauncher.WinUI.csproj'
 
     Push-Location $PSScriptRoot
     try {

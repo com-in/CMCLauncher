@@ -1,12 +1,12 @@
-using CraftLauncher;
+using CMCLauncher;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Windows.Storage.Pickers;
 using WinRT.Interop;
 
-namespace CraftLauncher.WinUI;
+namespace CMCLauncher.WinUI;
 
-public sealed class JavaSettingsPage : CraftPage
+public sealed class JavaSettingsPage : CMCPage
 {
     public JavaSettingsPage(MainWindow window) : base(window) { }
 

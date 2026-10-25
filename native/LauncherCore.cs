@@ -1,4 +1,4 @@
-﻿using System.IO;
+using System.IO;
 using System.IO.Compression;
 using System.Net;
 using System.Net.Http;
@@ -8,7 +8,7 @@ using System.Text.RegularExpressions;
 using System.Diagnostics;
 using System.Xml.Linq;
 
-namespace CraftLauncher;
+namespace CMCLauncher;
 
 // 启动器网络与下载核心 — HTTP 客户端、代理探测、并发下载、版本解析
 public sealed class LauncherCore : IDisposable
@@ -506,7 +506,7 @@ public sealed class LauncherCore : IDisposable
         // Flattened profiles may repeat libraries; NeoForge's union filesystem rejects duplicate paths.
         classpath = classpath.Select(Path.GetFullPath).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
         var values = new Dictionary<string, string> {
-            ["natives_directory"] = natives, ["launcher_name"] = "CraftLauncher", ["launcher_version"] = "0.3.0", ["classpath"] = string.Join(Path.PathSeparator, classpath), ["classpath_separator"] = Path.PathSeparator.ToString(), ["library_directory"] = Path.Combine(storage,"libraries"),
+            ["natives_directory"] = natives, ["launcher_name"] = "CMCLauncher", ["launcher_version"] = "0.3.0", ["classpath"] = string.Join(Path.PathSeparator, classpath), ["classpath_separator"] = Path.PathSeparator.ToString(), ["library_directory"] = Path.Combine(storage,"libraries"),
             ["auth_player_name"] = account.Name, ["auth_uuid"] = account.Uuid.Replace("-", ""), ["auth_access_token"] = credentials.S("accessToken", "0"), ["auth_session"] = credentials.S("accessToken", "0"), ["game_directory"] = game, ["version_name"] = version.S("id"), ["version_type"] = version.S("type", "release"),
             ["assets_root"] = Path.Combine(storage, "assets"), ["game_assets"] = Path.Combine(storage, "assets", "virtual", version["assetIndex"].S("id", "legacy")), ["assets_index_name"] = version["assetIndex"].S("id", version.S("assets")), ["user_type"] = account.Type == "microsoft" ? "msa" : "legacy", ["user_properties"] = "{}", ["clientid"] = clientId ?? settings.MicrosoftClientId, ["auth_xuid"] = credentials.S("xuid"), ["resolution_width"] = "1280", ["resolution_height"] = "720"
         };

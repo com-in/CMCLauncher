@@ -3,7 +3,7 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Animation;
 
-namespace CraftLauncher.WinUI;
+namespace CMCLauncher.WinUI;
 
 // 每个蓝条保留自己的动画状态，重复刷新导航时不重播，连续切换时从当前画面接着过渡。
 internal sealed class AnimatedNavigationIndicator

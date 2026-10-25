@@ -52,11 +52,13 @@ New instances keep Mods, saves, and settings separate. Imported games retain the
 
 | Location | Contents |
 | --- | --- |
-| `%APPDATA%/CraftLauncher.Native/settings.json` | Launcher settings, instance records, and encrypted account credentials |
-| `%APPDATA%/CraftLauncher.Native/library/` | Default instances and dependency libraries; a different game root can be selected in the launcher |
-| `%APPDATA%/CraftLauncher.Native/runtimes/` | Java installations downloaded by the launcher |
+| `%APPDATA%/CMCLauncher.Native/settings.json` | Launcher settings, instance records, and encrypted account credentials |
+| `%APPDATA%/CMCLauncher.Native/library/` | Default instances and dependency libraries; a different game root can be selected in the launcher |
+| `%APPDATA%/CMCLauncher.Native/runtimes/` | Java installations downloaded by the launcher |
 | `logs/launcher-yyyyMMdd.log` beside the executable | Launcher runtime logs |
 | `logs/` and `crash-reports/` inside an instance | Game logs and crash reports |
+
+Existing installations continue to use `%APPDATA%/CraftLauncher.Native/` when the new data directory does not exist, preserving accounts, settings, and instance paths.
 
 Credentials are encrypted with DPAPI for the current Windows user. Copying the configuration to another user or device may require signing in again. When backing up games, include saves and settings from their actual instance directories.
 
@@ -69,8 +71,12 @@ On Windows, install the .NET 8 SDK and the Windows SDK / development tools neede
 ```powershell
 git clone https://github.com/com-in/CMCLauncher.git
 cd CMCLauncher
-dotnet run --project winui/CraftLauncher.WinUI.csproj -p:Platform=x64
+dotnet run --project winui/CMCLauncher.WinUI.csproj -p:Platform=x64
 ```
+
+For a one-click local build, double-click `build-and-run.cmd` in the repository root. It publishes a self-contained Release build to a new folder under `.artifacts/local-runs/` and opens that build for manual testing. It leaves `dist` untouched and keeps the console open so build errors are visible. Each run keeps its own output folder; you can remove old folders after closing those builds. The application uses your usual launcher settings.
+
+To build without opening the application, run `./build-and-run.ps1 -NoLaunch` in PowerShell.
 
 ### Configure Microsoft sign-in
 
@@ -91,13 +97,13 @@ Tagged release builds read this identifier from the `MICROSOFT_CLIENT_ID` GitHub
 Build the Release configuration:
 
 ```powershell
-dotnet build winui/CraftLauncher.WinUI.csproj -c Release -p:Platform=x64
+dotnet build winui/CMCLauncher.WinUI.csproj -c Release -p:Platform=x64
 ```
 
 Publish a self-contained directory and create a ZIP archive:
 
 ```powershell
-dotnet publish winui/CraftLauncher.WinUI.csproj -c Release -p:Platform=x64 -r win-x64 --self-contained true -o dist/cmc-launcher
+dotnet publish winui/CMCLauncher.WinUI.csproj -c Release -p:Platform=x64 -r win-x64 --self-contained true -o dist/cmc-launcher
 ./scripts/package-release.ps1 -PublishDirectory dist/cmc-launcher -ArchivePath dist/CMCLauncher-0.9.3-beta-win-x64.zip
 ```
 
@@ -108,7 +114,7 @@ The packaging script excludes local configuration, credential, and key files, th
 Run the native regression tests:
 
 ```powershell
-dotnet run --project native.tests/CraftLauncher.Tests.csproj -c Release
+dotnet run --project native.tests/CMCLauncher.Tests.csproj -c Release
 ```
 
 These tests use Windows DPAPI and must run on Windows. The final local Java detection check also requires `java` on PATH.
