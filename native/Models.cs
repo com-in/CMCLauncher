@@ -31,6 +31,8 @@ public sealed class Settings
     public string GameLanguage { get; set; } = "auto";
     public string MinecraftRoot { get; set; } = "";
     public bool StartMaximized { get; set; }
+    public int WindowWidth { get; set; } = 1280;
+    public int WindowHeight { get; set; } = 820;
     public bool ExpandProjectIntroduction { get; set; } = true;
     public string LauncherLanguage { get; set; } = "zh_cn";
     public string InstanceView { get; set; } = "list";

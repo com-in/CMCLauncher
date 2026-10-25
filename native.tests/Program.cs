@@ -210,7 +210,7 @@ internal static class Program
             await downloadCore.DownloadGame(new Instance { GameVersion = "fixture", Loader = "vanilla" }, CancellationToken.None);
         Check(await File.ReadAllTextAsync(Store.SafePath(downloadStore.Library, "versions/fixture/fixture.jar")) == "client", "game predownload without login or launch");
         Pass("game download without authentication or launching Java");
-        Check(new GameRelease("26.1.1", "release").Category == "正式版" && new GameRelease("24w10a", "snapshot").Category == "快照" && new GameRelease("1.RV-Pre1", "snapshot").Category == "愚人节", "version category classification");
+        Check(new GameRelease("26.1.1", "release").Category == "正式版" && new GameRelease("24w10a", "snapshot").Category == "快照版" && new GameRelease("1.RV-Pre1", "snapshot").Category == "愚人节版", "version category classification");
         Pass("release snapshot and April Fools categorization");
         var isolatedInstance = new Instance { Name = "我的独立版本", GameVersion = "fixture" };
         downloadStore.Config.Instances.Add(isolatedInstance);

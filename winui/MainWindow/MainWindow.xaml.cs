@@ -94,8 +94,15 @@ public sealed partial class MainWindow : Window
         };
         core.Log += line => DispatcherQueue.TryEnqueue(() => AddLog(line));
         ApplyTheme(); Render();
-        AppWindow.Resize(new Windows.Graphics.SizeInt32(1280, 820));
-        if (AppWindow.Presenter is OverlappedPresenter presenter && store.Config.Settings.StartMaximized) presenter.Maximize();
+        RestoreWindowSize();
+
+        if (AppWindow.Presenter is OverlappedPresenter presenter &&
+            store.Config.Settings.StartMaximized)
+        {
+            presenter.Maximize();
+        }
+
+        InitializeWindowSizeSaving();
         systemUi.ColorValuesChanged += SystemThemeChanged;
         RuntimeLog.Write("INFO", "应用启动 · 程序目录=" + AppContext.BaseDirectory);
         Closed += (_, _) => { RuntimeLog.Write("INFO", "应用关闭"); taskViewTimer.Stop(); resourceSearch?.Cancel(); systemUi.ColorValuesChanged -= SystemThemeChanged; task?.Cancel(); core.Dispose(); };
@@ -122,5 +129,56 @@ public sealed partial class MainWindow : Window
         animatedNavigationIndicators.Clear(); selectedRootIndicator = selectedPageIndicator = null;
         BuildNavigation();
         Render();
+    }
+    private Microsoft.UI.Dispatching.DispatcherQueueTimer? windowSizeSaveTimer;
+
+    private void RestoreWindowSize()
+    {
+        var settings = store.Config.Settings;
+
+        int width = Math.Clamp(settings.WindowWidth, 800, 3000);
+        int height = Math.Clamp(settings.WindowHeight, 500, 2000);
+
+        AppWindow.Resize(new Windows.Graphics.SizeInt32(width, height));
+    }
+
+    private void InitializeWindowSizeSaving()
+    {
+        windowSizeSaveTimer = DispatcherQueue.CreateTimer();
+        windowSizeSaveTimer.Interval = TimeSpan.FromMilliseconds(500);
+        windowSizeSaveTimer.IsRepeating = false;
+
+        windowSizeSaveTimer.Tick += async (_, _) =>
+        {
+            try
+            {
+                await store.Save();
+            }
+            catch (Exception ex)
+            {
+                RuntimeLog.Write("ERROR", "保存窗口尺寸失败 · " + ex);
+            }
+        };
+
+        AppWindow.Changed += (sender, args) =>
+        {
+            if (!args.DidSizeChange)
+                return;
+
+            if (sender.Presenter is not OverlappedPresenter presenter ||
+                presenter.State != OverlappedPresenterState.Restored)
+                return;
+
+            var size = sender.Size;
+
+            if (size.Width < 800 || size.Height < 500)
+                return;
+
+            store.Config.Settings.WindowWidth = size.Width;
+            store.Config.Settings.WindowHeight = size.Height;
+
+            windowSizeSaveTimer.Stop();
+            windowSizeSaveTimer.Start();
+        };
     }
 }

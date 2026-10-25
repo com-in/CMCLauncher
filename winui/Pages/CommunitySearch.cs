@@ -61,7 +61,9 @@ public sealed partial class MainWindow
         bool loading = false, hasNext = false, hasLoaded = false;
         int total = 0, lastRequestedPage = state.Page;
         string lastRequestedQuery = state.Query;
-        var compatibility = preset == "modpack" ? Text("整合包将安装为独立实例。", 12) : null;
+        var compatibility = (TextBlock?) null;
+        // ↓意义不明的提示(我去不早说x2)
+        // var compatibility = preset == "modpack" ? Text("整合包将安装为独立实例。", 12) : null;
         // 同一页面内搜索也可能交错返回，请求序号与页面代次一起检查。
         var requestVersion = 0;
         void SyncPager()

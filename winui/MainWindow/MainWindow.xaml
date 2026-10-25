@@ -22,7 +22,7 @@
       <!-- 自绘标题区留出系统按钮位置，实际预留宽度由 UpdateTitleBarInset 更新。 -->
       <Grid x:Name="CustomTitleBar" Height="40" ColumnDefinitions="204,*,Auto">
         <Border x:Name="TitleBrandBackground"/>
-        <StackPanel Orientation="Horizontal" Spacing="9" Margin="14,0,0,0" VerticalAlignment="Center">
+        <StackPanel Orientation="Horizontal" Spacing="9" Margin="18,0,0,0" VerticalAlignment="Center">
           <Image x:Name="TitleIcon" Width="18" Height="18" Stretch="Uniform" VerticalAlignment="Center"/>
           <TextBlock x:Name="TitleLabel" Text="CMCLauncher" FontSize="12" VerticalAlignment="Center"/>
         </StackPanel>

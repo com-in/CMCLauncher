@@ -130,7 +130,7 @@ public sealed partial class MainWindow
             stack.Children.Add(Text("性能监视器", 18, true));
             var process = Process.GetCurrentProcess();
             var memory = GC.GetGCMemoryInfo();
-            var processMemory = Muted($"{Ui("启动器内存")}: {process.WorkingSet64 / 1024 / 1024:N0} MB");
+            var processMemory = Muted($"{Ui("启动器内存占用")}: {process.WorkingSet64 / 1024 / 1024:N0} MB");
             var systemMemory = Muted($"{Ui("设备总内存")}: {memory.TotalAvailableMemoryBytes / 1024 / 1024:N0} MB · CPU {Environment.ProcessorCount} {Ui("核")}");
             stack.Children.Add(processMemory); stack.Children.Add(systemMemory);
             stack.Children.Add(Action("刷新", (_, _) => { process.Refresh(); var latest = GC.GetGCMemoryInfo(); processMemory.Text = $"{Ui("启动器内存")}: {process.WorkingSet64 / 1024 / 1024:N0} MB"; systemMemory.Text = $"{Ui("设备总内存")}: {latest.TotalAvailableMemoryBytes / 1024 / 1024:N0} MB · CPU {Environment.ProcessorCount} {Ui("核")}"; }));

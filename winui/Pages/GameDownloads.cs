@@ -26,7 +26,7 @@ public sealed partial class MainWindow
     // 先展示表单，再异步拉取版本目录；失败时仍保留已有缓存列表。
     Task Downloads()
     {
-        Header("版本下载", Ui("选择要安装的游戏版本。", "choose a game version to install."));
+        Header("版本下载", Ui("选择要安装的游戏版本。", "Choose a game version to install."));
         var form = new Grid { HorizontalAlignment = HorizontalAlignment.Stretch, Tag = "game-download-form" };
         var releaseTypes = new[] { "正式版", "快照版", "愚人节版" };
         var category = new Grid { ColumnSpacing = 6 };
@@ -50,9 +50,9 @@ public sealed partial class MainWindow
         versionDetail.Foreground = Brush(lightTheme ? "#69745F" : "#ACADBD");
         var emptyVersions = Text(Ui("没有匹配的版本，试试其他版本号或分类。", "No matching versions. Try a different version number or category."), 12);
         emptyVersions.Visibility = Visibility.Collapsed;
-        var versionSection = new StackPanel { Spacing = 12, Children = { Text(Ui("1 · 选择游戏版本", "1 · Choose a game version"), 16, true), category, versionSearch, versionStatus, versions, emptyVersions } };
+        var versionSection = new StackPanel { Spacing = 12, Children = { Text(Ui("选择游戏版本", "Choose a game version"), 16, true), category, versionSearch, versionStatus, versions, emptyVersions } };
         var back = new Button { Content = Ui("← 重新选择版本", "← Choose another version"), Tag = "game-download-back", HorizontalAlignment = HorizontalAlignment.Left };
-        var installSection = new StackPanel { Spacing = 16, Children = { back, Text(Ui("2 · 安装选项", "2 · Installation options"), 16, true), versionDetail } };
+        var installSection = new StackPanel { Spacing = 16, Children = { back, Text(Ui("安装选项", "Installation options"), 16, true), versionDetail } };
         var loader = new BelowComboBox { Header = Ui("加载器", "Mod loader"), ItemsSource = store.Config.Settings.LauncherLanguage == "en_us" ? new[] { "Vanilla", "Fabric", "Forge", "NeoForge" } : new[] { "原版", "Fabric", "Forge", "NeoForge" }, SelectedIndex = 0, HorizontalAlignment = HorizontalAlignment.Stretch };
         var name = new TextBox { Header = Ui("安装名称", "Installation name"), Text = "", MaxLength = 80 };
         var nameError = new TextBlock { Foreground = Brush(lightTheme ? "#C42B1C" : "#FF99A4"), TextWrapping = TextWrapping.Wrap, FontSize = 12, Visibility = Visibility.Collapsed };
@@ -84,7 +84,7 @@ public sealed partial class MainWindow
             versionCard.Visibility = installation ? Visibility.Collapsed : Visibility.Visible;
             installCard.Visibility = installation ? Visibility.Visible : Visibility.Collapsed;
             PageSubtitle.Text = installation
-                ? Ui("确认安装选项并开始下载。", "Review installation options and start downloading.")
+                ? Ui("开始安装", "Start installation")
                 : Ui("选择要安装的游戏版本。", "Choose a game version to install.");
             PageViewport.ChangeView(null, 0, null, true);
             DispatcherQueue.TryEnqueue(() =>

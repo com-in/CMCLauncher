@@ -12,12 +12,12 @@ public sealed partial class MainWindow
     string? InstallationReason(Instance? instance, string type, CommunityVersion version, bool? shaderSupport = null)
     {
         if (instance == null) return "主页还未选择游戏版本。";
-        if (!version.GameVersions.Contains(instance.GameVersion)) return "所选文件不支持当前实例的 Minecraft " + instance.GameVersion + "。";
+        if (!version.GameVersions.Contains(instance.GameVersion)) return "所选文件不支持 Minecraft " + instance.GameVersion + "。";
         if (type == "mod")
         {
             var reason = ContentManager.ModInstallUnsupportedReason(instance);
             if (reason != null) return reason;
-            if (!version.Loaders.Contains(instance.Loader, StringComparer.OrdinalIgnoreCase)) return "所选 Mod 不支持当前实例的 " + LoaderCategory(instance.Loader) + " 加载器。";
+            if (!version.Loaders.Contains(instance.Loader, StringComparer.OrdinalIgnoreCase)) return "所选 Mod 不支持 " + LoaderCategory(instance.Loader);
         }
         if (type == "shader" && !(shaderSupport ?? ContentManager.HasShaderSupport(instance, store.GameDirectory(instance)))) return "当前实例未检测到已启用的 Iris、Oculus 或 OptiFine，无法使用光影。";
         if (type == "datapack" && ContentManager.Worlds(store.GameDirectory(instance)).Count == 0) return "当前实例没有可安装数据包的存档。";

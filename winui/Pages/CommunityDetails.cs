@@ -45,8 +45,8 @@ public sealed partial class MainWindow
             var groups = new StackPanel { Spacing = 8 };
             host.Children.Add(Text("版本下载", 16, true));
             var english = store.Config.Settings.LauncherLanguage == "en_us";
-            var categories = english ? new[] { "All", "Release", "Snapshot", "April Fools" } : new[] { "全部", "正式版", "快照", "愚人节" };
-            var categoryIndex = Array.IndexOf(new[] { "全部", "正式版", "快照", "愚人节" }, communityGameCategory);
+            var categories = english ? new[] { "All", "Release", "Snapshot", "April Fools" } : new[] { "全部", "正式版", "快照版", "愚人节版" };
+            var categoryIndex = Array.IndexOf(new[] { "全部", "正式版", "快照版", "愚人节版" }, communityGameCategory);
             var gameCategory = new BelowComboBox { Header = Ui("Minecraft 游戏版本类型", "Minecraft version type"), ItemsSource = categories, SelectedIndex = Math.Max(0, categoryIndex), Width = 190 };
             if (project.Type != "modpack") host.Children.Add(gameCategory);
             var filterStatus = Text("", 12);
@@ -67,7 +67,7 @@ public sealed partial class MainWindow
                 }
                 catch (Exception ex) { if (generation == renderVersion && revision == filterRevision) { groups.Children.Clear(); filterStatus.Text = Ui("无法获取 Minecraft 版本分类：", "Could not load Minecraft version categories: ") + ex.Message + Ui("。请选择全部或重试。", ". Select All or try again."); } }
             }
-            gameCategory.SelectionChanged += async (_, _) => { if (gameCategory.SelectedIndex >= 0) { communityGameCategory = new[] { "全部", "正式版", "快照", "愚人节" }[gameCategory.SelectedIndex]; await FilterVersions(); } };
+            gameCategory.SelectionChanged += async (_, _) => { if (gameCategory.SelectedIndex >= 0) { communityGameCategory = new[] { "全部", "正式版", "快照版", "愚人节版" }[gameCategory.SelectedIndex]; await FilterVersions(); } };
             // 一个资源版本可能支持多个 Minecraft 版本，按游戏版本展开后分别归组。
             void DrawVersions()
             {

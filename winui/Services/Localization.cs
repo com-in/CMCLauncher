@@ -21,6 +21,7 @@ public sealed partial class MainWindow
     static MainWindow()
     {
         AddEnglishText(
+            ("快照版", "Snapshot"), ("愚人节版", "April Fools"),
             ("安装选项", "Installation options"), ("Minecraft 游戏版本类型", "Minecraft version type"),
             ("全部", "All"), ("测试版", "Beta"), ("预览版", "Preview"), ("此分类下没有可下载的游戏版本。", "No downloadable game versions in this category."),
             ("正在加载项目信息…", "Loading project details…"), ("无法获取 Minecraft 版本分类：", "Could not load Minecraft version categories: "),

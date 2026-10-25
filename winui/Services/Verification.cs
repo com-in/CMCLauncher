@@ -271,9 +271,9 @@ public sealed partial class MainWindow
 
         Check(Descendants(PageBody).OfType<Expander>().Count(e => e.Header?.ToString()?.StartsWith("Minecraft ") == true) == 4, "project files grouped by Minecraft version");
         var communityVersionType = Descendants(PageBody).OfType<ComboBox>().Single(c => c.Header?.ToString() == "Minecraft 游戏版本类型");
-        communityVersionType.SelectedItem = "快照"; await Task.Delay(80);
+        communityVersionType.SelectedItem = "快照版"; await Task.Delay(80);
         Check(Descendants(PageBody).OfType<Expander>().Count(e => e.Header?.ToString()?.StartsWith("Minecraft ") == true) == 1 && Descendants(PageBody).OfType<Expander>().Any(e => e.Header?.ToString()?.StartsWith("Minecraft 24w10a") == true), "community snapshot filter uses game type rather than resource release type");
-        communityVersionType.SelectedItem = "愚人节"; await Task.Delay(60);
+        communityVersionType.SelectedItem = "愚人节版"; await Task.Delay(60);
         Check(Descendants(PageBody).OfType<Expander>().Any(e => e.Header?.ToString()?.StartsWith("Minecraft 24w14potato") == true), "community April Fools filter separates special snapshots");
         communityVersionType.SelectedItem = "正式版"; await Task.Delay(60);
         foreach (var group in Descendants(PageBody).OfType<Expander>().Where(e => e.Header?.ToString()?.StartsWith("Minecraft ") == true)) group.IsExpanded = true;
@@ -417,11 +417,11 @@ public sealed partial class MainWindow
         Check(retryLoader.Visibility == Visibility.Collapsed && installGame.IsEnabled, "loader retry restores installation without changing the selection");
         gameLoader.SelectedIndex = 0; await Task.Delay(30);
         ((IInvokeProvider)new ButtonAutomationPeer(installationBack).GetPattern(PatternInterface.Invoke)).Invoke(); await Task.Delay(40);
-        var releaseTypes = Descendants(PageBody).OfType<RadioButton>().Where(b => b.Content?.ToString() is "正式版" or "快照" or "愚人节").ToArray();
+        var releaseTypes = Descendants(PageBody).OfType<RadioButton>().Where(b => b.Content?.ToString() is "正式版" or "快照版" or "愚人节版").ToArray();
         void SelectReleaseType(string label) => releaseTypes.Single(b => b.Content?.ToString() == label).IsChecked = true;
-        SelectReleaseType("快照");
+        SelectReleaseType("快照版");
         Check(gameVersions.Items.Count == 1 && gameVersions.Items[0]?.ToString() == "24w10a" && gameVersions.SelectedItem == null && !installGame.IsEnabled, "snapshot filter excludes April Fools and clears previous selection");
-        SelectReleaseType("愚人节");
+        SelectReleaseType("愚人节版");
         Check(gameVersions.Items.Count == 1 && gameVersions.Items[0]?.ToString() == "24w14potato", "April Fools filter shows special versions");
         SelectReleaseType("正式版");
         gameVersions.SelectedItem = "1.20.1";
@@ -470,7 +470,7 @@ public sealed partial class MainWindow
         store.Config.Settings.LauncherLanguage = "en_us"; await RenderAsync();
         Check(PageTitle.Text == "Download modpacks" && Descendants(PageBody).OfType<TextBlock>().Any(t => t.Text == "The modpack will be installed as a separate instance.") && Descendants(PageBody).OfType<Button>().Any(b => b.Content?.ToString() == "Search") && !Descendants(PageBody).OfType<TextBlock>().Any(t => t.Text == "整合包"), "modpack navigation, description, and search UI are translated in English");
         store.Config.Settings.LauncherLanguage = "zh_cn"; await RenderAsync();
-        communityGameCategory = "快照"; await Task.Delay(50);
+        communityGameCategory = "快照版"; await Task.Delay(50);
         page = "packs"; await RenderAsync(); await Task.Delay(60);
         Check(resourceRequests.Last() == "modpack", "modpack search ignores prior version category filter");
         communityGameCategory = "全部";
