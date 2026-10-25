@@ -15,6 +15,7 @@ namespace CraftLauncher.WinUI;
 
 public sealed partial class MainWindow
 {
+    // 社区列表只负责浏览；具体版本和安装目标在详情页里选择。
     void Discover(string preset = "mod")
     {
         if (page == "discover")
@@ -28,6 +29,7 @@ public sealed partial class MainWindow
         var query = new TextBox { PlaceholderText = Ui("搜索社区内容", "Search community content"), HorizontalAlignment = HorizontalAlignment.Stretch };
         var results = new StackPanel { Spacing = 10 };
         var compatibility = preset == "modpack" ? Text("整合包将安装为独立实例。", 12) : null;
+        // 同一页面内搜索也可能交错返回，请求序号与页面代次一起检查。
         var requestVersion = 0;
         async Task LoadResources(bool automatic)
         {
@@ -66,6 +68,7 @@ public sealed partial class MainWindow
                     var projectCard = CompactCard(card);
                     projectCard.Tapped += async (_, tap) =>
                     {
+                        // 点击卡片中的按钮时由按钮处理，避免同一次点击重复导航。
                         for (var source = tap.OriginalSource as DependencyObject; source != null && !ReferenceEquals(source, projectCard); source = VisualTreeHelper.GetParent(source)) if (source is Button) return;
                         tap.Handled = true;
                         if (page == "resource-detail") return;

@@ -6,6 +6,7 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d">
     <Grid x:Name="ModpackDropRoot" RowDefinitions="40,*" Background="Transparent" AllowDrop="True">
+      <!-- 隐藏控件绑定系统主题画刷，ThemeCustomization.cs 从这些对象读取当前主题颜色。 -->
       <Grid Visibility="Collapsed">
         <Border x:Name="NativeBackground" Background="{ThemeResource ApplicationPageBackgroundThemeBrush}"/>
         <Border x:Name="NativeSurface" Background="{ThemeResource LayerFillColorDefaultBrush}"/>
@@ -18,6 +19,7 @@
         <Border x:Name="NativeSelection" Background="{ThemeResource SubtleFillColorSecondaryBrush}"/>
         <Border x:Name="NativeStroke" Background="{ThemeResource ControlStrokeColorDefaultBrush}"/>
       </Grid>
+      <!-- 自绘标题区留出系统按钮位置，实际预留宽度由 UpdateTitleBarInset 更新。 -->
       <Grid x:Name="CustomTitleBar" Height="40" ColumnDefinitions="204,*,Auto">
         <Border x:Name="TitleBrandBackground"/>
         <StackPanel Orientation="Horizontal" Spacing="9" Margin="14,0,0,0" VerticalAlignment="Center">
@@ -69,6 +71,7 @@
                 </StackPanel>
                 <Button x:Name="HomeCustomizeButton" Grid.Column="2" Content="&#xE713;" FontFamily="Segoe Fluent Icons" FontSize="15" Width="32" Height="32" Padding="0" VerticalAlignment="Top" Visibility="Collapsed" ToolTipService.ToolTip="自定义主页" AutomationProperties.Name="自定义主页" Click="HomeCustomize_Click"/>
             </Grid>
+            <!-- 滚动容器跨页面复用，导航后由代码重置滚动位置并约束正文测量宽度。 -->
             <ScrollViewer x:Name="PageViewport" Grid.Row="1" Margin="0,18,0,14" VerticalScrollBarVisibility="Hidden" HorizontalScrollBarVisibility="Disabled" HorizontalScrollMode="Disabled" HorizontalContentAlignment="Stretch" SizeChanged="PageViewport_SizeChanged">
                 <Frame x:Name="PageFrame" IsTabStop="False" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch">
                     <Frame.ContentTransitions>

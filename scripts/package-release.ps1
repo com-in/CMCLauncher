@@ -1,3 +1,4 @@
+# 从发布目录制作 ZIP，并在压缩包生成后重新检查敏感文件和主程序。
 param(
     [string]$PublishDirectory = "dist/cmc-launcher",
     [string]$ArchivePath = "dist/CMCLauncher-0.9.3-beta-win-x64.zip"
@@ -24,6 +25,7 @@ try {
         $destination = $entry.Open()
         try { $source.CopyTo($destination) } finally { $destination.Dispose(); $source.Dispose() }
     }
+    # 发行说明和许可证取自仓库根目录，不依赖发布目录中是否存在副本。
     foreach ($name in @("README.md", "LICENSE")) {
         $entry = $zip.CreateEntry($name, [System.IO.Compression.CompressionLevel]::Optimal)
         $source = [System.IO.File]::OpenRead((Join-Path $repoRoot $name))
@@ -33,6 +35,7 @@ try {
 }
 finally { $zip.Dispose(); $archive.Dispose() }
 
+# 重新打开成品检查，而不只检查压缩前枚举到的文件。
 $check = [System.IO.Compression.ZipFile]::OpenRead($archiveFullPath)
 try {
     $names = @($check.Entries | ForEach-Object FullName)

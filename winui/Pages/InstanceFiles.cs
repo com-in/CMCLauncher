@@ -10,6 +10,7 @@ namespace CraftLauncher.WinUI;
 
 public sealed partial class MainWindow
 {
+    // 存档页展示世界管理；常规页复用此入口展示最近的游戏截图。
     void InstanceFiles(Instance instance, bool includeWorlds = true)
     {
         var root = store.GameDirectory(instance);

@@ -23,6 +23,7 @@ public sealed partial class MainWindow
     {
         page = "downloads"; Render(); return Task.CompletedTask;
     }
+    // 先展示表单，再异步拉取版本目录；失败时仍保留已有缓存列表。
     Task Downloads()
     {
         Header("版本下载", "");
@@ -76,6 +77,7 @@ public sealed partial class MainWindow
             nameError.Visibility = error == null ? Visibility.Collapsed : Visibility.Visible;
             if (download != null) download.IsEnabled = versions.SelectedItem != null && !loadingLoader && loaderFailure == null && error == null && task == null;
         }
+        // 只更新自动生成的名称，用户手动改过的名称不随版本切换覆盖。
         void SuggestName()
         {
             var suggestion = versions.SelectedItem is string mc ? mc + (LoaderType() == "vanilla" ? "" : "_" + loader.SelectedItem + resolvedLoaderVersion) : "";
@@ -84,6 +86,7 @@ public sealed partial class MainWindow
             if (useAutomaticName) name.Text = suggestion;
             ValidateName();
         }
+        // 游戏版本和加载器都可能快速切换，只有最后一次查询能更新安装选项。
         async Task ResolveLoader()
         {
             var request = ++loaderRequest;
@@ -177,6 +180,7 @@ public sealed partial class MainWindow
             var type = LoaderType();
             var build = resolvedBuild;
             var instance = new Instance { Name = name.Text.Trim(), GameVersion = gameVersion, Loader = type, LoaderVersion = resolvedLoaderVersion };
+            // 真正开始下载前再校验名称，界面上的实时提示不能代替提交检查。
             store.EnsureUniqueInstanceName(instance);
             store.PrepareIsolatedInstance(instance);
             await Run(async ct =>

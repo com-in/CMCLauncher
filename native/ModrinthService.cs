@@ -10,6 +10,7 @@ public sealed record SearchResult(string Id, string Name, string Description, st
 }
 public sealed record CommunityProject(string Name, string Description, string Body, string IconUrl, long Downloads, long Followers, List<string> Categories);
 public sealed record CommunityVersion(string Id, string Name, string Number, string Type, string Published, List<string> GameVersions, List<string> Loaders);
+// 社区查询与安装共用 LauncherCore 的网络设置，页面只接收整理后的项目和版本信息。
 public sealed class ModrinthService(LauncherCore core, Store store)
 {
     public async Task<CommunityProject> ProjectDetails(string project, CancellationToken ct)
@@ -22,6 +23,7 @@ public sealed class ModrinthService(LauncherCore core, Store store)
         var data = await core.Json($"https://api.modrinth.com/v2/project/{Uri.EscapeDataString(project)}/version", ct);
         return data.Items().Select(v => new CommunityVersion(v.S("id"), v.S("name"), v.S("version_number"), v.S("version_type"), v.S("date_published"), v["game_versions"].Items().Select(n => n.ToString()).ToList(), v["loaders"].Items().Select(n => n.ToString()).ToList())).ToList();
     }
+    // 版本 ID 来自页面选择，仍要核对所属项目，不能把其他项目的文件装进当前请求。
     async Task<JsonNode> ExactVersion(string project, string versionId, CancellationToken ct)
     {
         var data = await core.Json("https://api.modrinth.com/v2/version/" + Uri.EscapeDataString(versionId), ct);
@@ -93,6 +95,7 @@ public sealed class ModrinthService(LauncherCore core, Store store)
         }
         finally { Directory.Delete(stage, true); }
     }
+    // 先在暂存目录下载必要依赖，并按 Mod ID 检查重复，再复制到实例中。
     public async Task InstallMod(Instance instance, string project, CancellationToken ct, string iconUrl = "", string? selectedVersionId = null)
     {
         var reason = ModInstallUnsupportedReason(instance); if (reason != null) throw new Exception(reason);
@@ -104,6 +107,7 @@ public sealed class ModrinthService(LauncherCore core, Store store)
         bool IsPresent(JsonNode? record) => File.Exists(Store.SafePath(modRoot, record.S("file"))) || File.Exists(Store.SafePath(modRoot + ".craft-disabled", record.S("file")));
         if (records.Items().Any(r => r.S("project") == project && IsPresent(r))) throw new Exception("此 Mod 已安装到当前实例");
         var stage = Store.SafePath(game, ".craft-stage-" + Guid.NewGuid()); Directory.CreateDirectory(stage);
+        // 按项目去重以终止循环依赖，pending 记录这次真正需要安装的文件。
         var visited = new HashSet<string>(); var pending = new List<(string Project, string File)>();
         async Task Visit(string? id, string? versionId = null, bool rootRequest = false)
         {
@@ -171,6 +175,7 @@ public sealed class ModrinthService(LauncherCore core, Store store)
         var cache = Store.SafePath(store.Library, "pack-cache/" + version.S("id") + ".mrpack");
         Status?.Invoke("下载整合包 · " + version.S("name")); await DownloadFile(file, cache, ct); return await InstallPack(cache, ct, resolveName);
     }
+    // 清单统一为 Modrinth 格式处理；文件就绪后再把暂存目录移到实例目录。
     public async Task<Instance> InstallPack(string file, CancellationToken ct, Func<Instance, CancellationToken, Task>? resolveName = null)
     {
         if (new FileInfo(file).Length > 1024L * 1024 * 1024) throw new Exception("整合包超过 1 GB");
@@ -289,6 +294,7 @@ public sealed class ModrinthService(LauncherCore core, Store store)
             foreach (var line in configReader.ReadToEnd().Split('\n'))
                 if (line.StartsWith("name=", StringComparison.Ordinal) && line[5..].Trim().Length > 0) { name = line[5..].Trim(); break; }
         }
+        // MultiMC/Prism 只导入明确的游戏目录，避免把启动器自己的配置也复制进去。
         var gameFolders = new[] { prefix + ".minecraft/", prefix + "minecraft/" }
             .Where(folder => zip.Entries.Any(e => e.FullName.StartsWith(folder, StringComparison.Ordinal))).ToArray();
         if (gameFolders.Length != 1) throw new Exception("The MultiMC/Prism ZIP must contain exactly one .minecraft or minecraft game folder.");

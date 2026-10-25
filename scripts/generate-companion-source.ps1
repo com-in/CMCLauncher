@@ -1,3 +1,4 @@
+# 把 WinUI 运行所需的资源转成 C# 字节数组，供单文件版本首次启动时释放。
 param(
     [Parameter(Mandatory = $true)][string]$TargetDir,
     [Parameter(Mandatory = $true)][string]$OutputPath
@@ -39,6 +40,7 @@ if (Test-Path $TargetDir) {
     }
 }
 
+# 首次尚未生成资源时也输出可编译的占位类。
 if ($files.Count -eq 0) {
     [void]$sb.AppendLine('"placeholder";')
     [void]$sb.AppendLine("    public static (string RelativePath, byte[] Data)[] Files { get; } =")
@@ -55,6 +57,7 @@ $fileEntries = [System.Collections.Generic.List[string]]::new()
 $sha256 = [System.Security.Cryptography.SHA256]::Create()
 $allBytes = [System.Collections.Generic.List[byte]]::new()
 
+# 固定文件顺序后拼接内容计算版本哈希，运行时据此判断是否需要重新释放。
 foreach ($file in $files | Sort-Object FullName) {
     $relative = [System.Uri]::UnescapeDataString(
         $targetDirUri.MakeRelativeUri([System.Uri]::new($file.FullName)).ToString()

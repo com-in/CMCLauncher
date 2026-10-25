@@ -8,6 +8,7 @@ public sealed partial class MainWindow
     sealed record InstallDestination(Instance Instance, string? World);
     Func<ContentDialog, Task<ContentDialogResult>> showInstallDialog = async dialog => await dialog.ShowAsync();
 
+    // 列表提示与安装前校验共用这套规则，避免界面能选、实际却不兼容。
     string? InstallationReason(Instance? instance, string type, CommunityVersion version, bool? shaderSupport = null)
     {
         if (instance == null) return "主页还未选择游戏版本。";
@@ -23,6 +24,7 @@ public sealed partial class MainWindow
         return null;
     }
 
+    // 当前实例兼容时直接使用；否则列出可用实例，取消选择则返回 null。
     async Task<InstallDestination?> ResolveInstallDestination(string type, CommunityVersion version)
     {
         var target = selected;
@@ -53,6 +55,7 @@ public sealed partial class MainWindow
             if (target == null) return null;
         }
         if (target == null) return null;
+        // 数据包属于具体存档，不能只确定实例就直接写入。
         string? worldName = null;
         if (type == "datapack")
         {

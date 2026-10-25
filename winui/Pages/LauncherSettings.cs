@@ -15,6 +15,7 @@ namespace CraftLauncher.WinUI;
 
 public sealed partial class MainWindow
 {
+    // 有效设置变更后立即保存；内存与并发数在界面和核心中都有限制。
     void Settings()
     {
         Header("启动器设置", "");
@@ -89,6 +90,7 @@ public sealed partial class MainWindow
             await PersistSettings();
         };
         var proxyHint = Text("", 12); PageBody.Children.Add(proxyHint);
+        // 输入中的半截代理地址不生效，验证通过后才重建网络客户端。
         proxy.TextChanged += async (_, _) =>
         {
             var value = proxy.Text.Trim();

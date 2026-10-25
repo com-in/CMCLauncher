@@ -4,6 +4,7 @@ using System.Text;
 
 namespace CraftLauncher.WinUI;
 
+// 桌面版用 Win32 剪贴板写 Unicode 文本，错误交给调用方展示。
 internal static class DesktopClipboard
 {
     const uint GlobalMoveable = 0x0002;
@@ -40,6 +41,7 @@ internal static class DesktopClipboard
             try { Marshal.Copy(bytes, 0, locked, bytes.Length); }
             finally { GlobalUnlock(memory); }
 
+            // 剪贴板可能暂时被其他进程占用，做短暂重试后再报告失败。
             for (var attempt = 0; attempt < 20 && !opened; attempt++)
             {
                 opened = OpenClipboard(IntPtr.Zero);
@@ -48,6 +50,7 @@ internal static class DesktopClipboard
             if (!opened) { error = new Win32Exception(Marshal.GetLastWin32Error()).Message; return false; }
             if (!EmptyClipboard()) { error = new Win32Exception(Marshal.GetLastWin32Error()).Message; return false; }
             if (SetClipboardData(UnicodeText, memory) == IntPtr.Zero) { error = new Win32Exception(Marshal.GetLastWin32Error()).Message; return false; }
+            // SetClipboardData 成功后内存归系统所有，finally 不能再释放。
             memory = IntPtr.Zero;
             return true;
         }

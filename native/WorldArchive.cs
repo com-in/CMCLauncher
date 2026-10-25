@@ -2,8 +2,10 @@ using System.IO.Compression;
 
 namespace CraftLauncher;
 
+// 存档导入、导出先写临时位置，取消或失败时由 finally 清理。
 public static class WorldArchive
 {
+    // 支持 ZIP 直接放存档文件，也支持外面多包一层同名文件夹。
     public static async Task Import(string zipFile, string destination, string archiveRootName, CancellationToken ct)
     {
         if (Directory.Exists(destination)) throw new IOException("存档目标目录已存在。");
@@ -31,6 +33,7 @@ public static class WorldArchive
         }
         finally { if (Directory.Exists(staging)) Directory.Delete(staging, true); }
     }
+    // 只导出有 level.dat 的目录，保留空文件夹，遇到联接或符号链接则停止。
     public static async Task Export(string worldFolder, string zipFile, CancellationToken ct)
     {
         if (!File.Exists(Path.Combine(worldFolder, "level.dat"))) throw new Exception("存档缺少 level.dat。");

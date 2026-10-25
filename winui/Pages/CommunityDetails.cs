@@ -5,6 +5,7 @@ namespace CraftLauncher.WinUI;
 
 public sealed partial class MainWindow
 {
+    // 项目信息和版本列表并发加载，离开页面后不再提交结果。
     async Task ResourceDetail()
     {
         if (selectedProject is not { } project) { page = resourceReturnPage; await RenderAsync(); return; }
@@ -52,6 +53,7 @@ public sealed partial class MainWindow
             filterStatus.Visibility = project.Type == "modpack" ? Visibility.Collapsed : Visibility.Visible;
             host.Children.Add(filterStatus);
             host.Children.Add(groups);
+            // 切换分类时也要丢弃旧结果，不能只判断是否还停留在详情页。
             var filterRevision = 0;
             async Task FilterVersions()
             {
@@ -66,6 +68,7 @@ public sealed partial class MainWindow
                 catch (Exception ex) { if (generation == renderVersion && revision == filterRevision) { groups.Children.Clear(); filterStatus.Text = Ui("无法获取 Minecraft 版本分类：", "Could not load Minecraft version categories: ") + ex.Message + Ui("。请选择全部或重试。", ". Select All or try again."); } }
             }
             gameCategory.SelectionChanged += async (_, _) => { if (gameCategory.SelectedIndex >= 0) { communityGameCategory = new[] { "全部", "正式版", "快照", "愚人节" }[gameCategory.SelectedIndex]; await FilterVersions(); } };
+            // 一个资源版本可能支持多个 Minecraft 版本，按游戏版本展开后分别归组。
             void DrawVersions()
             {
                 groups.Children.Clear();
@@ -90,6 +93,7 @@ public sealed partial class MainWindow
                         if (reason != null) { var hint = Text(reason, 11); hint.Opacity = .65; labels.Children.Add(hint); }
                         var install = Action(project.Type == "modpack" ? "安装整合包" : reason == null ? "安装" : "选择安装位置", async (_, _) =>
                         {
+                            // 整合包新建实例；其他资源先确定兼容实例，数据包还需要选定存档。
                             var destination = project.Type == "modpack" ? null : await ResolveInstallDestination(project.Type, version);
                             if (project.Type != "modpack" && destination == null) return;
                             await Run(async ct =>

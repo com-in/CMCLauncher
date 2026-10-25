@@ -12,6 +12,7 @@ public static class CredentialVault
     [DllImport("crypt32.dll", SetLastError = true)] static extern bool CryptProtectData(ref Blob input, string? description, IntPtr entropy, IntPtr reserved, IntPtr prompt, int flags, out Blob output);
     [DllImport("crypt32.dll", SetLastError = true)] static extern bool CryptUnprotectData(ref Blob input, IntPtr description, IntPtr entropy, IntPtr reserved, IntPtr prompt, int flags, out Blob output);
     [DllImport("kernel32.dll")] static extern IntPtr LocalFree(IntPtr memory);
+    // 输入由本程序分配，输出由 DPAPI 分配，分别用 FreeHGlobal 和 LocalFree 释放。
     static byte[] Transform(byte[] data, bool protect)
     {
         var input = new Blob { Length = data.Length, Data = Marshal.AllocHGlobal(data.Length) }; Blob output = default;
@@ -74,6 +75,7 @@ public sealed class MicrosoftAuth(LauncherCore core)
         showCode(code.S("user_code"), VerificationUrl(code));
         status?.Invoke("等待浏览器授权；完成后将继续验证 Xbox 和 Minecraft 账号…");
         var expiry = DateTime.UtcNow.AddSeconds(code.Int("expires_in", 900)); var interval = Math.Max(code.Int("interval", 5), 5);
+        // 授权尚未完成时继续轮询；slow_down 要延长间隔，不能立即重试。
         while (DateTime.UtcNow < expiry)
         {
             await Task.Delay(TimeSpan.FromSeconds(interval), ct);
@@ -83,6 +85,7 @@ public sealed class MicrosoftAuth(LauncherCore core)
         }
         throw new Exception("登录代码已过期");
     }
+    // 只向用户展示允许的 Microsoft 登录域名，设备码单独显示和复制。
     public static string VerificationUrl(JsonNode response)
     {
         var basic = response.S("verification_uri");
@@ -116,6 +119,7 @@ public sealed class MicrosoftAuth(LauncherCore core)
     {
         if (!CanUseAccount(accounts, account)) throw new Exception(account.Type == "offline" ? OfflineLockedMessage : "此账号尚未通过 Minecraft Java Edition 正版验证，请重新通过 Microsoft 登录。");
     }
+    // 尚有一分钟有效期则复用会话，否则重新换取 Minecraft 令牌并验证玩家档案。
     public async Task<Account> Refresh(Account account, string clientId, CancellationToken ct)
     {
         var credentials = CredentialVault.Read(account);

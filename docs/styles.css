@@ -1,3 +1,4 @@
+/* 站点通用配色和内容宽度，后面的桌面与窄屏布局共用。 */
 :root {
   color-scheme: light;
   --ink: #172230;
@@ -106,6 +107,7 @@ h1, h2, h3, p, figure { margin-top: 0; }
   .hero { padding-top: 52px; }
   .product-shot { width: min(100%, 930px); margin-top: 26px; }
 }
+/* 窄屏下展开顶部菜单，正文双栏改为单栏，下载按钮另起一行。 */
 @media (max-width: 760px) {
   .topbar { height: 62px; padding: 0 19px; gap: 0; }
   .brand { font-size: 14px; }
@@ -143,6 +145,7 @@ h1, h2, h3, p, figure { margin-top: 0; }
   .footer p { order: 3; flex-basis: 100%; line-height: 1.6; }
   .copyright { margin-left: auto; }
 }
+/* 跟随系统的减少动态效果设置，关闭平滑滚动并缩短过渡。 */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; }
 }

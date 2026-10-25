@@ -57,6 +57,7 @@ public static class JavaManager
         if (!File.Exists(path)) throw new FileNotFoundException("找不到 Java 可执行文件", path);
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct); timeout.CancelAfter(TimeSpan.FromSeconds(10));
         using var process = Process.Start(new ProcessStartInfo(path, "-XshowSettings:properties -version") { UseShellExecute = false, CreateNoWindow = true, RedirectStandardError = true, RedirectStandardOutput = true }) ?? throw new Exception("无法启动 Java");
+        // 同时读取两个管道，避免其中一个写满后让 Java 等不到退出。
         var stderr = process.StandardError.ReadToEndAsync(timeout.Token); var stdout = process.StandardOutput.ReadToEndAsync(timeout.Token);
         try { await process.WaitForExitAsync(timeout.Token); if (process.ExitCode != 0) throw new Exception("Java 检查失败"); return Parse(path, await stderr + await stdout); }
         finally { if (!process.HasExited) process.Kill(true); }
@@ -96,6 +97,7 @@ public static class JavaManager
         var roots = folder != null ? new[] { folder } : new[] { Path.Combine(store.Root, "runtimes"), Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "Java"), Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "Eclipse Adoptium"), Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "Microsoft"), Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "Zulu"), Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".jdks"), Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), ".minecraft/runtime") };
         foreach (var root in roots)
         {
+            // 限制深度和访问数量，也跳过联接，避免扫描目录无限扩散。
             var queue = new Queue<(string Path, int Depth)>(); queue.Enqueue((root, 0)); int visited = 0;
             while (queue.Count > 0 && visited++ < 20000)
             {
@@ -121,6 +123,7 @@ public static class JavaManager
             if (existing != null) return await Inspect(existing, ct);
             throw new Exception("Java 目标目录已存在但不完整，请检查：" + destination);
         }
+        // 解压和版本检查都在临时目录完成，通过后才改名为正式安装目录。
         var archive = Path.Combine(root, Guid.NewGuid() + ".zip"); var staging = Path.Combine(root, ".install-" + Guid.NewGuid());
         try
         {

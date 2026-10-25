@@ -4,6 +4,7 @@ using System.Security.Cryptography.X509Certificates;
 
 namespace CraftLauncher;
 
+// 启动器自己的 TLS 策略，不会修改 Windows 的证书存储。
 public static class CertificatePolicy
 {
     // Snapshot 2026-10-23. Match SPKI, including cross-signs and reissued certificates.
@@ -20,6 +21,7 @@ public static class CertificatePolicy
         ["92C063D67E8F14DB71D288E11266FFDAF69CBF115F7BAB14F3BC2F68D25E0E30"] = "EM OV CS CA - G3C",
     };
 
+    // 按公钥匹配，证书重新签发或交叉签名后仍能识别同一把密钥。
     public static string? BlockedAuthority(X509Certificate2 certificate)
     {
         var fingerprint = Convert.ToHexString(SHA256.HashData(certificate.PublicKey.ExportSubjectPublicKeyInfo()));
@@ -36,6 +38,7 @@ public static class CertificatePolicy
             var authority = BlockedAuthority(leaf);
             foreach (var element in chain.ChainElements)
                 authority ??= BlockedAuthority(element.Certificate);
+            // 拒绝列表优先于用户的 SSL 错误忽略选项。
             if (authority != null)
             {
                 blocked?.Invoke(authority);

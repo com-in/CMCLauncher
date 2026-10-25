@@ -24,6 +24,7 @@ public sealed partial class MainWindow
         }
     }
 
+    // 安装可能在后台执行，需要回到 UI 线程询问名称，并把完成状态传回安装任务。
     Task ResolveModpackName(Instance instance, CancellationToken ct)
     {
         var completion = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -84,6 +85,7 @@ public sealed partial class MainWindow
         e.DragUIOverride.IsCaptionVisible = true;
     }
 
+    // 读取拖放数据期间持有 deferral，读完先结束系统拖放，再排队弹出确认界面。
     async void Modpack_Drop(object sender, DragEventArgs e)
     {
         e.Handled = true;
@@ -145,6 +147,7 @@ public sealed partial class MainWindow
         finally { dialogOpen = false; }
     }
 
+    // 逐包安装并保存，某个包失败时，前面已经完成的实例仍保留。
     async Task ImportModpackFiles(string[] paths)
     {
         await Run(async ct =>

@@ -2,11 +2,13 @@ using System.Text;
 
 namespace CraftLauncher.WinUI;
 
+// 按天写入程序目录；磁盘不可写时跳过日志，不能拖垮启动器操作。
 static class RuntimeLog
 {
     static readonly object Gate = new();
     static string FilePath => Path.Combine(AppContext.BaseDirectory, "logs", $"launcher-{DateTime.Now:yyyyMMdd}.log");
 
+    // 脱敏后再落盘，把消息中的换行转义，保持一条事件对应一行。
     public static void Write(string level, string message)
     {
         var clean = Redact(message).Replace("\r", " ").Replace("\n", "\\n");
@@ -26,6 +28,7 @@ static class RuntimeLog
         catch (Exception ex) { return "(cannot read launcher log: " + ex.Message + ")"; }
     }
 
+    // 过滤常见凭据字段；调用方输出游戏命令时仍需自行隐藏令牌参数。
     static string Redact(string value)
     {
         foreach (var key in new[] { "accessToken", "client_secret", "refresh_token", "authorization", "password" })

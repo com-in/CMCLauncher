@@ -11,6 +11,7 @@ namespace CraftLauncher.WinUI;
 
 public sealed partial class MainWindow
 {
+    // 把项目简介解析成原生控件，不依赖浏览器；只渲染这里支持的 Markdown 节点。
     StackPanel RenderMarkdown(string markdown)
     {
         return RenderBlocks(Markdown.Parse(markdown, new MarkdownPipelineBuilder().UsePipeTables().Build()));
@@ -68,6 +69,7 @@ public sealed partial class MainWindow
         return root;
     }
 
+    // Inline 不能同时属于两个父节点，转移前必须先从原集合移除。
     static void MoveInlines(InlineCollection source, InlineCollection target)
     {
         while (source.Count > 0) { var item = source[0]; source.RemoveAt(0); target.Add(item); }
@@ -82,11 +84,13 @@ public sealed partial class MainWindow
             else if (node is ContainerInline nested) AddImages(root, nested);
         }
     }
+    // HTML 只提取图片地址，不执行或完整渲染项目提供的标签。
     void AddHtmlImages(StackPanel root, string html)
     {
         foreach (System.Text.RegularExpressions.Match match in System.Text.RegularExpressions.Regex.Matches(html, "<img\\b[^>]*?src\\s*=\\s*[\"']([^\"']+)[\"']", System.Text.RegularExpressions.RegexOptions.IgnoreCase))
             AddMarkdownImage(root, System.Net.WebUtility.HtmlDecode(match.Groups[1].Value));
     }
+    // 远程图片只接受 HTTPS，加载失败后隐藏，避免留下空白占位。
     void AddMarkdownImage(StackPanel root, string? url)
     {
         if (!Uri.TryCreate(url, UriKind.Absolute, out var uri) || uri.Scheme != "https") return;

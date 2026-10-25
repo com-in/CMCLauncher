@@ -6,6 +6,7 @@ using System.Text;
 
 namespace CraftLauncher;
 
+// settings.json 中的全局偏好；实例和账号另存在 Configuration 的列表里。
 public sealed class Settings
 {
     public string JavaPath { get; set; } = "";
@@ -42,6 +43,7 @@ public sealed class HomeCardPlacement
     public int Width { get; set; } = 2;
     public int Height { get; set; } = 1;
 }
+// 外观预设只保存配色和排版，不携带账号、路径或下载设置。
 public sealed class CustomAppearancePreset
 {
     public string Name { get; set; } = "";
@@ -63,6 +65,7 @@ public sealed class JavaInstallation
     public string Vendor { get; set; } = "";
     public string Architecture { get; set; } = "";
 }
+// Directory 是游戏目录，StorageRoot 是依赖库根目录；导入实例还保留原版本 ID。
 public sealed class Instance
 {
     public string Id { get; set; } = Guid.NewGuid().ToString();
@@ -96,6 +99,7 @@ public sealed class Account
     public static Account Offline(string name)
     {
         if (!System.Text.RegularExpressions.Regex.IsMatch(name, "^[A-Za-z0-9_]{3,16}$")) throw new Exception("玩家名须为 3–16 位字母、数字或下划线");
+        // 离线 UUID 要与 Minecraft 的 OfflinePlayer 命名规则一致，不能换成随机 GUID。
         var bytes = MD5.HashData(Encoding.UTF8.GetBytes("OfflinePlayer:" + name));
         bytes[6] = (byte)((bytes[6] & 15) | 48); bytes[8] = (byte)((bytes[8] & 63) | 128);
         return new() { Name = name, Uuid = Convert.ToHexString(bytes).ToLowerInvariant() };
@@ -109,6 +113,7 @@ public sealed class Configuration
     public string? SelectedAccount { get; set; }
     public string? SelectedInstanceId { get; set; }
 }
+// 集中处理配置落盘和实例路径，调用方不必自行拼接新旧目录布局。
 public sealed class Store
 {
     readonly SemaphoreSlim saveLock = new(1, 1);
@@ -125,12 +130,14 @@ public sealed class Store
         var file = Path.Combine(Root, "settings.json");
         Config = File.Exists(file) ? JsonSerializer.Deserialize<Configuration>(File.ReadAllText(file), JsonOptions) ?? throw new Exception("配置为空") : new();
     }
+    // 多个 UI 回调可能同时保存，用锁串行执行写入。
     public async Task Save()
     {
         await saveLock.WaitAsync();
         try { await AtomicJson(Path.Combine(Root, "settings.json"), JsonSerializer.SerializeToNode(Config, JsonOptions)!); }
         finally { saveLock.Release(); }
     }
+    // 兼容导入版本的隔离目录，以及早期使用 instances/<id> 的本地布局。
     public string GameDirectory(Instance instance)
     {
         if (instance.ImportRoot != null && instance.VersionId != null &&
@@ -167,6 +174,7 @@ public sealed class Store
             if (System.IO.Directory.Exists(path)) throw new Exception("游戏目录中已存在同名版本：" + name);
         }
     }
+    // 临时文件放在目标旁边，写完再替换，避免留下半份 JSON。
     public static async Task AtomicJson(string file, JsonNode value)
     {
         System.IO.Directory.CreateDirectory(Path.GetDirectoryName(file)!);
@@ -174,6 +182,7 @@ public sealed class Store
         try { await File.WriteAllTextAsync(temp, value.ToJsonString(JsonOptions)); File.Move(temp, file, true); }
         finally { if (File.Exists(temp)) File.Delete(temp); }
     }
+    // 先检查路径片段，再检查规范化后的边界；Windows 设备名和联接也不能当普通文件用。
     public static string SafePath(string root, string relative)
     {
         var parts = relative.Replace('\\', '/').Split('/');
@@ -186,6 +195,7 @@ public sealed class Store
         return full;
     }
 }
+// 版本清单中不少字段可选，这些扩展统一处理空值和默认值。
 public static class J
 {
     public static string S(this JsonNode? node, string key, string fallback = "") => node?[key]?.ToString() ?? fallback;
