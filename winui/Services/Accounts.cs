@@ -98,7 +98,7 @@ public sealed partial class MainWindow
                     XamlRoot = Content.XamlRoot,
                     RequestedTheme = lightTheme ? ElementTheme.Light : ElementTheme.Dark,
                     Title = Ui("移除此账号？", "Remove this account?"),
-                    Content = store.Config.Settings.LauncherLanguage == "en_us" ? $"Remove {account.Name} and its locally stored credentials from CMC Launcher." : $"将从 CMC Launcher 移除 {account.Name} 及本地保存的凭据。",
+                    Content = store.Config.Settings.LauncherLanguage == "en_us" ? $"Remove {account.Name} and its locally stored credentials from CMCLauncher." : $"将从 CMCLauncher 移除 {account.Name} 及本地保存的凭据。",
                     PrimaryButtonText = Ui("移除", "Remove"),
                     CloseButtonText = Ui("取消", "Cancel"),
                     DefaultButton = ContentDialogButton.Close

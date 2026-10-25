@@ -68,7 +68,7 @@ public sealed record CrashReport(string FileName, string Summary, string Text)
         var crashText = crash == null ? "(no crash report file found)" : ReadTail(crash, 200_000);
         var summary = crash != null ? Path.GetFileName(crash) : FindSummary(logText);
         var text = new StringBuilder()
-            .AppendLine("CMC Launcher game error report")
+            .AppendLine("CMCLauncher game error report")
             .AppendLine("Generated: " + DateTimeOffset.Now.ToString("O"))
             .AppendLine("Instance: " + instance.Name)
             .AppendLine("Minecraft: " + instance.GameVersion)

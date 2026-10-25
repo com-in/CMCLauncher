@@ -18,8 +18,8 @@
     <DebugType>none</DebugType>
     <DebugSymbols>false</DebugSymbols>
     <AssemblyName>CMCLauncher</AssemblyName>
-    <Product>CMC Launcher</Product>
-    <Title>CMC Launcher</Title>
+    <Product>CMCLauncher</Product>
+    <Title>CMCLauncher</Title>
     <RootNamespace>CraftLauncher.WinUI</RootNamespace>
     <Version>0.9.3-beta</Version>
     <ApplicationManifest>app.manifest</ApplicationManifest>
@@ -47,7 +47,7 @@
     <Compile Include="../native/CertificatePolicy.cs" Link="Core/CertificatePolicy.cs" />
     <Compile Include="../native/ContentManager.cs" Link="Core/ContentManager.cs" />
     <Compile Include="../native/ModrinthService.cs" Link="Core/ModrinthService.cs" />
-    <Compile Include="../native/CurseForgeService.cs" Link="Core/CurseForgeService.cs" />
+    <Compile Include="../native/CurseForgeClient.cs" Link="Core/CurseForgeClient.cs" />
     <Compile Include="../native/MicrosoftAuth.cs" Link="Core/MicrosoftAuth.cs" />
     <Compile Include="../native/GlobalUsings.cs" Link="Core/GlobalUsings.cs" />
   </ItemGroup>

@@ -1,4 +1,4 @@
-# CMC Launcher
+# CMCLauncher
 
 A native Windows launcher for Minecraft Java Edition, built with C#, .NET 8, and WinUI 3. Manage isolated instances, download game versions and loaders, install Modrinth content, and manage Java and accounts.
 
@@ -6,7 +6,7 @@ Current version: **0.9.3-beta** · Platform: **Windows x64**
 
 [Download](https://github.com/com-in/CMCLauncher/releases) · [Website](https://cmcl.ctfun.top/) · [Report an issue](https://github.com/com-in/CMCLauncher/issues)
 
-![CMC Launcher home screen in English](docs/assets/launcher-home.png)
+![CMCLauncher home screen in English](docs/assets/launcher-home.png)
 
 ## Quick start
 
@@ -43,6 +43,7 @@ New instances keep Mods, saves, and settings separate. Imported games retain the
 
 - Forge and NeoForge installation is available, but installation and runtime compatibility have not been fully validated across game versions.
 - ZIP is a container, not a modpack format. Archives must contain a recognized Modrinth or MultiMC / Prism manifest. CurseForge modpack import and file downloads are not supported.
+- A [reserved CurseForge API interface](docs/CURSEFORGE.md) is available for future integration. It is disabled by default and requires application approval and authorized credentials before activation.
 - Shaders require an installed and enabled Iris, Oculus, or OptiFine setup. Confirm data pack enablement in game after importing.
 - Browser authorization is followed by Xbox and Minecraft service verification. Actual sign-in and reaching an in-game menu require a valid application configuration and a real account; local tests cannot replace end-to-end verification.
 - Windows x64 is the build and validation target. ARM-native dependencies are not selected.
@@ -139,6 +140,6 @@ Run tests relevant to your changes before submitting a pull request. Include scr
 
 ## License
 
-CMC Launcher is licensed under the [GNU General Public License v3.0](LICENSE). Third-party dependencies retain their respective licenses.
+CMCLauncher is licensed under the [GNU General Public License v3.0](LICENSE). Third-party dependencies retain their respective licenses.
 
-Minecraft, mods, and modpacks belong to their respective owners. CMC Launcher is not affiliated with Mojang Studios, Microsoft, or NetEase.
+Minecraft, mods, and modpacks belong to their respective owners. CMCLauncher is not affiliated with Mojang Studios, Microsoft, or NetEase.
