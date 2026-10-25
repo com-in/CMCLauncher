@@ -16,7 +16,7 @@ namespace CraftLauncher.WinUI;
 public sealed partial class MainWindow
 {
     // 优先使用调用方给出的译文，动态状态消息再按字典和前缀补译。
-    string Ui(string text, string? english = null)
+    internal string Ui(string text, string? english = null)
     {
         if (store.Config.Settings.LauncherLanguage != "en_us") return text;
         if (english != null) return english;
@@ -33,7 +33,7 @@ public sealed partial class MainWindow
             if (text.StartsWith(prefix, StringComparison.Ordinal)) return replacement + text[prefix.Length..];
         return text;
     }
-    TextBlock Text(string text, double size = 14, bool bold = false)
+    internal TextBlock Text(string text, double size = 14, bool bold = false)
     {
         var block = new TextBlock { Text = Ui(text), FontSize = size, Foreground = Brush(lightTheme ? "#303145" : "#F0F0FA"), FontWeight = bold ? Microsoft.UI.Text.FontWeights.SemiBold : Microsoft.UI.Text.FontWeights.Normal, TextWrapping = TextWrapping.Wrap };
         originalAppearances.Add(block, new() { FontSize = size });
@@ -41,9 +41,9 @@ public sealed partial class MainWindow
         block.FontFamily = new FontFamily(string.IsNullOrWhiteSpace(store.Config.Settings.UiFontFamily) ? "Segoe UI Variable Text" : store.Config.Settings.UiFontFamily);
         return block;
     }
-    Button Action(string label, System.Action<object, RoutedEventArgs> click, bool primary = false) => Action(label, (sender, args) => { click(sender, args); return Task.CompletedTask; }, primary);
+    internal Button Action(string label, System.Action<object, RoutedEventArgs> click, bool primary = false) => Action(label, (sender, args) => { click(sender, args); return Task.CompletedTask; }, primary);
     // 页面操作共用异常处理和防重复点击逻辑，创建时也登记到任务按钮列表。
-    Button Action(string label, Func<object, RoutedEventArgs, Task> click, bool primary = false)
+    internal Button Action(string label, Func<object, RoutedEventArgs, Task> click, bool primary = false)
     {
         var button = new Button { Content = Ui(label), Padding = new Thickness(12, 7, 12, 7), MinWidth = 84, MinHeight = 34, CornerRadius = new CornerRadius(5), IsEnabled = task == null };
         button.Loaded += (_, _) => ApplyPersonalization();
@@ -59,7 +59,7 @@ public sealed partial class MainWindow
         taskButtons.Add(button); return button;
     }
     // 同时发生的错误只开一个对话框，完整异常由日志保留。
-    async Task Error(Exception ex)
+    internal async Task Error(Exception ex)
     {
         Report(ex.Message);
         if (dialogOpen) return;
@@ -72,11 +72,11 @@ public sealed partial class MainWindow
         }
         finally { dialogOpen = false; }
     }
-    Border Card(UIElement content) => CreateCard(content, new Thickness(16), 6);
+    internal Border Card(UIElement content) => CreateCard(content, new Thickness(16), 6);
 
-    Border CompactCard(UIElement content) => CreateCard(content, new Thickness(11, 7, 11, 7), 5);
+    internal Border CompactCard(UIElement content) => CreateCard(content, new Thickness(11, 7, 11, 7), 5);
 
-    Border CreateCard(UIElement content, Thickness padding, double cornerRadius)
+    internal Border CreateCard(UIElement content, Thickness padding, double cornerRadius)
     {
         var card = new Border
         {
@@ -91,13 +91,13 @@ public sealed partial class MainWindow
         return card;
     }
 
-    async Task SelectInstance(Instance instance)
+    internal async Task SelectInstance(Instance instance)
     {
         selected = instance; store.Config.SelectedInstanceId = instance.Id; world = null;
         await store.Save();
     }
-    ComboBox InstanceSelector() { var combo = new BelowComboBox { ItemsSource = store.Config.Instances, DisplayMemberPath = nameof(Instance.Name), SelectedItem = selected, PlaceholderText = Ui("选择实例", "Select an instance"), HorizontalAlignment = HorizontalAlignment.Stretch }; combo.SelectionChanged += async (_, _) => { if (combo.SelectedItem is Instance instance && instance != selected) { await SelectInstance(instance); Render(); } }; return combo; }
-    StackPanel Buttons(params Button[] buttons) { var panel = new StackPanel { Spacing = 8, Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Left }; foreach (var button in buttons) panel.Children.Add(button); return panel; }
+    internal ComboBox InstanceSelector() { var combo = new BelowComboBox { ItemsSource = store.Config.Instances, DisplayMemberPath = nameof(Instance.Name), SelectedItem = selected, PlaceholderText = Ui("选择实例", "Select an instance"), HorizontalAlignment = HorizontalAlignment.Stretch }; combo.SelectionChanged += async (_, _) => { if (combo.SelectedItem is Instance instance && instance != selected) { await SelectInstance(instance); Render(); } }; return combo; }
+    internal StackPanel Buttons(params Button[] buttons) { var panel = new StackPanel { Spacing = 8, Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Left }; foreach (var button in buttons) panel.Children.Add(button); return panel; }
     // 先用包内图标，再查项目图标缓存；读取或解码失败就显示占位图标。
     async Task<UIElement> ContentIcon(string file, string? project = null, byte[]? knownIcon = null, bool inspected = false)
     {
@@ -127,7 +127,7 @@ public sealed partial class MainWindow
         if (Uri.TryCreate(url, UriKind.Absolute, out var uri) && uri.Scheme == "https") holder.Children.Add(new Image { Source = new BitmapImage(uri), Stretch = Stretch.Uniform });
         return holder;
     }
-    void Header(string title, string subtitle)
+    internal void Header(string title, string subtitle)
     {
         PageBackButton.Visibility = page is "version-settings" or "instances" or "resource-detail" ? Visibility.Visible : Visibility.Collapsed;
         ToolTipService.SetToolTip(PageBackButton, Ui(page == "resource-detail" ? "返回列表" : "返回主页"));

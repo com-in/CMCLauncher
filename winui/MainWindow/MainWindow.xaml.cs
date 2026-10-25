@@ -22,8 +22,16 @@ public sealed partial class MainWindow : Window
     string instanceFilter = "全部实例", instanceQuery = "", modFilter = "全部 Mods", modQuery = "";
     Instance? selected;
     string? world;
-    // 每次重绘递增；异步页面返回时用它判断结果是否已过期。
     int renderVersion;
+
+    // 暴露给 CraftPage 子类的内部属性
+    internal Store Store => store;
+    internal LauncherCore Core => core;
+    internal ModrinthService ModrinthService => modrinth;
+    internal MicrosoftAuth Auth => auth;
+    internal Instance? SelectedInstance => selected;
+    internal string CurrentPage => page;
+    internal int RenderVersion => renderVersion;
     CancellationTokenSource? resourceSearch;
     SearchResult? selectedProject;
     string resourceReturnPage = "download-mod";
@@ -36,7 +44,7 @@ public sealed partial class MainWindow : Window
     readonly Queue<string> logs = new();
     TextBox? logView;
     bool dialogOpen;
-    StackPanel PageBody = new() { Spacing = 11 };
+    internal StackPanel PageBody = new() { Spacing = 11 };
     // UI 验证使用单独的数据目录，避免改动日常使用的实例和账号配置。
     public MainWindow(string[] args)
     {
@@ -92,7 +100,7 @@ public sealed partial class MainWindow : Window
         Closed += (_, _) => { RuntimeLog.Write("INFO", "应用关闭"); taskViewTimer.Stop(); resourceSearch?.Cancel(); systemUi.ColorValuesChanged -= SystemThemeChanged; task?.Cancel(); core.Dispose(); };
     }
     // 日志始终记录，但只有仍属于当前任务的消息才能更新任务阶段。
-    void Report(string message)
+    internal void Report(string message)
     {
         var reportingTask = task;
         DispatcherQueue.TryEnqueue(() =>
@@ -102,5 +110,5 @@ public sealed partial class MainWindow : Window
             activeWork.Stage = message; RefreshTaskMetrics();
         });
     }
-    void AddLog(string line) { RuntimeLog.Write("INFO", line); logs.Enqueue($"[{DateTime.Now:HH:mm:ss}] {line}"); while (logs.Count > 1000) logs.Dequeue(); if (page == "logs" && logView != null) logView.Text = string.Join(Environment.NewLine, logs); }
+    internal void AddLog(string line) { RuntimeLog.Write("INFO", line); logs.Enqueue($"[{DateTime.Now:HH:mm:ss}] {line}"); while (logs.Count > 1000) logs.Dequeue(); if (page == "logs" && logView != null) logView.Text = string.Join(Environment.NewLine, logs); }
 }

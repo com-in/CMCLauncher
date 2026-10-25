@@ -9,7 +9,7 @@ namespace CraftLauncher.WinUI;
 
 public sealed partial class MainWindow
 {
-    bool lightTheme;
+    internal bool lightTheme;
     // 记住当前页面的卡片，换主题时同时改背景和边框；导航到别页时会清空。
     readonly List<Border> themeCards = new();
     readonly UISettings systemUi = new();
@@ -69,12 +69,12 @@ public sealed partial class MainWindow
     }
     // 创建并登记可刷新配色的 SolidColorBrush，hex 为 #RRGGBB 基础色值，优先使用 ThemeTokens。
     // native/custom 按已知基础色值映射角色；未识别的色值会按 border 处理。
-    SolidColorBrush Brush(string hex)
+    internal SolidColorBrush Brush(string hex)
     {
         var brush = new SolidColorBrush(PaletteColor(hex));
         paletteBrushes.Add((new WeakReference<SolidColorBrush>(brush), hex));
         return brush;
     }
     // 当前浅/深模式的基础强调色 hex，传入 Brush 后再按当前配色预设解析
-    string PrimaryColor => lightTheme ? ThemeTokens.LightAccent : ThemeTokens.DarkAccent;
+    internal string PrimaryColor => lightTheme ? ThemeTokens.LightAccent : ThemeTokens.DarkAccent;
 }

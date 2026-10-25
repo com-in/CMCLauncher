@@ -128,7 +128,7 @@ public sealed partial class MainWindow
         if (activeWork != null && !launching) { activeWork.Progress = value; RefreshTaskMetrics(); }
     }
     // 窗口一次只运行一个受管任务，统一负责取消、按钮禁用和历史记录。
-    async Task Run(Func<CancellationToken, Task> operation, string? name = null)
+    internal async Task Run(Func<CancellationToken, Task> operation, string? name = null)
     {
         if (task != null) throw new Exception("已有任务进行中，请稍候或取消当前任务");
 
