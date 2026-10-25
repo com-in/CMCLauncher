@@ -21,7 +21,7 @@ public sealed partial class MainWindow
     readonly Dictionary<string, Border> navigationIndicators = new();
     readonly Dictionary<string, StackPanel> navigationSubmenus = new();
     readonly Dictionary<string, AnimatedSubmenu> animatedSubmenus = new();
-    string expandedNavigation = "home";
+    internal string expandedNavigation = "home";
 
     // 侧栏只构建一次；页面正文按需重建，选中态由 SyncNavigation 单独同步。
     void BuildNavigation()
@@ -138,7 +138,7 @@ public sealed partial class MainWindow
             try { await store.Save(); } catch (Exception ex) { Report("无法保存当前版本：" + ex.Message); }
         }
         var account = store.Config.Accounts.FirstOrDefault(a => a.Uuid == store.Config.SelectedAccount); ProfileButton.Content = account?.ToString() ?? "还未添加账号";
-        try { switch (page) { case "resource-detail": await ResourceDetail(); break; case "home": Home(); break; case "version-settings": await VersionSettings(); break; case "download-mod": case "download-datapack": case "download-resourcepack": case "download-shader": Discover(page[9..]); break; case "more": Header("更多", "敬请期待"); PageBody.Children.Add(Text("更多功能，敬请期待。")); break; case "instances": Instances(); break; case "downloads": await Downloads(); break; case "mods": await Manage("mod"); break; case "resourcepack": case "datapack": case "shader": kind = page; await Manage(kind); break; case "content": await Manage(kind); break; case "packs": Discover("modpack"); break; case "discover": Discover(); break; case "personalization": Personalization(); break; case "java": new JavaSettingsPage(this).Build(); break; case "accounts": Accounts(); break; case "tasks": Tasks(); break; case "logs": Logs(); break; default: Settings(); break; } }
+        try { switch (page) { case "resource-detail": await ResourceDetail(); break; case "home": Home(); break; case "version-settings": await VersionSettings(); break; case "download-mod": case "download-datapack": case "download-resourcepack": case "download-shader": Discover(page[9..]); break; case "more": Header("更多", "敬请期待"); PageBody.Children.Add(Text("更多功能，敬请期待。")); break; case "instances": Instances(); break; case "downloads": await Downloads(); break; case "mods": await Manage("mod"); break; case "resourcepack": case "datapack": case "shader": kind = page; await Manage(kind); break; case "content": await Manage(kind); break; case "packs": Discover("modpack"); break; case "discover": Discover(); break; case "personalization": Personalization(); break; case "java": new JavaSettingsPage(this).Build(); break; case "accounts": Accounts(); break; case "tasks": Tasks(); break; case "logs": new LogsPage(this).Build(); break; default: new SettingsPage(this).Build(); break; } }
         catch (Exception ex) { if (generation == renderVersion) { Report(ex.Message); PageBody.Children.Add(Text(ex.Message)); } }
         if (generation == renderVersion)
         {

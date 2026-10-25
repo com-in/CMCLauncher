@@ -58,6 +58,17 @@ public abstract class CraftPage
     protected string PrimaryColor => Window.PrimaryColor;
     protected SolidColorBrush Brush(string hex) => Window.Brush(hex);
 
+    // 语言切换
+    protected async Task SwitchLanguage(string lang) => await Window.SwitchLanguage(lang);
+
+    // 日志
+    protected Queue<string> Logs => Window.logs;
+    protected TextBox? LogView { get => Window.logView; set => Window.logView = value; }
+
+    // 导航状态
+    protected string Page { get => Window.CurrentPage; set { Window.CurrentPage = value; } }
+    protected string ExpandedNavigation { get => Window.ExpandedNavigation; set => Window.ExpandedNavigation = value; }
+
     // 每个页面实现自己的 UI 构建逻辑
     public abstract void Build();
 }

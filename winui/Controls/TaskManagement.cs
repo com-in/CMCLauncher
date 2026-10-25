@@ -11,7 +11,7 @@ public sealed partial class MainWindow
     readonly List<Button> taskButtons = new();
 
     // 下载回调可以跨线程累计字节数，显示和状态切换统一在窗口线程处理。
-    sealed class WorkItem
+    internal sealed class WorkItem
     {
         internal string Name = "", Stage = "", State = "进行中";
         internal bool Launch;
@@ -22,7 +22,7 @@ public sealed partial class MainWindow
         internal long LastBytes;
         internal double LastSample, Speed;
     }
-    WorkItem? activeWork;
+    internal WorkItem? activeWork;
     readonly List<WorkItem> recentWork = [];
     readonly DispatcherQueueTimer taskViewTimer;
     TextBlock? taskStage, taskMetrics, taskElapsed;
@@ -94,7 +94,7 @@ public sealed partial class MainWindow
         TaskCountBadge.Visibility = count > 0 ? Visibility.Visible : Visibility.Collapsed;
     }
     // 按采样间隔计算速度，不用每个下载块都重绘任务面板。
-    void RefreshTaskMetrics()
+    internal void RefreshTaskMetrics()
     {
         UpdateTaskCount(activeWork is { Launch: false } ? 1 : 0);
         RefreshLaunchCard();

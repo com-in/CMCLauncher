@@ -150,5 +150,4 @@ public sealed partial class MainWindow
         var picker = new FileOpenPicker(); InitializeWithWindow.Initialize(picker, WindowNative.GetWindowHandle(this)); picker.FileTypeFilter.Add(type == "mod" ? ".jar" : ".zip"); var files = await picker.PickMultipleFilesAsync(); if (files.Count == 0) return; await Run(_ => { ContentManager.Import(store.GameDirectory(instance), type, world, files.Select(f => f.Path)); return Task.CompletedTask; }); Render();
     }
     void OpenFolder(string path) { Directory.CreateDirectory(path); Process.Start(new ProcessStartInfo(path) { UseShellExecute = true }); }
-    void Logs() { Header("运行日志", "最近 1000 行任务与游戏输出。"); logView = new TextBox { Text = string.Join(Environment.NewLine, logs), IsReadOnly = true, AcceptsReturn = true, TextWrapping = TextWrapping.Wrap, MinHeight = 360, FontFamily = new FontFamily("Cascadia Mono, Consolas") }; PageBody.Children.Add(logView); }
 }

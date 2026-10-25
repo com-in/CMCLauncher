@@ -30,9 +30,10 @@ public sealed partial class MainWindow : Window
     internal ModrinthService ModrinthService => modrinth;
     internal MicrosoftAuth Auth => auth;
     internal Instance? SelectedInstance => selected;
-    internal string CurrentPage => page;
+    internal string CurrentPage { get => page; set => page = value; }
+    internal string ExpandedNavigation { get => expandedNavigation; set => expandedNavigation = value; }
     internal int RenderVersion => renderVersion;
-    CancellationTokenSource? resourceSearch;
+    internal CancellationTokenSource? resourceSearch;
     SearchResult? selectedProject;
     string resourceReturnPage = "download-mod";
     Func<string, CancellationToken, Task<CommunityProject>> fetchProject = null!;
@@ -41,8 +42,8 @@ public sealed partial class MainWindow : Window
     Func<string, string, Instance?, CancellationToken, bool, IReadOnlyCollection<string>?, Task<List<SearchResult>>> searchResources = null!;
     Func<string, string, string?, Task<List<ContentItem>>> listContent = (directory, type, targetWorld) => Task.Run(() => ContentManager.ListFiles(directory, type, targetWorld));
     Task contentLoad = Task.CompletedTask;
-    readonly Queue<string> logs = new();
-    TextBox? logView;
+    internal readonly Queue<string> logs = new();
+    internal TextBox? logView;
     bool dialogOpen;
     internal StackPanel PageBody = new() { Spacing = 11 };
     // UI 验证使用单独的数据目录，避免改动日常使用的实例和账号配置。
@@ -111,4 +112,14 @@ public sealed partial class MainWindow : Window
         });
     }
     internal void AddLog(string line) { RuntimeLog.Write("INFO", line); logs.Enqueue($"[{DateTime.Now:HH:mm:ss}] {line}"); while (logs.Count > 1000) logs.Dequeue(); if (page == "logs" && logView != null) logView.Text = string.Join(Environment.NewLine, logs); }
+    // 切换界面语言后需重建导航栏和所有文本
+    internal async Task SwitchLanguage(string lang)
+    {
+        store.Config.Settings.LauncherLanguage = lang;
+        await store.Save();
+        LocalizeStaticChrome();
+        NavigationMenu.Children.Clear(); navigationButtons.Clear(); navigationIndicators.Clear(); navigationSubmenus.Clear(); animatedSubmenus.Clear();
+        BuildNavigation();
+        Render();
+    }
 }
