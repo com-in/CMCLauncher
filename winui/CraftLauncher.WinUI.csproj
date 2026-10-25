@@ -23,7 +23,7 @@
     <RootNamespace>CraftLauncher.WinUI</RootNamespace>
     <Version>0.9.3-beta</Version>
     <ApplicationManifest>app.manifest</ApplicationManifest>
-    <ApplicationIcon>Assets/cmc-logo.ico</ApplicationIcon>
+    <ApplicationIcon>assets/cmc-logo.ico</ApplicationIcon>
     <!-- 使用 Program.cs 中的自定义入口，负责 OLE 初始化和资源准备。 -->
     <DefineConstants>$(DefineConstants);DISABLE_XAML_GENERATED_MAIN</DefineConstants>
     <EnableMsixTooling Condition="'$(PublishSingleFile)' == 'true'">true</EnableMsixTooling>
@@ -32,10 +32,10 @@
   </PropertyGroup>
   <ItemGroup>
     <EmbeddedResource Include="clientid.local.json" LogicalName="CMCLauncher.MicrosoftClient" Condition="Exists('clientid.local.json')" />
-    <Content Update="Assets/cmc-logo.png" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
-    <Content Update="Assets/grass-block.png" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
-    <Content Include="Assets/loaders/*.png" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
-    <None Update="Assets/cmc-logo.ico" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Update="assets/cmc-logo.png" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Update="assets/grass-block.png" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="assets/loaders/*.png" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <None Update="assets/cmc-logo.ico" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <PackageReference Include="Markdig" Version="1.4.2" />
     <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.8.260921001" />
     <!-- 核心源码直接编入桌面程序集，认证资源也随当前程序集一起读取。 -->

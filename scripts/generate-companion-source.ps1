@@ -20,7 +20,7 @@ $files = [System.Collections.Generic.List[System.IO.FileInfo]]::new()
 
 if (Test-Path $TargetDir) {
     foreach ($f in Get-ChildItem -LiteralPath $TargetDir -File -Filter "*.pri" -ErrorAction SilentlyContinue) { $files.Add($f) }
-    foreach ($f in Get-ChildItem -LiteralPath $TargetDir -File -Filter "*.xbf" -ErrorAction SilentlyContinue) { $files.Add($f) }
+    foreach ($f in Get-ChildItem -LiteralPath $TargetDir -File -Recurse -Filter "*.xbf" -ErrorAction SilentlyContinue) { $files.Add($f) }
     $assetsDir = Join-Path $TargetDir "Assets"
     if (Test-Path $assetsDir) {
         foreach ($f in Get-ChildItem -LiteralPath $assetsDir -File -Recurse -ErrorAction SilentlyContinue) { $files.Add($f) }
@@ -58,7 +58,7 @@ $sha256 = [System.Security.Cryptography.SHA256]::Create()
 $allBytes = [System.Collections.Generic.List[byte]]::new()
 
 # 固定文件顺序后拼接内容计算版本哈希，运行时据此判断是否需要重新释放。
-foreach ($file in $files | Sort-Object FullName) {
+foreach ($file in $files | Sort-Object FullName -Unique) {
     $relative = [System.Uri]::UnescapeDataString(
         $targetDirUri.MakeRelativeUri([System.Uri]::new($file.FullName)).ToString()
     ).Replace('/', '\\')

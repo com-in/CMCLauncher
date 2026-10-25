@@ -94,7 +94,7 @@ public sealed partial class MainWindow
         var theme = new BelowComboBox { Header = Ui("外观", "Appearance"), ItemsSource = settings.LauncherLanguage == "en_us" ? new[] { "Light", "Dark", "System" } : new[] { "浅色", "深色", "跟随系统" }, SelectedIndex = settings.Theme switch { "light" => 0, "system" => 2, _ => 1 }, HorizontalAlignment = HorizontalAlignment.Stretch };
         theme.SelectionChanged += async (_, _) =>
         {
-            if (theme.SelectedIndex < 0) return;
+            if (syncingAppearanceControls || theme.SelectedIndex < 0) return;
             settings.Theme = theme.SelectedIndex switch { 0 => "light", 2 => "system", _ => "dark" };
             ApplyTheme(); await SaveAppearance();
         };
@@ -210,16 +210,21 @@ public sealed partial class MainWindow
             settings.CustomLightColors = new(preset.CustomLightColors); settings.CustomDarkColors = new(preset.CustomDarkColors);
             ApplyTheme(); ApplyPersonalization();
             try { await store.Save(); } catch (Exception ex) { await Error(ex); return; }
-            foreach (var control in AppearanceElements(PageBody))
+            syncingAppearanceControls = true;
+            try
             {
-                if (control is ComboBox combo && combo.Header?.ToString() == Ui("外观", "Appearance")) combo.SelectedIndex = settings.Theme switch { "light" => 0, "system" => 2, _ => 1 };
-                else if (control is NumberBox number && number.Header?.ToString() == Ui("控件大小 / %", "Control size / %")) number.Value = settings.UiScale * 100;
-                else if (control is NumberBox buttonNumber && buttonNumber.Header?.ToString() == Ui("按钮大小 / %", "Button size / %")) buttonNumber.Value = settings.UiButtonScale * 100;
-                else if (control is NumberBox menuNumber && menuNumber.Header?.ToString() == Ui("菜单大小 / %", "Menu size / %")) menuNumber.Value = settings.UiMenuScale * 100;
-                else if (control is NumberBox size && size.Header?.ToString() == Ui("字体大小", "Font size")) size.Value = settings.UiFontSize;
-                else if (control is ComboBox fontChoice && fontChoice.Header?.ToString() == Ui("字体", "Font family")) fontChoice.SelectedItem = settings.UiFontFamily;
-                else if (control is ComboBox colorPreset && colorPreset.Header?.ToString() == Ui("预设", "Preset")) colorPreset.SelectedIndex = settings.ColorPreset switch { "native" => 1, "custom" => 2, _ => 0 };
+                foreach (var control in AppearanceElements(PageBody))
+                {
+                    if (control is ComboBox combo && combo.Header?.ToString() == Ui("外观", "Appearance")) combo.SelectedIndex = settings.Theme switch { "light" => 0, "system" => 2, _ => 1 };
+                    else if (control is NumberBox number && number.Header?.ToString() == Ui("控件大小 / %", "Control size / %")) number.Value = settings.UiScale * 100;
+                    else if (control is NumberBox buttonNumber && buttonNumber.Header?.ToString() == Ui("按钮大小 / %", "Button size / %")) buttonNumber.Value = settings.UiButtonScale * 100;
+                    else if (control is NumberBox menuNumber && menuNumber.Header?.ToString() == Ui("菜单大小 / %", "Menu size / %")) menuNumber.Value = settings.UiMenuScale * 100;
+                    else if (control is NumberBox size && size.Header?.ToString() == Ui("字体大小", "Font size")) size.Value = settings.UiFontSize;
+                    else if (control is ComboBox fontChoice && fontChoice.Header?.ToString() == Ui("字体", "Font family")) fontChoice.SelectedItem = settings.UiFontFamily;
+                    else if (control is ComboBox colorPreset && colorPreset.Header?.ToString() == Ui("预设", "Preset")) colorPreset.SelectedIndex = ColorPresetIndex(settings.ColorPreset);
+                }
             }
+            finally { syncingAppearanceControls = false; }
         };
         PageBody.Children.Add(Card(new StackPanel { Spacing = 10, Children = { presetNames, presetName, Buttons(savePreset, deletePreset), importPreset } }));
         PageBody.Children.Add(Action(Ui("导出当前个性化设置", "Export personalization"), async (_, _) =>
@@ -256,6 +261,7 @@ public sealed partial class MainWindow
     }
     async Task SaveAppearance()
     {
+        if (syncingAppearanceControls) return;
         ApplyPersonalization();
         try { await store.Save(); } catch (Exception ex) { await Error(ex); }
     }
@@ -275,7 +281,7 @@ public sealed partial class MainWindow
         var preset = JsonSerializer.Deserialize<CustomAppearancePreset>(json, Store.JsonOptions) ?? throw new InvalidDataException("预设文件为空。");
         preset.Name = string.IsNullOrWhiteSpace(name) ? "导入的预设" : name.Trim();
         if (preset.Name.Length > 64) throw new InvalidDataException("预设名称不能超过 64 个字符。");
-        if (preset.Theme is not ("light" or "dark" or "system") || preset.ColorPreset is not ("craft" or "native" or "custom"))
+        if (preset.Theme is not ("light" or "dark" or "system") || !ColorPresetIds.Contains(preset.ColorPreset))
             throw new InvalidDataException("预设包含不支持的主题或配色类型。");
         if (!ValidScale(preset.UiScale) || !ValidScale(preset.UiButtonScale) || !ValidScale(preset.UiMenuScale) || !double.IsFinite(preset.UiFontSize) || preset.UiFontSize is < 12 or > 22)
             throw new InvalidDataException("预设中的缩放或字号超出支持范围。");

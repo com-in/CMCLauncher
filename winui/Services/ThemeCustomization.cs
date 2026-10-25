@@ -160,12 +160,16 @@ public sealed partial class MainWindow
         paletteBrushes.RemoveAll(entry => !entry.Brush.TryGetTarget(out _));
         foreach (var entry in paletteBrushes) if (entry.Brush.TryGetTarget(out var brush)) brush.Color = PaletteColor(entry.Source);
     }
+    static readonly string[] ColorPresetIds = ["craft", "native", "lakecyan", "custom"];
+    bool syncingAppearanceControls;
+    static int ColorPresetIndex(string id) => Math.Max(0, Array.IndexOf(ColorPresetIds, id));
+
     // 浅色和深色各存一套自定义颜色，编辑哪套由 mode 决定，不必切换整个窗口的主题。
     UIElement ThemeEditor(System.Action? defaultsChanged = null)
     {
         var panel = new StackPanel { Spacing = 12 };
         var english = store.Config.Settings.LauncherLanguage == "en_us";
-        var preset = new BelowComboBox { Header = english ? "Preset" : "预设", ItemsSource = english ? new[] { "Fresh green", "WinUI 3 native", "Lake Cyan", "Custom" } : new[] { "清新绿", "WinUI 3 原生", "浅湖青", "自定义" }, SelectedIndex = store.Config.Settings.ColorPreset switch { "native" => 1, "lakecyan" => 2, "custom" => 3, _ => 0 }, HorizontalAlignment = HorizontalAlignment.Stretch };
+        var preset = new BelowComboBox { Header = english ? "Preset" : "预设", ItemsSource = english ? new[] { "Fresh green", "WinUI 3 native", "Lake Cyan", "Custom" } : new[] { "清新绿", "WinUI 3 原生", "浅湖青", "自定义" }, SelectedIndex = ColorPresetIndex(store.Config.Settings.ColorPreset), HorizontalAlignment = HorizontalAlignment.Stretch };
         var editor = new StackPanel { Spacing = 10, Visibility = preset.SelectedIndex == 3 ? Visibility.Visible : Visibility.Collapsed };
         var mode = new BelowComboBox { Header = english ? "Edit colors" : "编辑配色", ItemsSource = english ? new[] { "Light", "Dark" } : new[] { "浅色", "深色" }, SelectedIndex = lightTheme ? 0 : 1 };
         var swatches = new StackPanel { Spacing = 8 };
@@ -199,8 +203,9 @@ public sealed partial class MainWindow
         mode.SelectionChanged += (_, _) => BuildSwatches(); BuildSwatches(); editor.Children.Add(mode); editor.Children.Add(swatches);
         preset.SelectionChanged += async (_, _) =>
         {
-            if (preset.SelectedIndex < 0) return;
-            store.Config.Settings.ColorPreset = preset.SelectedIndex switch { 1 => "native", 2 => "lakecyan", 3 => "custom", _ => "craft" };
+            editor.Visibility = preset.SelectedIndex == ColorPresetIndex("custom") ? Visibility.Visible : Visibility.Collapsed;
+            if (syncingAppearanceControls || preset.SelectedIndex < 0) return;
+            store.Config.Settings.ColorPreset = ColorPresetIds[preset.SelectedIndex];
             if (preset.SelectedIndex is 0 or 1 or 2)
             {
                 // 内置预设连同字号、缩放一起恢复默认值；切到自定义时保留用户的设置。

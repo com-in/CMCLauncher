@@ -490,7 +490,7 @@ public sealed partial class MainWindow
                 Check(correctIcon, "version icon uses grass block or bundled loader logo " + loaderName + " appearance " + appearance);
             }
         }
-        presetPicker.SelectedIndex = 2; await Task.Delay(100);
+        presetPicker.SelectedIndex = ColorPresetIndex("custom"); await Task.Delay(100);
         Descendants(PageBody).OfType<ComboBox>().Single(c => c.Header?.ToString() == "编辑配色").SelectedIndex = 0;
         var customPicker = Descendants(PageBody).OfType<ColorPicker>().FirstOrDefault();
         var backgroundSwatch = Descendants(PageBody).OfType<Button>().First(b => Microsoft.UI.Xaml.Automation.AutomationProperties.GetName(b) == "背景");
@@ -500,6 +500,7 @@ public sealed partial class MainWindow
         Check(PageViewport.VerticalScrollBarVisibility == ScrollBarVisibility.Hidden && Descendants(Content).OfType<ScrollViewer>().All(s => s.VerticalScrollBarVisibility != ScrollBarVisibility.Visible), "scroll indicators hidden while page scrolling remains enabled");
         presetPicker.SelectedIndex = 0; await Task.Delay(100);
         Check(store.Config.Settings.UiScale == 1 && store.Config.Settings.UiButtonScale == 1 && store.Config.Settings.UiMenuScale == 1 && store.Config.Settings.UiFontFamily == DefaultFontFamily && WindowBackground.Color == RawColor("#F6F8F4"), "fresh green preset restores default appearance and ignores custom colors");
+        presetPicker.SelectedIndex = ColorPresetIndex("custom"); await Task.Delay(100);
         var sizeControl = Descendants(PageBody).OfType<NumberBox>().Single(c => c.Header?.ToString() == "控件大小 / %");
         var fontControl = Descendants(PageBody).OfType<NumberBox>().Single(c => c.Header?.ToString() == "字体大小");
         var navHeight = navigationButtons["root:home"].Height;
@@ -516,8 +517,10 @@ public sealed partial class MainWindow
         fontControl = Descendants(PageBody).OfType<NumberBox>().Single(c => c.Header?.ToString() == "字体大小");
         sizeControl.Value = 100; fontControl.Value = 14; await Task.Delay(200);
         Check(savedPresetPicker.IsEnabled, "saved preset picker becomes available after saving the first preset");
+        presetPicker.SelectedIndex = ColorPresetIndex("native"); await Task.Delay(100);
         savedPresetPicker.SelectedItem = "验证预设"; await Task.Delay(300);
         Check(new Store(store.Root).Config.Settings.UiScale == 1.25 && new Store(store.Root).Config.Settings.UiFontFamily == "Segoe UI", "saved custom appearance preset can be selected and applied");
+        Check(store.Config.Settings.ColorPreset == "custom" && presetPicker.SelectedIndex == ColorPresetIndex("custom"), "restoring custom preset preserves its palette without resetting scale or font");
         var deletePresetButton = Descendants(PageBody).OfType<Button>().Single(b => b.Content?.ToString() == "删除所选预设");
         Check(deletePresetButton.IsEnabled, "selecting a saved preset enables its delete action");
         var selectedPresetPageBody = PageBody; var selectedPresetRenderVersion = renderVersion;
@@ -530,6 +533,16 @@ public sealed partial class MainWindow
         Check(exportedAppearance["uiScale"]!.GetValue<double>() == 1.25 && exportedAppearance["uiButtonScale"]!.GetValue<double>() == 1.15 && exportedAppearance["uiMenuScale"]!.GetValue<double>() == 1.2 && exportedAppearance["theme"] != null && exportedAppearance["accounts"] == null && exportedAppearance["proxy"] == null, "personalization export contains appearance only");
         var importedAppearance = ImportAppearancePreset(AppearanceJson(), "导入验证");
         Check(importedAppearance.Name == "导入验证" && importedAppearance.UiButtonScale == 1.15 && importedAppearance.UiMenuScale == 1.2, "personalization export imports as a reusable named preset");
+        var appearanceNode = System.Text.Json.Nodes.JsonNode.Parse(AppearanceJson())!;
+        appearanceNode["colorPreset"] = "lakecyan";
+        var lakePreset = ImportAppearancePreset(appearanceNode.ToJsonString(), "浅湖青验证");
+        store.Config.Settings.CustomAppearancePresets.Add(lakePreset);
+        savedPresetPicker.ItemsSource = store.Config.Settings.CustomAppearancePresets.Select(p => p.Name).ToArray();
+        savedPresetPicker.SelectedItem = lakePreset.Name; await Task.Delay(250);
+        Check(store.Config.Settings.ColorPreset == "lakecyan" && presetPicker.SelectedIndex == ColorPresetIndex("lakecyan") && store.Config.Settings.UiScale == 1.25 && store.Config.Settings.UiFontSize == 18, "restoring Lake Cyan preserves saved typography and scale");
+        Check(ImportAppearancePreset(AppearanceJson(), "往返验证").ColorPreset == "lakecyan", "Lake Cyan export imports without losing palette identity");
+        savedPresetPicker.SelectedItem = "验证预设"; await Task.Delay(250);
+        store.Config.Settings.CustomAppearancePresets.Remove(lakePreset);
         var invalidAppearanceRejected = false;
         try { ImportAppearancePreset("{}", "无效"); } catch (InvalidDataException) { invalidAppearanceRejected = true; }
         Check(invalidAppearanceRejected, "invalid personalization files are rejected before changing settings");
