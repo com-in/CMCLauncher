@@ -68,6 +68,7 @@ internal static class Program
     // 覆盖路径、内容识别、账号、下载和整合包流程；多数网络响应由 MockHandler 提供。
     static async Task CoreTests()
     {
+        await CurseForgeClientTests.Run(); Pass("reserved CurseForge API authentication, consent, transport and failure boundaries");
         CertificatePolicyTests.Run(); Pass("compromised CA public keys and supplied certificate chains");
         var origin = new System.Net.Sockets.TcpListener(IPAddress.Loopback, 0); origin.Start();
         var unavailableProxy = new System.Net.Sockets.TcpListener(IPAddress.Loopback, 0); unavailableProxy.Start();

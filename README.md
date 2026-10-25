@@ -43,6 +43,7 @@ New instances keep Mods, saves, and settings separate. Imported games retain the
 
 - Forge and NeoForge installation is available, but installation and runtime compatibility have not been fully validated across game versions.
 - ZIP is a container, not a modpack format. Archives must contain a recognized Modrinth or MultiMC / Prism manifest. CurseForge modpack import and file downloads are not supported.
+- A [reserved CurseForge API interface](docs/CURSEFORGE.md) is available for future integration. It is disabled by default and requires application approval and authorized credentials before activation.
 - Shaders require an installed and enabled Iris, Oculus, or OptiFine setup. Confirm data pack enablement in game after importing.
 - Browser authorization is followed by Xbox and Minecraft service verification. Actual sign-in and reaching an in-game menu require a valid application configuration and a real account; local tests cannot replace end-to-end verification.
 - Windows x64 is the build and validation target. ARM-native dependencies are not selected.
