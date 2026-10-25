@@ -47,6 +47,7 @@
     <Compile Include="../native/CertificatePolicy.cs" Link="Core/CertificatePolicy.cs" />
     <Compile Include="../native/ContentManager.cs" Link="Core/ContentManager.cs" />
     <Compile Include="../native/ModrinthService.cs" Link="Core/ModrinthService.cs" />
+    <Compile Include="../native/CurseForgeService.cs" Link="Core/CurseForgeService.cs" />
     <Compile Include="../native/CurseForgeClient.cs" Link="Core/CurseForgeClient.cs" />
     <Compile Include="../native/MicrosoftAuth.cs" Link="Core/MicrosoftAuth.cs" />
     <Compile Include="../native/GlobalUsings.cs" Link="Core/GlobalUsings.cs" />
