@@ -7,15 +7,20 @@ using System.Text;
 using System.Diagnostics;
 
 namespace CraftLauncher.WinUI;
+
+// 程序入口 — 负责 MUI 语言资源部署、COM 初始化、窗口启动
 internal static class Program
 {
     const uint MuiLanguageName = 0x8;
+    // 当前会话已加载的 MUI 语言列表（如 zh-CN、en-us）
     internal static IReadOnlyList<string> LoadedMuiLanguages { get; private set; } = [];
+    // COM 初始化/清理
     [DllImport("ole32.dll")]
     static extern int OleInitialize(IntPtr reserved);
     [DllImport("ole32.dll")]
     static extern void OleUninitialize();
 
+    // 获取用户首选 UI 语言列表（Windows 多语言设置）
     [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
     static extern bool GetUserPreferredUILanguages(uint flags, ref uint count,
@@ -42,6 +47,7 @@ internal static class Program
         return 0;
     }
 
+    // 主进程退出后异步清理过期 MUI 文件（启动独立子进程避免锁冲突）
     static void StartMuiCleanupWorker()
     {
         if (LoadedMuiLanguages.Count == 0 || Environment.ProcessPath is not string executable) return;
@@ -52,6 +58,7 @@ internal static class Program
         using var cleanup = Process.Start(start);
     }
 
+    // 清理子进程入口 — 等待主进程退出后删除不再需要的 MUI 文件夹
     static int CleanupWorker(string[] args)
     {
         if (!int.TryParse(args[1], out var processId)) return 2;
@@ -78,6 +85,7 @@ internal static class Program
         return 0;
     }
 
+    // 部署 MUI 语言资源 — 将用户首选语言的 .mui 文件从 languages 目录复制到 exe 同级
     static void PrepareMuiResources()
     {
         var root = AppContext.BaseDirectory;
@@ -119,6 +127,7 @@ internal static class Program
         LoadedMuiLanguages = loaded;
     }
 
+    // 清理过时 MUI 资源 — 如果已经部署的文件与源文件一致（不再需要），直接删除
     static void CleanupMuiResources(Dictionary<string, string>? sources)
     {
         var root = AppContext.BaseDirectory;
@@ -148,6 +157,7 @@ internal static class Program
         }
     }
 #if SINGLE_FILE
+    // 单文件发布模式下，将嵌入的伴生文件解压到 exe 所在目录
     static void ExtractCompanionFiles()
     {
         var exeDir = Path.GetDirectoryName(Environment.ProcessPath) ?? AppContext.BaseDirectory;
@@ -165,6 +175,7 @@ internal static class Program
     }
 #endif
 }
+// WinUI 3 Application 子类 — 处理未捕获异常、命令行参数、窗口创建
 public sealed partial class CraftApp : Application
 {
     readonly string[] args;

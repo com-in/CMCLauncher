@@ -6,8 +6,11 @@ using Microsoft.Win32;
 
 namespace CraftLauncher;
 
+// Java 运行时管理：发现、匹配、注册、下载
+// 候选路径来源：PATH 环境变量 → JAVA_HOME → 注册表 → 预置扫描目录 → 用户注册列表
 public static class JavaManager
 {
+    // 根据游戏版本推断所需 Java 大版本号
     public static int RequiredMajor(string gameVersion, int declared = 0)
     {
         if (declared > 0) return declared;
@@ -15,6 +18,7 @@ public static class JavaManager
             return version >= new Version(1, 20, 5) ? 21 : version >= new Version(1, 18) ? 17 : version >= new Version(1, 17) ? 16 : 8;
         return 8;
     }
+    // 从候选列表中匹配第一个符合版本和架构要求的 Java
     public static async Task<string> Match(Store store, int required, CancellationToken ct)
     {
         var candidates = store.Config.Settings.JavaInstallations.Select(j => j.Path).Concat(await Task.Run(() => Candidates(store, null, ct).ToList(), ct)).Distinct(StringComparer.OrdinalIgnoreCase);
@@ -28,6 +32,7 @@ public static class JavaManager
         }
         throw new Exception($"此游戏需要 Java {required}，未找到匹配环境。请到设置 → Java 管理导入、扫描或下载 Java {required}。");
     }
+    // 标准化 Java 路径 — 展开环境变量、处理目录/javaw 等变体
     public static string Normalize(string path)
     {
         path = Environment.ExpandEnvironmentVariables(path.Trim().Trim('"'));
@@ -35,6 +40,7 @@ public static class JavaManager
         if (Path.GetFileName(path).Equals("javaw.exe", StringComparison.OrdinalIgnoreCase)) path = Path.Combine(Path.GetDirectoryName(path)!, "java.exe");
         return Path.GetFullPath(path);
     }
+    // 从 java -XshowSettings 输出中解析版本、架构、供应商等属性
     public static JavaInstallation Parse(string path, string output)
     {
         string Property(string key) => Regex.Match(output, @"(?m)^\s*" + Regex.Escape(key) + @"\s*=\s*(.+)$").Groups[1].Value.Trim();
@@ -44,6 +50,7 @@ public static class JavaManager
         if (!major.Success) throw new Exception("无法识别 Java 版本：" + path);
         return new JavaInstallation { Path = path, Version = version, Major = int.Parse(major.Groups[1].Value), Vendor = Property("java.vendor") is { Length: > 0 } vendor ? vendor : "未知提供商", Architecture = Property("os.arch") };
     }
+    // 启动 java -XshowSettings 并解析输出，返回完整 Java 安装信息
     public static async Task<JavaInstallation> Inspect(string path, CancellationToken ct)
     {
         path = Normalize(path);
@@ -54,18 +61,21 @@ public static class JavaManager
         try { await process.WaitForExitAsync(timeout.Token); if (process.ExitCode != 0) throw new Exception("Java 检查失败"); return Parse(path, await stderr + await stdout); }
         finally { if (!process.HasExited) process.Kill(true); }
     }
+    // 将 Java 安装信息注册到设置中（去重、从忽略列表移除）
     public static void Register(Settings settings, JavaInstallation java)
     {
         settings.IgnoredJavaPaths.RemoveAll(p => string.Equals(p, java.Path, StringComparison.OrdinalIgnoreCase));
         settings.JavaInstallations.RemoveAll(j => string.Equals(j.Path, java.Path, StringComparison.OrdinalIgnoreCase));
         settings.JavaInstallations.Add(java);
     }
+    // 从注册列表移除 Java，加入忽略列表避免重新扫描回来
     public static void Remove(Settings settings, JavaInstallation java)
     {
         settings.JavaInstallations.RemoveAll(j => string.Equals(j.Path, java.Path, StringComparison.OrdinalIgnoreCase));
         if (!settings.IgnoredJavaPaths.Contains(java.Path, StringComparer.OrdinalIgnoreCase)) settings.IgnoredJavaPaths.Add(java.Path);
         if (string.Equals(settings.JavaPath, java.Path, StringComparison.OrdinalIgnoreCase)) settings.JavaPath = "";
     }
+    // 扫描本机所有可能存在的 Java 路径：PATH → JAVA_HOME → 注册表 → 预置目录
     public static IEnumerable<string> Candidates(Store store, string? folder, CancellationToken ct)
     {
         var found = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -95,6 +105,7 @@ public static class JavaManager
         }
         return found;
     }
+    // 从 Adoptium API 下载指定大版本的 Temurin JDK 并安装到 runtimes 目录
     public static async Task<JavaInstallation> Download(LauncherCore core, Store store, int major, CancellationToken ct, Action<string> stage)
     {
         stage("获取 Temurin Java " + major + " 下载信息");
