@@ -1,6 +1,10 @@
+# CMCLauncher
+
+<div align="center">
+
 [English](README.md) · 简体中文
 
-# CMCLauncher
+</div>
 
 一款用于 Minecraft Java 版的 Windows 原生启动器，基于 C#、.NET 8 与 WinUI 3 构建。支持管理隔离实例、下载游戏版本与加载器、安装 Modrinth 内容，以及管理 Java 与账号。
 
