@@ -17,6 +17,14 @@ public sealed partial class MainWindow
     internal async Task VerifyUi(string directory)
     {
         // 用固定项目和搜索结果替换网络入口，交互断言不依赖社区服务的实时数据。
+        fetchCommunityFilters = _ => Task.FromResult(new CommunityFilterCatalog(
+            [new("1.21.1", "release"), new("1.20.1", "release"), new("24w10a", "snapshot"), new("1.21-pre1", "snapshot"), new("26.4-snapshot-5", "snapshot"), new("26.4-rc-1", "snapshot"), new("20w14infinite", "snapshot"), new("25w14craftmine", "snapshot")],
+            [new("adventure", "mod", "categories"), new("optimization", "modpack", "categories"),
+             new("realistic", "resourcepack", "categories"), new("16x", "resourcepack", "resolutions"),
+             new("pbr", "resourcepack", "features"), new("realistic", "shader", "categories"),
+             new("low", "shader", "performance impact")],
+            [new("fabric", ["mod", "modpack"]), new("forge", ["mod", "modpack"]), new("iris", ["shader"]), new("minecraft", ["resourcepack"])],
+            [new("MIT", "MIT License"), new("ARR", "All Rights Reserved")]));
         var passed = new List<string>();
         var resourceRequests = new List<string>();
         fetchProject = (_, _) => Task.FromResult(new CommunityProject("详情测试项目", "项目摘要", "# 使用说明\n\n支持 **粗体**、*斜体*、`代码` 和 [项目链接](https://modrinth.com)。\n\n- 自动解析依赖\n- 选择兼容版本\n\n> 保留原生界面。\n\n```text\n示例代码\n```\n\n| 版本 | 加载器 |\n| --- | --- |\n| 1.21.1 | Fabric |", "", 123456, 100, ["fabric"]));
@@ -27,12 +35,13 @@ public sealed partial class MainWindow
             new("snapshot", "资源正式发布但支持快照", "3.0", "release", "2026-10-21T00:00:00Z", ["24w10a", "24w14potato"], ["fabric"])
         });
         fetchVersions = async ct => { await Task.Delay(20, ct); return [new GameRelease("1.21.1", "release"), new GameRelease("1.20.1", "release"), new GameRelease("24w10a", "snapshot"), new GameRelease("24w14potato", "snapshot")]; };
-        searchResourcePage = async (query, type, ct, offset, limit) =>
+        searchResourcePage = async (query, type, ct, offset, limit, filters) =>
         {
             resourceRequests.Add(type); await Task.Delay(30, ct);
             return new CommunitySearchPage([new SearchResult("fixture", "榜单测试 · " + type, "隔离榜单数据", type, "")], offset, limit, 1);
         };
         void Check(bool value, string message) { if (!value) throw new Exception(message); passed.Add(message); File.AppendAllText(Path.Combine(directory, "passed.txt"), message + Environment.NewLine); }
+        await VerifyCommunityFilterDrawer(Check, directory);
         Check(IsModpackFile("Pack.MRPACK") && IsModpackFile("Pack.ZIP") && !IsModpackFile("mod.jar"), "drag import recognizes both archive extensions case insensitively");
         Check(Thread.CurrentThread.GetApartmentState() == ApartmentState.STA && ModpackDropRoot.AllowDrop && ModpackDropRoot.Background != null, "file drop window runs on STA with a hit-testable drop surface");
         showModpackImportDialog = dialog =>
@@ -245,10 +254,10 @@ public sealed partial class MainWindow
             for (var wait = 0; wait < 100 && !Descendants(PageBody).OfType<TextBlock>().Any(t => t.Text == "榜单测试 · " + category); wait++) await Task.Delay(20);
             Check(resourceRequests.Contains(category) && Descendants(PageBody).OfType<TextBlock>().Any(t => t.Text == "榜单测试 · " + category), category + " ranking loads automatically on entry");
             Check(!Descendants(PageBody).OfType<ComboBox>().Any(c => c.ItemsSource is IEnumerable<Instance>), category + " download page has no instance dropdown");
-            Check(!Descendants(PageBody).OfType<ComboBox>().Any(c => c.Header?.ToString() == "Minecraft 游戏版本类型"), category + " resource list has no Minecraft version filter");
+            Check(Descendants(PageBody).OfType<ComboBox>().Any(c => c.Tag?.ToString() == "community-filter-version"), category + " resource list exposes a game version filter");
             Check(!Descendants(PageBody).OfType<ComboBox>().Any(c => c.Items.Contains("modpack")) && Descendants(PageBody).OfType<Button>().Any(b => b.Content?.ToString() == "搜索") && !Descendants(PageBody).OfType<Button>().Any(b => b.Content?.ToString() is "停用" or "移除" or "导入 ZIP"), category + " download page searches online content only");
         }
-        await VerifyCommunityPagination(Check, directory);
+        await VerifyCommunityPagination(Check, directory); await communityFilterLoad; await Task.Delay(500);
         var detailsButton = Descendants(PageBody).OfType<Button>().First(b => b.Content?.ToString() == "查看详情");
         PageBody.Children.Add(new Border { Height = 1800 });
         PageViewport.UpdateLayout(); PageViewport.ChangeView(null, 420, null, true); await Task.Delay(80);
@@ -468,7 +477,7 @@ public sealed partial class MainWindow
         Check(Descendants(PageBody).OfType<Button>().Single(b => b.Content?.ToString() == "搜索").IsEnabled, "modpack search remains available for vanilla instance");
         Check(!Descendants(PageBody).OfType<ComboBox>().Any(c => c.Header?.ToString() == "Minecraft 游戏版本类型"), "modpack page hides game version type filter");
         store.Config.Settings.LauncherLanguage = "en_us"; await RenderAsync();
-        Check(PageTitle.Text == "Download modpacks" && Descendants(PageBody).OfType<TextBlock>().Any(t => t.Text == "The modpack will be installed as a separate instance.") && Descendants(PageBody).OfType<Button>().Any(b => b.Content?.ToString() == "Search") && !Descendants(PageBody).OfType<TextBlock>().Any(t => t.Text == "整合包"), "modpack navigation, description, and search UI are translated in English");
+        Check(PageTitle.Text == "Download modpacks" && Descendants(PageBody).OfType<ComboBox>().Any(c => c.Header?.ToString() == "Game version") && Descendants(PageBody).OfType<Button>().Any(b => b.Content?.ToString() == "Search") && !Descendants(PageBody).OfType<TextBlock>().Any(t => t.Text == "整合包"), "modpack navigation, filters, and search UI are translated in English");
         store.Config.Settings.LauncherLanguage = "zh_cn"; await RenderAsync();
         communityGameCategory = "快照版"; await Task.Delay(50);
         page = "packs"; await RenderAsync(); await Task.Delay(60);
@@ -526,7 +535,7 @@ public sealed partial class MainWindow
         Descendants(PageBody).OfType<NumberBox>().Single(c => c.Header?.ToString() == "按钮大小 / %").Value = 115;
         Descendants(PageBody).OfType<NumberBox>().Single(c => c.Header?.ToString() == "菜单大小 / %").Value = 120;
         Descendants(PageBody).OfType<NumberBox>().Single(c => c.Header?.ToString() == "字体大小").Value = 18;
-        presetPicker.SelectedIndex = 1; await Task.Delay(200);
+        presetPicker.SelectedIndex = ColorPresetIndex("native"); await Task.Delay(200);
         Check(new Store(store.Root).Config.Settings.ColorPreset == "native" && fontPicker.SelectedItem?.ToString() == "Segoe UI Variable Text", "native color preset persists without rebuilding settings inputs");
         Check(new Store(store.Root).Config.Settings.UiScale == 1 && new Store(store.Root).Config.Settings.UiButtonScale == 1 && new Store(store.Root).Config.Settings.UiMenuScale == 1 && new Store(store.Root).Config.Settings.UiFontSize == 14 && Descendants(PageBody).OfType<NumberBox>().Single(c => c.Header?.ToString() == "控件大小 / %").Value == 100, "native preset restores default font, menu and button scaling");
         foreach (var appearance in new[] { 1, 0 })
@@ -552,7 +561,7 @@ public sealed partial class MainWindow
         customPicker.Color = RawColor("#E8EEF4"); await Task.Delay(200);
         Check(WindowBackground.Color == RawColor("#E8EEF4") && new Store(store.Root).Config.Settings.CustomLightColors.GetValueOrDefault("background") == "#E8EEF4", "custom background applies immediately and persists");
         Check(PageViewport.VerticalScrollBarVisibility == ScrollBarVisibility.Hidden && Descendants(Content).OfType<ScrollViewer>().All(s => s.VerticalScrollBarVisibility != ScrollBarVisibility.Visible), "scroll indicators hidden while page scrolling remains enabled");
-        presetPicker.SelectedIndex = 0; await Task.Delay(100);
+        presetPicker.SelectedIndex = ColorPresetIndex("craft"); await Task.Delay(100);
         Check(store.Config.Settings.UiScale == 1 && store.Config.Settings.UiButtonScale == 1 && store.Config.Settings.UiMenuScale == 1 && store.Config.Settings.UiFontFamily == DefaultFontFamily && WindowBackground.Color == RawColor("#F6F8F4"), "fresh green preset restores default appearance and ignores custom colors");
         presetPicker.SelectedIndex = ColorPresetIndex("custom"); await Task.Delay(100);
         var sizeControl = Descendants(PageBody).OfType<NumberBox>().Single(c => c.Header?.ToString() == "控件大小 / %");
@@ -722,20 +731,32 @@ public sealed partial class MainWindow
         await SetMinecraftFolder(minecraftRoot); await SetMinecraftFolder(minecraftRoot);
         Check(store.MinecraftRoot == minecraftRoot && new Store(store.Root).MinecraftRoot == minecraftRoot, "Minecraft folder setting persists across reloads");
         Check(store.Config.Instances.Count(i => i.ImportRoot == minecraftRoot) == 1 && store.GameDirectory(instance) == oldGameDirectory, "folder scans import existing versions once and preserve old locations");
-        searchResourcePage = (_, type, _, offset, limit) => Task.FromResult(new CommunitySearchPage([new("responsive", "BattleArmory TACZ 长标题布局测试 Long Resource Title", new string('测', 250), type, "")], offset, limit, 1));
+        var multilineDescription = "First line\r\nSecond line\rThird line\nNext line\u0085More\u2028Paragraph\u2029\t" + new string('测', 250);
+        searchResourcePage = (_, type, _, offset, limit, _) => Task.FromResult(new CommunitySearchPage([new("responsive", "BattleArmory TACZ 长标题布局测试 Long Resource Title", multilineDescription, type, "")], offset, limit, 1));
         page = "download-mod"; await RenderAsync();
         // 用长标题和不同窗口宽度检查操作按钮是否仍在可见范围内。
         foreach (var width in new[] { 900, 740, 1280 })
         {
             AppWindow.Resize(new Windows.Graphics.SizeInt32(width, 820)); await Task.Delay(500); ((FrameworkElement)Content).UpdateLayout();
             var resultCard = Descendants(PageBody).OfType<Grid>().Single(g => g.Tag?.ToString() == "community-result");
+            var summary = Descendants(resultCard).OfType<TextBlock>().Single(t => t.Tag?.ToString() == "community-summary");
+            Check(summary.ActualHeight <= summary.FontSize * 1.6 && summary.IsTextTrimmed && ToolTipService.GetToolTip(resultCard)?.ToString() == multilineDescription, width + " multiline community description renders as one ellipsized line and retains the original tooltip");
             var details = resultCard.Children.OfType<Button>().Single();
             var buttonPosition = details.TransformToVisual(PageViewport).TransformPoint(new Windows.Foundation.Point());
             Check(PageFrame.ActualWidth <= PageViewport.ActualWidth + 1 && resultCard.ActualWidth <= PageViewport.ActualWidth + 1, width + " resource card fits viewport");
             Check(buttonPosition.X >= 0 && buttonPosition.X + details.ActualWidth <= PageViewport.ActualWidth + 1, width + " resource details action remains visible");
             Check(Grid.GetRow(details) == (resultCard.ActualWidth < 480 ? 1 : 0), width + " resource action adapts to available width");
+            var filterPanel = Descendants(PageBody).OfType<StackPanel>().Single(p => p.Tag?.ToString() == "community-filters");
+            var queryField = Descendants(PageBody).OfType<TextBox>().Single(t => t.Tag?.ToString() == "community-query");
+            var resetFilters = Descendants(PageBody).OfType<Button>().Single(b => b.Tag?.ToString() == "community-filter-reset");
+            var resetPosition = resetFilters.TransformToVisual(PageViewport).TransformPoint(new Windows.Foundation.Point());
+            Check(filterPanel.ActualWidth <= PageViewport.ActualWidth + 1 && queryField.ActualWidth >= 80, width + " filters and search field fit the available width");
+            Check(resetPosition.X >= 0 && resetPosition.X + resetFilters.ActualWidth <= PageViewport.ActualWidth + 1, width + " reset filter action remains visible");
             await Capture(Path.Combine(directory, "responsive-" + width + ".png"));
         }
+        await VerifyCommunityVersionOptions(Check, directory);
+        await VerifyDropdownPalette(Check, directory);
+
         await File.WriteAllLinesAsync(Path.Combine(directory, "passed.txt"), passed);
     }
     Button FindNamedCancelButton() => Descendants(Content).OfType<Button>().First(b => b.Content?.ToString() == "取消");
@@ -744,9 +765,9 @@ public sealed partial class MainWindow
         for (var i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++) { var child = VisualTreeHelper.GetChild(parent, i); yield return child; foreach (var nested in Descendants(child)) yield return nested; }
     }
     // 截取当前 XAML 内容，不含系统窗口边框；保存 PNG 供人工核对布局。
-    async Task Capture(string path)
+    async Task Capture(string path, FrameworkElement? element = null)
     {
-        var bitmap = new RenderTargetBitmap(); await bitmap.RenderAsync((FrameworkElement)Content);
+        var bitmap = new RenderTargetBitmap(); await bitmap.RenderAsync(element ?? (FrameworkElement)Content);
         CryptographicBuffer.CopyToByteArray(await bitmap.GetPixelsAsync(), out var pixels);
         var folder = await StorageFolder.GetFolderFromPathAsync(Path.GetDirectoryName(path)!);
         var file = await folder.CreateFileAsync(Path.GetFileName(path), CreationCollisionOption.ReplaceExisting);

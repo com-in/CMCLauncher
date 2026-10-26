@@ -26,6 +26,7 @@ public sealed partial class MainWindow
         // 先让 XAML 的系统资源换到目标主题，再读取 Native* 的颜色刷新画刷。
         if (Content is FrameworkElement themedRoot) themedRoot.RequestedTheme = lightTheme ? ElementTheme.Light : ElementTheme.Dark;
         RefreshPaletteBrushes();
+        RefreshComboPalette();
         var bg = lightTheme ? ThemeTokens.LightBg : ThemeTokens.DarkBg;
         var sidebar = lightTheme ? ThemeTokens.LightSidebar : ThemeTokens.DarkSidebar;
         var text = lightTheme ? ThemeTokens.LightText : ThemeTokens.DarkText;
@@ -39,13 +40,19 @@ public sealed partial class MainWindow
         if (Content is FrameworkElement root) root.RequestedTheme = lightTheme ? ElementTheme.Light : ElementTheme.Dark;
         SyncNavigation();
         TaskDrawer.PaneBackground = Brush(sidebar);
+        CommunityFilterDrawer.PaneBackground = Brush(bg);
+        CommunityFilterDrawerTitle.Foreground = Brush(text); CommunityFilterDrawerHint.Foreground = Brush(muted);
+        CommunityFilterDrawerFooter.BorderBrush = Brush(lightTheme ? ThemeTokens.LightBorder : ThemeTokens.DarkBorder);
+        CommunityFilterApplyButton.Background = ComboSelectedBrush; CommunityFilterApplyButton.Foreground = ComboTextBrush; CommunityFilterApplyButton.BorderBrush = ComboAccentBrush;
         TaskCountBadge.Background = Brush(PrimaryColor); TaskCountText.Foreground = new SolidColorBrush(Colors.White);
         CustomTitleBar.Background = Brush(bg); TitleBrandBackground.Background = Brush(sidebar);
         TitleLabel.Foreground = Brush(text);
         foreach (var card in themeCards)
         {
-            card.Background = Brush(lightTheme ? ThemeTokens.White : ThemeTokens.DarkSurface);
-            card.BorderBrush = Brush(lightTheme ? ThemeTokens.LightBorder : ThemeTokens.DarkBorder);
+            card.Background = new SolidColorBrush(SoftSurfaceColor());
+
+            card.BorderBrush = Brush(
+                lightTheme ? ThemeTokens.LightBorder : ThemeTokens.DarkBorder);
         }
         // 标题栏按钮由系统绘制，不会跟随 XAML 画刷刷新，需要单独赋色。
         if (AppWindowTitleBar.IsCustomizationSupported())

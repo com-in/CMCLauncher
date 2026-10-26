@@ -16,6 +16,7 @@ public sealed partial class MainWindow
     {
         var fontSize = store.Config.Settings.UiFontSize;
         var fontScale = (double.IsFinite(fontSize) ? Math.Clamp(fontSize, 12, 22) : 14) / 14;
+        UpdateCommunityFilterDrawerWidth();
         TaskDrawer.OpenPaneLength = Math.Min(480 * Math.Max(1, fontScale), Math.Max(0, ((FrameworkElement)Content).ActualWidth - 24));
     }
     // 窄窗口把操作按钮移到下一行，避免挤掉版本名和描述。

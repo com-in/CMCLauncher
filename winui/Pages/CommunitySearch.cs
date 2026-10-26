@@ -16,7 +16,7 @@ namespace CMCLauncher.WinUI;
 public sealed partial class MainWindow
 {
     const int CommunityPageSize = 16;
-    sealed record CommunityBrowseState(string Query, int Page);
+    sealed record CommunityBrowseState(string Query, int Page, CommunitySearchFilters? Filters = null);
     readonly Dictionary<string, CommunityBrowseState> communityBrowseStates = new();
     Task communityLoad = Task.CompletedTask;
 
@@ -32,6 +32,7 @@ public sealed partial class MainWindow
         }
         Header(preset switch { "modpack" => "下载整合包", "resourcepack" => "下载资源包", "datapack" => "下载数据包", "shader" => "下载光影包", _ => "下载 Mod" }, "");
         var state = communityBrowseStates.GetValueOrDefault(preset) ?? new("", 0);
+        var filters = BuildCommunityFilters(preset, state.Filters ?? new());
         var query = new TextBox { PlaceholderText = Ui("搜索社区内容", "Search community content"), Text = state.Query, Tag = "community-query", HorizontalAlignment = HorizontalAlignment.Stretch };
         var results = new StackPanel { Spacing = 10 };
         var heading = Text("", 12, true);
@@ -61,6 +62,7 @@ public sealed partial class MainWindow
         bool loading = false, hasNext = false, hasLoaded = false;
         int total = 0, lastRequestedPage = state.Page;
         string lastRequestedQuery = state.Query;
+        CommunitySearchFilters? lastRequestedFilters = state.Filters;
         var compatibility = (TextBlock?) null;
         // ↓意义不明的提示(我去不早说x2)
         // var compatibility = preset == "modpack" ? Text("整合包将安装为独立实例。", 12) : null;
@@ -76,7 +78,7 @@ public sealed partial class MainWindow
                 ? Ui($"第 {state.Page + 1} / {Math.Max(1, (int)Math.Ceiling(total / (double)CommunityPageSize))} 页", $"Page {state.Page + 1} of {Math.Max(1, (int)Math.Ceiling(total / (double)CommunityPageSize))}")
                 : Ui($"第 {state.Page + 1} 页", $"Page {state.Page + 1}");
         }
-        Task BeginLoad(int targetPage, string term) => communityLoad = LoadResources(targetPage, term);
+        Task BeginLoad(int targetPage, string term, CommunitySearchFilters? selectedFilters = null) => communityLoad = LoadResources(targetPage, term, selectedFilters ?? state.Filters ?? new());
         async Task JumpToPage()
         {
             if (loading || !hasLoaded || total == 0) return;
@@ -90,14 +92,14 @@ public sealed partial class MainWindow
             pageError.Visibility = Visibility.Collapsed;
             if (number - 1 != state.Page) await BeginLoad(number - 1, state.Query);
         }
-        async Task LoadResources(int targetPage, string term)
+        async Task LoadResources(int targetPage, string term, CommunitySearchFilters selectedFilters)
         {
             resourceSearch?.Cancel();
             using var request = new CancellationTokenSource(TimeSpan.FromSeconds(30));
             resourceSearch = request;
             var requestId = ++requestVersion;
             var version = renderVersion;
-            lastRequestedPage = targetPage; lastRequestedQuery = term;
+            lastRequestedPage = targetPage; lastRequestedQuery = term; lastRequestedFilters = selectedFilters;
             loading = true; SyncPager(); retry.Visibility = Visibility.Collapsed;
             pageError.Visibility = Visibility.Collapsed;
             status.Text = Ui(string.IsNullOrWhiteSpace(term) ? "正在加载下载榜单…" : "正在搜索…");
@@ -105,28 +107,30 @@ public sealed partial class MainWindow
             try
             {
                 // 翻页始终使用已提交的搜索词，输入框里尚未提交的修改不影响当前结果。
-                var response = await searchResourcePage(term, preset, request.Token, checked(targetPage * CommunityPageSize), CommunityPageSize);
+                var response = await searchResourcePage(term, preset, request.Token, checked(targetPage * CommunityPageSize), CommunityPageSize, selectedFilters);
                 if (version != renderVersion || requestId != requestVersion || request.IsCancellationRequested) return;
                 var lastPage = Math.Max(0, (response.TotalHits - 1) / CommunityPageSize);
                 if (response.Hits.Count == 0 && targetPage > lastPage)
                 {
-                    await BeginLoad(lastPage, term);
+                    await BeginLoad(lastPage, term, selectedFilters);
                     return;
                 }
-                state = new(term, targetPage); communityBrowseStates[preset] = state;
+                state = new(term, targetPage, selectedFilters); communityBrowseStates[preset] = state;
                 total = response.TotalHits; hasNext = response.HasNext; hasLoaded = true;
                 foreach (var button in resultButtons) taskButtons.Remove(button);
                 resultButtons.Clear();
                 results.Children.Clear();
-                heading.Text = Ui(string.IsNullOrWhiteSpace(term) ? "下载量排行" : "搜索结果") + Ui($" · 共 {total:N0} 项", $" · {total:N0} results");
+                heading.Text = (string.IsNullOrWhiteSpace(term) && selectedFilters.Sort is not ("" or "downloads") ? Ui("社区资源", "Community resources") : Ui(string.IsNullOrWhiteSpace(term) ? "下载量排行" : "搜索结果")) + Ui($" · 共 {total:N0} 项", $" · {total:N0} results");
                 status.Text = "";
                 status.Visibility = Visibility.Collapsed;
-                if (response.Hits.Count == 0) results.Children.Add(Text("没有找到匹配的内容。"));
+                if (response.Hits.Count == 0) results.Children.Add(Text("没有找到匹配的内容"));
                 foreach (var item in response.Hits)
                 {
                     var detail = new StackPanel { Spacing = 3, VerticalAlignment = VerticalAlignment.Center };
                     var title = Text(item.Name, 14, true); title.TextWrapping = TextWrapping.NoWrap; title.TextTrimming = TextTrimming.CharacterEllipsis; detail.Children.Add(title);
-                    var summary = Text(item.Description, 12); summary.TextWrapping = TextWrapping.NoWrap; summary.TextTrimming = TextTrimming.CharacterEllipsis; detail.Children.Add(summary);
+                    // NoWrap 不会忽略文本自带的换行，卡片摘要先将空白合并成空格。
+                    var summary = Text(System.Text.RegularExpressions.Regex.Replace(item.Description, @"\s+", " ").Trim(), 12);
+                    summary.Tag = "community-summary"; summary.MaxLines = 1; summary.TextWrapping = TextWrapping.NoWrap; summary.TextTrimming = TextTrimming.CharacterEllipsis; detail.Children.Add(summary);
                     var card = new Grid { ColumnSpacing = 12, MinHeight = 52 };
                     card.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(44) }); card.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) }); card.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
                     card.Children.Add(RemoteIcon(item.IconUrl)); Grid.SetColumn(detail, 1); card.Children.Add(detail);
@@ -176,20 +180,38 @@ public sealed partial class MainWindow
             if (args.Key != Windows.System.VirtualKey.Enter) return;
             args.Handled = true; await JumpToPage();
         };
-        retry.Click += async (_, _) => await BeginLoad(lastRequestedPage, lastRequestedQuery);
-        var search = Action("搜索", async (_, _) => await BeginLoad(0, query.Text.Trim()));
+        retry.Click += async (_, _) => await BeginLoad(lastRequestedPage, lastRequestedQuery, lastRequestedFilters);
+        filters.Apply = () => BeginLoad(0, query.Text.Trim(), filters.Read());
+        var search = Action("搜索", async (_, _) => await BeginLoad(0, query.Text.Trim(), filters.Read()));
         query.KeyDown += async (_, args) =>
         {
             if (args.Key != Windows.System.VirtualKey.Enter) return;
-            args.Handled = true; await BeginLoad(0, query.Text.Trim());
+            args.Handled = true; await BeginLoad(0, query.Text.Trim(), filters.Read());
         };
+        var reset = new Button { Content = Ui("重置筛选", "Reset filters"), Tag = "community-filter-reset" };
+        reset.Click += async (_, _) => { filters.Reset(); await BeginLoad(0, query.Text.Trim(), filters.Read()); };
         var searchRow = new Grid { ColumnSpacing = 8 };
         searchRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         searchRow.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-        Grid.SetColumn(query, 0); searchRow.Children.Add(query); Grid.SetColumn(search, 1); searchRow.Children.Add(search);
+        searchRow.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        Grid.SetColumn(query, 0); searchRow.Children.Add(query); Grid.SetColumn(search, 1); searchRow.Children.Add(search); Grid.SetColumn(reset, 2); searchRow.Children.Add(reset);
+        searchRow.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        searchRow.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        searchRow.RowSpacing = 8;
+        // 搜索框在窄窗口占满一行，按钮移到下一行，避免输入框被挤成零宽。
+        searchRow.SizeChanged += (_, args) =>
+        {
+            var narrow = args.NewSize.Width < 440;
+            Grid.SetColumnSpan(query, narrow ? 3 : 1);
+            Grid.SetRow(search, narrow ? 1 : 0); Grid.SetColumn(search, narrow ? 0 : 1);
+            Grid.SetRow(reset, narrow ? 1 : 0); Grid.SetColumn(reset, narrow ? 1 : 2);
+            search.HorizontalAlignment = narrow ? HorizontalAlignment.Left : HorizontalAlignment.Stretch;
+        };
+        PageBody.Children.Add(filters.View);
         PageBody.Children.Add(searchRow); if (compatibility != null) PageBody.Children.Add(compatibility);
         PageBody.Children.Add(heading); PageBody.Children.Add(status); PageBody.Children.Add(retry);
         PageBody.Children.Add(results); PageBody.Children.Add(pager);
+        communityFilterLoad = filters.Load();
         _ = BeginLoad(state.Page, state.Query);
     }
 }

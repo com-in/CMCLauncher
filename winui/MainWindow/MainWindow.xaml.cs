@@ -39,7 +39,7 @@ public sealed partial class MainWindow : Window
     Func<string, CancellationToken, Task<CommunityProject>> fetchProject = null!;
     Func<string, CancellationToken, Task<List<CommunityVersion>>> fetchProjectVersions = null!;
     string communityGameCategory = "全部";
-    Func<string, string, CancellationToken, int, int, Task<CommunitySearchPage>> searchResourcePage = null!;
+    Func<string, string, CancellationToken, int, int, CommunitySearchFilters?, Task<CommunitySearchPage>> searchResourcePage = null!;
     Func<string, string, string?, Task<List<ContentItem>>> listContent = (directory, type, targetWorld) => Task.Run(() => ContentManager.ListFiles(directory, type, targetWorld));
     Task contentLoad = Task.CompletedTask;
     internal readonly Queue<string> logs = new();
@@ -51,6 +51,7 @@ public sealed partial class MainWindow : Window
     {
         store = new Store(args.Length == 2 && args[0] == "--verify-ui" ? Path.Combine(Path.GetFullPath(args[1]), "data") : null);
         InitializeComponent();
+        InitializeCommunityFilterDrawer();
         ModpackDropRoot.AddHandler(UIElement.DragEnterEvent, new DragEventHandler(Modpack_DragOver), true);
         ModpackDropRoot.AddHandler(UIElement.DragOverEvent, new DragEventHandler(Modpack_DragOver), true);
         ModpackDropRoot.AddHandler(UIElement.DropEvent, new DragEventHandler(Modpack_Drop), true);
@@ -82,6 +83,7 @@ public sealed partial class MainWindow : Window
         fetchProject = modrinth.ProjectDetails;
         fetchProjectVersions = modrinth.ProjectVersions;
         searchResourcePage = modrinth.SearchPage;
+        fetchCommunityFilters = modrinth.FilterCatalog;
         core.Status += Report; modrinth.Status += Report;
         core.DownloadBytes += bytes => { if (activeWork is { } work) Interlocked.Add(ref work.Bytes, bytes); };
         taskViewTimer = DispatcherQueue.CreateTimer(); taskViewTimer.Interval = TimeSpan.FromMilliseconds(500);

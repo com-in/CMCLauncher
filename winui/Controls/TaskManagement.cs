@@ -45,6 +45,7 @@ public sealed partial class MainWindow
 
     void TaskManager_Click(object sender, RoutedEventArgs e)
     {
+        CloseCommunityFilterDrawer();
         Tasks(); TaskDrawer.IsPaneOpen = !TaskDrawer.IsPaneOpen;
     }
     void TaskDrawer_Close(object sender, RoutedEventArgs e) => TaskDrawer.IsPaneOpen = false;

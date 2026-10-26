@@ -136,6 +136,7 @@ public sealed partial class MainWindow
     async Task RenderAsync()
     {
         // 离开页面时取消搜索，同时用代次挡住未及时响应取消的结果。
+        ClearCommunityFilterDrawer();
         var generation = ++renderVersion;
         var nextBody = new StackPanel { Spacing = 11 };
         PageBody = nextBody;

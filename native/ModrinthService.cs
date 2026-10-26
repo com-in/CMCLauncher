@@ -14,9 +14,87 @@ public sealed record CommunitySearchPage(IReadOnlyList<SearchResult> Hits, int O
 {
     public bool HasNext => Hits.Count > 0 && (long)Offset + Hits.Count < TotalHits;
 }
+public sealed record CommunitySearchFilters(
+    string GameVersion = "", string Loader = "", IReadOnlyList<string>? Categories = null,
+    string Environment = "", string License = "", string OpenSource = "", string Sort = "",
+    string Author = "", string Title = "", string ProjectId = "",
+    string MinDownloads = "", string MinFollows = "", string CreatedAfter = "", string UpdatedAfter = "",
+    IReadOnlyList<string>? Disclosures = null, bool ShowSnapshots = false, bool ShowAprilFools = false);
+public sealed record CommunityCategory(string Name, string ProjectType, string Header);
+public sealed record CommunityLoader(string Name, IReadOnlyList<string> ProjectTypes);
+public sealed record CommunityLicense(string Id, string Name);
+public sealed record CommunityFilterCatalog(IReadOnlyList<GameRelease> GameVersions, IReadOnlyList<CommunityCategory> Categories,
+    IReadOnlyList<CommunityLoader> Loaders, IReadOnlyList<CommunityLicense> Licenses);
 // 社区查询与安装共用 LauncherCore 的网络设置，页面只接收整理后的项目和版本信息。
 public sealed class ModrinthService(LauncherCore core, Store store)
 {
+
+    CommunityFilterCatalog? filterCatalog;
+    readonly SemaphoreSlim filterCatalogLock = new(1, 1);
+    // 只缓存完整的标签目录；失败不缓存，下次可以重新获取。
+    public async Task<CommunityFilterCatalog> FilterCatalog(CancellationToken ct)
+    {
+        await filterCatalogLock.WaitAsync(ct);
+        try
+        {
+            if (filterCatalog != null) return filterCatalog;
+            var versions = core.Json("https://api.modrinth.com/v2/tag/game_version", ct);
+            var categories = core.Json("https://api.modrinth.com/v2/tag/category", ct);
+            var loaders = core.Json("https://api.modrinth.com/v2/tag/loader", ct);
+            var licenses = core.Json("https://api.modrinth.com/v2/tag/license", ct);
+            await Task.WhenAll(versions, categories, loaders, licenses);
+            return filterCatalog = new(
+                (await versions).Items().Select(v => new GameRelease(v.S("version"), v.S("version_type"))).ToArray(),
+                (await categories).Items().Select(c => new CommunityCategory(c.S("name"), c.S("project_type"), c.S("header"))).ToArray(),
+                (await loaders).Items().Select(l => new CommunityLoader(l.S("name"), l["supported_project_types"].Items().Select(t => t.ToString()).ToArray())).ToArray(),
+                (await licenses).Items().Select(l => new CommunityLicense(l.S("short"), l.S("name"))).ToArray());
+        }
+        finally { filterCatalogLock.Release(); }
+    }
+
+    static void AddSearchFilters(List<string[]> facets, string type, CommunitySearchFilters filters)
+    {
+        // 值单独引用，避免输入中的空格、冒号或运算符变成额外的筛选表达式。
+        void Add(string key, string value)
+        {
+            if (!string.IsNullOrWhiteSpace(value))
+                facets.Add([key + ":" + System.Text.Json.JsonSerializer.Serialize(value.Trim())]);
+        }
+        Add("versions", filters.GameVersion);
+        if (type is "mod" or "modpack" or "shader") Add("categories", filters.Loader);
+        foreach (var category in filters.Categories ?? []) Add("categories", category);
+        Add("environment", filters.Environment);
+        Add("license", filters.License);
+        Add("author", filters.Author);
+        Add("title", filters.Title);
+        Add("project_id", filters.ProjectId);
+        if (filters.OpenSource.Length > 0)
+        {
+            if (filters.OpenSource is not ("true" or "false")) throw new ArgumentException("Invalid source availability filter.");
+            facets.Add(["open_source:" + filters.OpenSource]);
+        }
+        foreach (var disclosure in filters.Disclosures ?? []) Add("disclosure_types", disclosure);
+        void Minimum(string key, string text)
+        {
+            if (string.IsNullOrWhiteSpace(text)) return;
+            if (!long.TryParse(text, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var value))
+                throw new ArgumentException("A minimum count must be a non-negative whole number.");
+            facets.Add([$"{key}>={value}"]);
+        }
+        Minimum("downloads", filters.MinDownloads);
+        Minimum("follows", filters.MinFollows);
+        void After(string key, string text)
+        {
+            if (string.IsNullOrWhiteSpace(text)) return;
+            if (!DateTimeOffset.TryParseExact(text, "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture,
+                System.Globalization.DateTimeStyles.AssumeUniversal, out var date))
+                throw new ArgumentException("Dates must use YYYY-MM-DD.");
+            facets.Add([$"{key}>={date.ToUnixTimeSeconds()}"]);
+        }
+        After("created_timestamp", filters.CreatedAfter);
+        After("modified_timestamp", filters.UpdatedAfter);
+    }
+
     public async Task<CommunityProject> ProjectDetails(string project, CancellationToken ct)
     {
         var data = await core.Json("https://api.modrinth.com/v2/project/" + Uri.EscapeDataString(project), ct);
@@ -66,18 +144,21 @@ public sealed class ModrinthService(LauncherCore core, Store store)
     }
 
     // 搜索和榜单共用服务端分页；总数来自 total_hits，不能用“本页是否填满”猜下一页。
-    public Task<CommunitySearchPage> SearchPage(string query, string type, CancellationToken ct, int offset = 0, int limit = 16)
+    public Task<CommunitySearchPage> SearchPage(string query, string type, CancellationToken ct, int offset = 0, int limit = 16, CommunitySearchFilters? filters = null)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(offset);
         if (limit is < 1 or > 100) throw new ArgumentOutOfRangeException(nameof(limit));
         ArgumentNullException.ThrowIfNull(query);
-        return FetchSearchPage(query, type, [new[] { "project_type:" + type }], offset, limit, ct);
+        var facets = new List<string[]> { new[] { "project_type:" + type } };
+        if (filters != null) AddSearchFilters(facets, type, filters);
+        return FetchSearchPage(query, type, facets, offset, limit, ct, filters?.Sort);
     }
 
-    async Task<CommunitySearchPage> FetchSearchPage(string query, string type, List<string[]> facets, int offset, int limit, CancellationToken ct)
+    async Task<CommunitySearchPage> FetchSearchPage(string query, string type, List<string[]> facets, int offset, int limit, CancellationToken ct, string? sort = null)
     {
+        if (!string.IsNullOrEmpty(sort) && sort is not ("relevance" or "downloads" or "follows" or "newest" or "updated")) throw new ArgumentException("Invalid search ordering.");
         var url = $"https://api.modrinth.com/v2/search?limit={limit}&offset={offset}&index=" +
-            (string.IsNullOrWhiteSpace(query) ? "downloads" : "relevance") + "&query=" + Uri.EscapeDataString(query) +
+            (string.IsNullOrEmpty(sort) ? (string.IsNullOrWhiteSpace(query) ? "downloads" : "relevance") : sort) + "&query=" + Uri.EscapeDataString(query) +
             "&facets=" + Uri.EscapeDataString(System.Text.Json.JsonSerializer.Serialize(facets));
         var response = await core.Json(url, ct);
         var hits = response["hits"].Items().Select(h => new SearchResult(h.S("project_id"), h.S("title"), h.S("description"), type, h.S("icon_url"), h["downloads"]?.GetValue<long>() ?? 0)).ToList();

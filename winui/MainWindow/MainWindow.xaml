@@ -17,6 +17,8 @@
         <Border x:Name="NativeHover" Background="{ThemeResource AccentFillColorSecondaryBrush}"/>
         <Border x:Name="NativePressed" Background="{ThemeResource AccentFillColorTertiaryBrush}"/>
         <Border x:Name="NativeSelection" Background="{ThemeResource SubtleFillColorSecondaryBrush}"/>
+        <Border x:Name="NativeSubtlePressed" Background="{ThemeResource SubtleFillColorTertiaryBrush}"/>
+        <Border x:Name="NativeDisabledText" Background="{ThemeResource TextFillColorDisabledBrush}"/>
         <Border x:Name="NativeStroke" Background="{ThemeResource ControlStrokeColorDefaultBrush}"/>
       </Grid>
       <!-- 自绘标题区留出系统按钮位置，实际预留宽度由 UpdateTitleBarInset 更新。 -->
@@ -28,7 +30,29 @@
         </StackPanel>
         <Border x:Name="CaptionButtonInset" Grid.Column="2" Width="138"/>
       </Grid>
-    <SplitView Grid.Row="1" x:Name="TaskDrawer" PanePlacement="Right" DisplayMode="Overlay" OpenPaneLength="440" IsPaneOpen="False" PaneOpened="TaskDrawer_StateChanged" PaneClosed="TaskDrawer_StateChanged">
+    <SplitView Grid.Row="1" x:Name="CommunityFilterDrawer" PanePlacement="Right" DisplayMode="Overlay" OpenPaneLength="540" IsPaneOpen="False" PaneClosed="CommunityFilterDrawer_Closed">
+      <SplitView.Pane>
+        <Grid Padding="20" RowDefinitions="Auto,*,Auto" RowSpacing="16">
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+            <StackPanel Spacing="4">
+              <TextBlock x:Name="CommunityFilterDrawerTitle" Text="更多筛选" FontSize="20" FontWeight="SemiBold"/>
+              <TextBlock x:Name="CommunityFilterDrawerHint" Text="组合条件，缩小资源范围。" TextWrapping="Wrap" FontSize="12"/>
+            </StackPanel>
+            <Button x:Name="CommunityFilterCloseButton" Grid.Column="1" Content="&#xE8BB;" FontFamily="Segoe Fluent Icons" Width="32" Height="32" Padding="0" VerticalAlignment="Top" Click="CommunityFilterClose_Click"/>
+          </Grid>
+          <ScrollViewer x:Name="CommunityFilterDrawerScroll" Grid.Row="1" VerticalScrollBarVisibility="Hidden" HorizontalScrollBarVisibility="Disabled" HorizontalScrollMode="Disabled" HorizontalContentAlignment="Stretch">
+            <ContentControl x:Name="CommunityFilterDrawerBody" HorizontalContentAlignment="Stretch" IsTabStop="False"/>
+          </ScrollViewer>
+          <Border x:Name="CommunityFilterDrawerFooter" Grid.Row="2" BorderThickness="0,1,0,0" Padding="0,16,0,0">
+            <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+              <Button x:Name="CommunityFilterResetButton" Tag="community-advanced-reset" Content="重置" HorizontalAlignment="Stretch" Click="CommunityFilterReset_Click"/>
+              <Button x:Name="CommunityFilterApplyButton" Tag="community-advanced-apply" Grid.Column="1" Content="应用筛选" HorizontalAlignment="Stretch" Click="CommunityFilterApply_Click"/>
+            </Grid>
+          </Border>
+        </Grid>
+      </SplitView.Pane>
+      <Grid>
+    <SplitView x:Name="TaskDrawer" PanePlacement="Right" DisplayMode="Overlay" OpenPaneLength="440" IsPaneOpen="False" PaneOpened="TaskDrawer_StateChanged" PaneClosed="TaskDrawer_StateChanged">
       <SplitView.Pane>
         <Grid Padding="20" RowDefinitions="Auto,*" RowSpacing="18">
           <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
@@ -90,6 +114,9 @@
         </Grid>
         <Border x:Name="TaskDrawerScrim" Grid.ColumnSpan="2" Background="#99000000" Opacity="0.42" Visibility="Collapsed" Tapped="TaskDrawerScrim_Tapped" AutomationProperties.Name="关闭任务面板"/>
     </Grid>
+    </SplitView>
+        <Border x:Name="CommunityFilterScrim" Background="#66000000" Visibility="Collapsed" Tapped="CommunityFilterScrim_Tapped" AutomationProperties.Name="Close filters"/>
+      </Grid>
     </SplitView>
     </Grid>
 </Window>

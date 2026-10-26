@@ -21,7 +21,7 @@ public sealed partial class MainWindow
         if (store.Config.Settings.LauncherLanguage != "en_us") return text;
         if (english != null) return english;
         if (EnglishText.TryGetValue(text, out var translated)) return translated;
-        if (text.StartsWith("所选文件不支持当前实例的 Minecraft ", StringComparison.Ordinal)) return "This file does not support Minecraft " + text["所选文件不支持当前实例的 Minecraft ".Length..];
+        if (text.StartsWith("所选文件不支持当前 Minecraft 实例", StringComparison.Ordinal)) return "This file does not support Minecraft " + text["所选文件不支持当前实例的 Minecraft ".Length..];
         if (text.StartsWith("正在识别 ", StringComparison.Ordinal)) return "Identifying " + text["正在识别 ".Length..].Replace(" · 显示 ", " · Showing ").Replace(" 项", " items");
         if (text.StartsWith("此实例使用 ", StringComparison.Ordinal) && text.Contains("当前不支持安装 Mod", StringComparison.Ordinal))
         {

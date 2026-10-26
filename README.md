@@ -39,6 +39,8 @@ The release archive includes the .NET and Windows App SDK runtimes, so you do no
 
 New instances keep Mods, saves, and settings separate. Imported games retain their original locations, including recognized version-isolation layouts.
 
+Community resource pages place filters above the search box. Filter by game version, applicable mod or shader loader, and resource category; resource packs also expose features and resolution, while shaders expose features and performance impact. The More filters button opens a right-side drawer with grouped environment, source availability, license, author, project details, count, date, and content disclosure options. Apply filters updates results from the first page; Reset clears only the drawer options. Closing the drawer keeps your inputs. Submit with Search or Enter, or use Reset filters. Submitted filters remain active while paging and when returning from project details. Game version lists show releases by default. Enable Show snapshots or Show April Fools to reveal those versions in the dropdown; these switches work independently. Select a version and submit the search to filter resources.
+
 ## Support and limitations
 
 - Forge and NeoForge installation is available, but installation and runtime compatibility have not been fully validated across game versions.

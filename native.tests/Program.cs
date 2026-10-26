@@ -78,6 +78,7 @@ internal static class Program
         Check(Store.DefaultRoot(appData) == currentRoot, "the current directory takes precedence when both exist");
         Pass("renamed data directory preserves existing installations");
         await CurseForgeClientTests.Run(); Pass("reserved CurseForge API authentication, consent, transport and failure boundaries");
+        await ModrinthFilterTests.Run(Path.Combine(root, "filters")); Pass("community public filters, metadata, escaping and pagination");
         await ModrinthPaginationTests.Run(Path.Combine(root, "pagination")); Pass("community rankings and searches paginate with offsets and total counts");
         CertificatePolicyTests.Run(); Pass("compromised CA public keys and supplied certificate chains");
         var origin = new System.Net.Sockets.TcpListener(IPAddress.Loopback, 0); origin.Start();
@@ -210,7 +211,9 @@ internal static class Program
             await downloadCore.DownloadGame(new Instance { GameVersion = "fixture", Loader = "vanilla" }, CancellationToken.None);
         Check(await File.ReadAllTextAsync(Store.SafePath(downloadStore.Library, "versions/fixture/fixture.jar")) == "client", "game predownload without login or launch");
         Pass("game download without authentication or launching Java");
-        Check(new GameRelease("26.1.1", "release").Category == "正式版" && new GameRelease("24w10a", "snapshot").Category == "快照版" && new GameRelease("1.RV-Pre1", "snapshot").Category == "愚人节版", "version category classification");
+        Check(new GameRelease("26.1.1", "release").Category == "正式版" && new GameRelease("24w10a", "snapshot").Category == "快照版"
+            && new GameRelease("1.RV-Pre1", "snapshot").Category == "愚人节版"
+            && GameRelease.IsAprilFoolsVersion("20w14infinite") && GameRelease.IsAprilFoolsVersion("25w14craftmine"), "version category classification");
         Pass("release snapshot and April Fools categorization");
         var isolatedInstance = new Instance { Name = "我的独立版本", GameVersion = "fixture" };
         downloadStore.Config.Instances.Add(isolatedInstance);
