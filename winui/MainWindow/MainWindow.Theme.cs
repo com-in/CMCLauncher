@@ -27,6 +27,7 @@ public sealed partial class MainWindow
         if (Content is FrameworkElement themedRoot) themedRoot.RequestedTheme = lightTheme ? ElementTheme.Light : ElementTheme.Dark;
         RefreshPaletteBrushes();
         RefreshComboPalette();
+        RefreshToastPalette();
         var bg = lightTheme ? ThemeTokens.LightBg : ThemeTokens.DarkBg;
         var sidebar = lightTheme ? ThemeTokens.LightSidebar : ThemeTokens.DarkSidebar;
         var text = lightTheme ? ThemeTokens.LightText : ThemeTokens.DarkText;

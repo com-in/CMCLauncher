@@ -48,7 +48,12 @@ public sealed partial class MainWindow
             panel.Children.Add(Text(info.Exists
                 ? store.Config.Settings.LauncherLanguage == "en_us" ? $"Modified {info.LastWriteTime:yyyy-MM-dd HH:mm} · {info.Length / 1024:N0} KB" : $"最后修改 {info.LastWriteTime:yyyy-MM-dd HH:mm} · {info.Length / 1024:N0} KB"
                 : "存档信息不可用", 11));
-            panel.Children.Add(Action("导出 ZIP", async (_, _) => await ExportWorld(name, folder)));
+            panel.Children.Add(Buttons(Action("导出 ZIP", async (_, _) => await ExportWorld(name, folder)), Action(Ui("删除存档", "Delete world"), async (sender, _) =>
+            {
+                if (!await ConfirmPop((FrameworkElement)sender, Ui("移到回收站？", "Move to Recycle Bin?"), name, Ui("移到回收站", "Move to Recycle Bin"))) return;
+                await Run(_ => { RecyclePath(Store.SafePath(root, "saves/" + name)); return Task.CompletedTask; }, Ui("删除存档", "Delete world"));
+                Render();
+            })));
             worldSection.Children.Add(CompactCard(panel));
         }
         PageBody.Children.Add(worldSection);

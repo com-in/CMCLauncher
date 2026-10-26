@@ -146,6 +146,7 @@ public sealed partial class MainWindow
         try
         {
             SetTaskButtonsEnabled(false);
+            RuntimeLog.Debug($"Task started: name={work.Name}; page={page}; instance={selected?.Id ?? "none"}; game={selected?.GameVersion ?? "none"}; loader={selected?.Loader ?? "none"}; concurrency={LauncherCore.DownloadConcurrency(store.Config.Settings)}");
             RefreshTaskMetrics();
             if (TaskDrawer.IsPaneOpen) Tasks();
             UpdateDownloadProgress(null);
@@ -162,6 +163,7 @@ public sealed partial class MainWindow
         }
         catch (Exception ex)
         {
+            RuntimeLog.Debug("Task exception: " + ex);
             work.State = "失败";
             work.Stage = ex.Message;
             AddLog(work.Name + "：失败 · " + ex.Message);
@@ -172,6 +174,9 @@ public sealed partial class MainWindow
             work.Clock.Stop();
             // 完成后固定耗时，最近任务列表不会继续增加计时。
             work.CompletedElapsed = work.Clock.Elapsed;
+            RuntimeLog.Debug($"Task name={work.Name}; state={work.State}; elapsed={work.CompletedElapsed}; bytes={work.Bytes}; stage={work.Stage}; memory={Environment.WorkingSet / 1048576}MB");
+            var outcome = work.State == "已完成" ? Ui("成功", "succeeded") : work.State == "已取消" ? Ui("已取消", "canceled") : Ui("失败", "failed");
+            ShowToast(Ui(work.Name) + " " + outcome, work.State == "已完成" ? InfoBarSeverity.Success : work.State == "已取消" ? InfoBarSeverity.Informational : InfoBarSeverity.Error);
             recentWork.Insert(0, work);
             if (recentWork.Count > 12) recentWork.RemoveAt(recentWork.Count - 1);
 

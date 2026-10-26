@@ -78,6 +78,22 @@ internal static class Program
         Check(Store.DefaultRoot(appData) == currentRoot, "the current directory takes precedence when both exist");
         Pass("renamed data directory preserves existing installations");
         await CurseForgeClientTests.Run(); Pass("reserved CurseForge API authentication, consent, transport and failure boundaries");
+        await SchematicManagerTests.Run(Path.Combine(root, "schematics")); Pass("schematic discovery, ports, imports, exports, renaming and path boundaries");
+        var diagnosticStore = new Store(Path.Combine(root, "diagnostics"));
+        using (var diagnosticCore = new LauncherCore(diagnosticStore, new MockHandler(_ => new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("private response") })))
+        {
+            var events = new List<string>(); diagnosticCore.DebugLog += events.Add;
+            await diagnosticCore.Http.GetStringAsync("https://example.test/file?access_token=secret");
+            Check(events.Count == 0, "DEBUG must be opt-in");
+            diagnosticStore.Config.Settings.DebugLogging = true;
+            await diagnosticCore.Http.GetStringAsync("https://example.test/file?access_token=secret");
+            Check(events.Count == 2 && events[1].Contains("status=200") && events[1].Contains("headersMs="), "DEBUG includes request outcome and timing");
+            Check(events.All(e => !e.Contains("secret") && !e.Contains("private response") && !e.Contains("access_token")), "DEBUG must omit query strings and bodies");
+            diagnosticStore.Config.Settings.DebugLogging = false; events.Clear();
+            await diagnosticCore.Http.GetStringAsync("https://example.test/file");
+            Check(events.Count == 0, "Disabling DEBUG stops new diagnostics");
+        }
+        Pass("opt-in HTTP debug timing and sensitive field boundaries");
         await ModrinthFilterTests.Run(Path.Combine(root, "filters")); Pass("community public filters, metadata, escaping and pagination");
         await ModrinthPaginationTests.Run(Path.Combine(root, "pagination")); Pass("community rankings and searches paginate with offsets and total counts");
         CertificatePolicyTests.Run(); Pass("compromised CA public keys and supplied certificate chains");

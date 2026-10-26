@@ -156,19 +156,55 @@ public sealed partial class MainWindow
     async Task VersionSettings()
     {
         Header("版本设置", selected == null ? "请先选择游戏版本。" : selected.Name + " · Minecraft " + selected.GameVersion + " · " + LoaderCategory(selected.Loader));
-        if (kind is not ("overview" or "files" or "mod" or "resourcepack" or "datapack" or "shader")) kind = "overview";
-        var tabs = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 };
+        if (kind is not ("overview" or "files" or "mod" or "resourcepack" or "datapack" or "shader" or "schematics")) kind = "overview";
+        var instance = selected;
+        var modded = instance != null && !string.IsNullOrWhiteSpace(instance.Loader) && !instance.Loader.Equals("vanilla", StringComparison.OrdinalIgnoreCase);
+        if (kind == "schematics" && !modded) kind = "overview";
+        var generation = renderVersion; var body = PageBody;
+        var tabs = new FlowPanel();
         foreach (var (value, label) in new[] { ("overview", "常规"), ("files", "存档"), ("mod", "Mods"), ("resourcepack", "资源包"), ("datapack", "数据包"), ("shader", "光影包") })
             tabs.Children.Add(Action(label, (_, _) => { kind = value; Render(); }, kind == value));
         PageBody.Children.Add(tabs);
-        if (selected == null) { PageBody.Children.Add(Text("请先下载或导入游戏版本。")); PageBody.Children.Add(Action("导入本地游戏", async (_, _) => await ImportLocal())); return; }
-        if (kind == "files") { InstanceFiles(selected, true); return; }
+
+        if (instance == null)
+        {
+            schematicAvailabilityLoad = Task.CompletedTask;
+            PageBody.Children.Add(Text("请先下载或导入游戏版本。")); PageBody.Children.Add(Action("导入本地游戏", async (_, _) => await ImportLocal())); return;
+        }
+        var pendingSchematics = kind == "schematics" ? new ProgressRing { IsActive = true, Width = 24, Height = 24 } : null;
+        if (pendingSchematics != null) PageBody.Children.Add(pendingSchematics);
+        // 先打开页面，Mod 扫描只在后台补充入口，不阻塞存档或 Mod 列表的展示。
+        schematicAvailabilityLoad = modded ? DiscoverSchematics() : Task.CompletedTask;
+        if (kind == "schematics") return;
+        if (kind == "files") { InstanceFiles(instance, true); return; }
         if (kind != "overview") { await Manage(kind); return; }
-        var instance = selected;
         PageBody.Children.Add(Text(instance.Name, 18, true));
         PageBody.Children.Add(Text($"Minecraft {instance.GameVersion} · {LoaderCategory(instance.Loader)}", 14, true));
         if (instance.Description.Length > 0) PageBody.Children.Add(Text(instance.Description, 13));
-        PageBody.Children.Add(Buttons(Action("编辑名称、描述与图标", async (_, _) => await EditInstance()), Action("打开目录", (_, _) => OpenFolder(store.GameDirectory(instance))), Action("全部版本", (_, _) => { page = "instances"; Render(); }), Action(Ui("删除版本", "Delete version"), async (_, _) => await ConfirmDeleteInstance(instance))));
+        PageBody.Children.Add(Buttons(Action("编辑名称、描述与图标", async (_, _) => await EditInstance()), Action("打开目录", (_, _) => OpenFolder(store.GameDirectory(instance))), Action("全部版本", (_, _) => { page = "instances"; Render(); }), Action(Ui("删除版本", "Delete version"), async (sender, _) => await ConfirmDeleteInstance(instance, (FrameworkElement)sender))));
         InstanceFiles(instance, false);
+
+        async Task DiscoverSchematics()
+        {
+            string? directory = null;
+            try { directory = await Task.Run(() => SchematicManager.EnsureDirectory(store, instance)); }
+            catch (Exception ex) { AddLog("投影检测失败：" + ex.Message); }
+            if (generation != renderVersion || selected != instance || !ReferenceEquals(body, PageBody)) return;
+            if (directory != null)
+            {
+                tabs.Children.Add(Action(Ui("投影管理", "Schematics"), (_, _) => { kind = "schematics"; Render(); }, kind == "schematics"));
+                if (pendingSchematics != null)
+                {
+                    body.Children.Remove(pendingSchematics);
+                    Schematics(instance, directory);
+                }
+                ApplyPersonalization();
+
+            }
+            else if (pendingSchematics != null)
+            {
+                kind = "overview"; await RenderAsync();
+            }
+        }
     }
 }

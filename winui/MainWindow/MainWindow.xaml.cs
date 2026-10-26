@@ -52,6 +52,9 @@ public sealed partial class MainWindow : Window
         store = new Store(args.Length == 2 && args[0] == "--verify-ui" ? Path.Combine(Path.GetFullPath(args[1]), "data") : null);
         InitializeComponent();
         InitializeCommunityFilterDrawer();
+        InitializeFeedback();
+        RuntimeLog.DebugEnabled = store.Config.Settings.DebugLogging;
+        RuntimeLog.Written += RuntimeLogWritten;
         ModpackDropRoot.AddHandler(UIElement.DragEnterEvent, new DragEventHandler(Modpack_DragOver), true);
         ModpackDropRoot.AddHandler(UIElement.DragOverEvent, new DragEventHandler(Modpack_DragOver), true);
         ModpackDropRoot.AddHandler(UIElement.DropEvent, new DragEventHandler(Modpack_Drop), true);
@@ -95,6 +98,7 @@ public sealed partial class MainWindow : Window
             DispatcherQueue.TryEnqueue(() => { if (activeTask != null && task == activeTask && !launching) UpdateDownloadProgress(value); });
         };
         core.Log += line => DispatcherQueue.TryEnqueue(() => AddLog(line));
+        core.DebugLog += RuntimeLog.Debug;
         ApplyTheme(); Render();
         RestoreWindowSize();
 
@@ -107,7 +111,7 @@ public sealed partial class MainWindow : Window
         InitializeWindowSizeSaving();
         systemUi.ColorValuesChanged += SystemThemeChanged;
         RuntimeLog.Write("INFO", "应用启动 · 程序目录=" + AppContext.BaseDirectory);
-        Closed += (_, _) => { RuntimeLog.Write("INFO", "应用关闭"); taskViewTimer.Stop(); resourceSearch?.Cancel(); systemUi.ColorValuesChanged -= SystemThemeChanged; task?.Cancel(); core.Dispose(); };
+        Closed += (_, _) => { RuntimeLog.Written -= RuntimeLogWritten; core.DebugLog -= RuntimeLog.Debug; RuntimeLog.Write("INFO", "应用关闭"); taskViewTimer.Stop(); toastTimer?.Stop(); activePopconfirm?.Hide(); resourceSearch?.Cancel(); systemUi.ColorValuesChanged -= SystemThemeChanged; task?.Cancel(); core.Dispose(); };
     }
     // 日志始终记录，但只有仍属于当前任务的消息才能更新任务阶段。
     internal void Report(string message)
@@ -120,7 +124,12 @@ public sealed partial class MainWindow : Window
             activeWork.Stage = message; RefreshTaskMetrics();
         });
     }
-    internal void AddLog(string line) { RuntimeLog.Write("INFO", line); logs.Enqueue($"[{DateTime.Now:HH:mm:ss}] {line}"); while (logs.Count > 1000) logs.Dequeue(); if (page == "logs" && logView != null) logView.Text = string.Join(Environment.NewLine, logs); }
+    internal void AddLog(string line) => RuntimeLog.Write("INFO", line);
+    void RuntimeLogWritten(string line) => DispatcherQueue.TryEnqueue(() =>
+    {
+        logs.Enqueue(line); while (logs.Count > 1000) logs.Dequeue();
+        if (page == "logs" && logView != null) logView.Text = string.Join(Environment.NewLine, logs);
+    });
     // 切换界面语言后需重建导航栏和所有文本
     internal async Task SwitchLanguage(string lang)
     {

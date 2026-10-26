@@ -9,6 +9,7 @@ namespace CMCLauncher;
 // settings.json 中的全局偏好；实例和账号另存在 Configuration 的列表里。
 public sealed class Settings
 {
+    public bool DebugLogging { get; set; }
     public string JavaPath { get; set; } = "";
     public List<JavaInstallation> JavaInstallations { get; set; } = [];
     public List<string> IgnoredJavaPaths { get; set; } = [];

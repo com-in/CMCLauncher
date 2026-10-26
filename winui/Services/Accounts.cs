@@ -91,22 +91,12 @@ public sealed partial class MainWindow
             if (!allowed) stack.Children.Add(Text(Ui(account.Type == "offline" ? MicrosoftAuth.OfflineLockedMessage : "此账号需要重新通过 Microsoft 登录验证。", "This account must be verified again through Microsoft sign-in."), 12));
             var use = Action(account.Uuid == store.Config.SelectedAccount && allowed ? "当前使用" : "使用此账号", async (_, _) => { MicrosoftAuth.EnsureAccountAllowed(store.Config.Accounts, account); store.Config.SelectedAccount = account.Uuid; await store.Save(); Render(); }, account.Uuid == store.Config.SelectedAccount && allowed);
             use.IsEnabled = allowed;
-            var remove = Action("移除账号", async (_, _) =>
+            var remove = Action("移除账号", async (sender, _) =>
             {
-                var confirm = new ContentDialog
-                {
-                    XamlRoot = Content.XamlRoot,
-                    RequestedTheme = lightTheme ? ElementTheme.Light : ElementTheme.Dark,
-                    Title = Ui("移除此账号？", "Remove this account?"),
-                    Content = store.Config.Settings.LauncherLanguage == "en_us" ? $"Remove {account.Name} and its locally stored credentials from CMCLauncher." : $"将从 CMCLauncher 移除 {account.Name} 及本地保存的凭据。",
-                    PrimaryButtonText = Ui("移除", "Remove"),
-                    CloseButtonText = Ui("取消", "Cancel"),
-                    DefaultButton = ContentDialogButton.Close
-                };
-                if (await confirm.ShowAsync() != ContentDialogResult.Primary) return;
+                if (!await ConfirmPop((FrameworkElement)sender, Ui("移除此账号？", "Remove this account?"), account.Name, Ui("移除", "Remove"))) return;
                 await ForgetAccount(account);
                 await RenderAsync();
-            Report(Ui("账号已移除", "Account removed"));
+            Report(Ui("账号已移除", "Account removed")); ShowToast(Ui("账号已移除", "Account removed"));
             });
             stack.Children.Add(Buttons(use, remove));
             PageBody.Children.Add(Card(stack));

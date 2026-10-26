@@ -18,6 +18,7 @@ public sealed class LauncherCore : IDisposable
     // 事件：状态变更 / 原始日志 / 下载进度百分比 / 瞬时下载字节数
     public event Action<string>? Status;
     public event Action<string>? Log;
+    public event Action<string>? DebugLog;
     public event Action<double?>? DownloadProgress;
     public event Action<long>? DownloadBytes;
     const int DownloadBufferSize = 256 * 1024;
@@ -26,7 +27,7 @@ public sealed class LauncherCore : IDisposable
     // 并行下载 — 使用 Parallel.ForEachAsync 控制并发数
     public Task DownloadMany<T>(IEnumerable<T> items, Func<T, CancellationToken, Task> download, CancellationToken ct = default)
         => Parallel.ForEachAsync(items, new ParallelOptions { MaxDegreeOfParallelism = DownloadConcurrency(store.Config.Settings), CancellationToken = ct }, (item, token) => new ValueTask(download(item, token)));
-    public LauncherCore(Store store, HttpMessageHandler? handler = null) { this.store = store; if (handler == null) ConfigureNetwork(); else { http.Dispose(); http = new HttpClient(handler); } }
+    public LauncherCore(Store store, HttpMessageHandler? handler = null) { this.store = store; if (handler == null) ConfigureNetwork(); else { http.Dispose(); http = new HttpClient(new DiagnosticHandler(this, handler)); } }
     // 根据用户代理设置重新配置 HTTP 客户端（代理地址、SSL 验证、User-Agent）
     public void ConfigureNetwork()
     {
@@ -34,10 +35,33 @@ public sealed class LauncherCore : IDisposable
         if (proxy.Length > 0 && (!Uri.TryCreate(proxy, UriKind.Absolute, out var uri) || uri.Scheme is not ("http" or "https" or "socks5"))) throw new Exception("代理地址应为 http://127.0.0.1:7890 等格式");
         http.Dispose();
         var selectedProxy = proxy.Length > 0 ? new WebProxy(proxy) : HttpClient.DefaultProxy;
-        http = new HttpClient(new ReachableProxyHandler(selectedProxy, store.Config.Settings.IgnoreSslErrors, authority => Log?.Invoke("TLS connection rejected: compromised CA public key · " + authority)), disposeHandler: true) { Timeout = TimeSpan.FromMinutes(3) };
+        http = new HttpClient(new DiagnosticHandler(this, new ReachableProxyHandler(selectedProxy, store.Config.Settings.IgnoreSslErrors, authority => Log?.Invoke("TLS connection rejected: compromised CA public key · " + authority))), disposeHandler: true) { Timeout = TimeSpan.FromMinutes(3) };
         http.DefaultRequestHeaders.UserAgent.ParseAdd("CMCLauncher/0.9.3-beta");
     }
     public HttpClient Http => http;
+    sealed class DiagnosticHandler(LauncherCore owner, HttpMessageHandler inner) : DelegatingHandler(inner)
+    {
+        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
+        {
+            if (!owner.store.Config.Settings.DebugLogging) return await base.SendAsync(request, ct);
+            var id = Guid.NewGuid().ToString("N")[..8];
+            // 只记录主机和路径，不输出查询参数、请求头或认证响应。
+            var endpoint = request.RequestUri?.GetLeftPart(UriPartial.Path);
+            var clock = Stopwatch.StartNew();
+            owner.DebugLog?.Invoke($"HTTP {id} start: {request.Method} {endpoint}");
+            try
+            {
+                var response = await base.SendAsync(request, ct);
+                owner.DebugLog?.Invoke($"HTTP {id} end: status={(int)response.StatusCode}; headersMs={clock.ElapsedMilliseconds}; length={response.Content.Headers.ContentLength}; type={response.Content.Headers.ContentType}");
+                return response;
+            }
+            catch (Exception ex)
+            {
+                owner.DebugLog?.Invoke($"HTTP {id} failed: elapsedMs={clock.ElapsedMilliseconds}; canceled={ct.IsCancellationRequested}; exception={ex.GetType().Name}");
+                throw;
+            }
+        }
+    }
     // 代理可达性感知的 HTTP Handler — 先用 TCP 探测代理是否可达，不可达时走直连
     sealed class ReachableProxyHandler(IWebProxy proxy, bool ignoreSslErrors, Action<string> blocked) : HttpMessageHandler
     {

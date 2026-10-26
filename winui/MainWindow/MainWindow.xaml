@@ -118,5 +118,25 @@
         <Border x:Name="CommunityFilterScrim" Background="#66000000" Visibility="Collapsed" Tapped="CommunityFilterScrim_Tapped" AutomationProperties.Name="Close filters"/>
       </Grid>
     </SplitView>
+      <InfoBar x:Name="TaskToast" Grid.RowSpan="2" IsOpen="False" IsClosable="False" Severity="Success" RequestedTheme="Dark" Background="#171719" Foreground="White" BorderBrush="#38383B" CornerRadius="18" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="24,0,24,24" MaxWidth="440">
+        <InfoBar.Template>
+          <ControlTemplate TargetType="InfoBar">
+            <Border x:Name="ContentRoot" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1" CornerRadius="18" Padding="12,8" MinHeight="36">
+              <VisualStateManager.VisualStateGroups>
+                <VisualStateGroup x:Name="InfoBarVisibility">
+                  <VisualState x:Name="InfoBarVisible"/>
+                  <VisualState x:Name="InfoBarCollapsed">
+                    <VisualState.Setters><Setter Target="ContentRoot.Visibility" Value="Collapsed"/></VisualState.Setters>
+                  </VisualState>
+                </VisualStateGroup>
+              </VisualStateManager.VisualStateGroups>
+              <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
+                <FontIcon Glyph="{TemplateBinding Tag}" FontSize="14" Foreground="{TemplateBinding Foreground}" VerticalAlignment="Center"/>
+                <TextBlock Grid.Column="1" Text="{TemplateBinding Message}" FontSize="12" Foreground="{TemplateBinding Foreground}" VerticalAlignment="Center" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"/>
+              </Grid>
+            </Border>
+          </ControlTemplate>
+        </InfoBar.Template>
+      </InfoBar>
     </Grid>
 </Window>

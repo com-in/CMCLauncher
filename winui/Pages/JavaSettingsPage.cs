@@ -50,7 +50,7 @@ public sealed class JavaSettingsPage : CMCPage
             panel.Children.Add(Text($"Java {java.Version} · {java.Vendor}", 14, true));
             panel.Children.Add(Text(java.Architecture + " · " + java.Path, 12));
             if (!File.Exists(java.Path)) panel.Children.Add(Text("文件不存在，请重新导入或移除记录。", 12));
-            panel.Children.Add(Action("从列表移除", async (_, _) => { JavaManager.Remove(settings, java); await Store.Save(); Render(); }));
+            panel.Children.Add(Action("从列表移除", async (sender, _) => { if (!await Window.ConfirmPop((FrameworkElement)sender, Ui("移除 Java 记录？", "Remove Java entry?"), java.Path, Ui("移除", "Remove"))) return; JavaManager.Remove(settings, java); await Store.Save(); Window.ShowToast(Ui("Java 记录已移除", "Java entry removed")); Render(); }));
             PageBody.Children.Add(CompactCard(panel));
         }
     }

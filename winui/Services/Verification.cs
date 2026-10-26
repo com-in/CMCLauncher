@@ -41,6 +41,7 @@ public sealed partial class MainWindow
             return new CommunitySearchPage([new SearchResult("fixture", "榜单测试 · " + type, "隔离榜单数据", type, "")], offset, limit, 1);
         };
         void Check(bool value, string message) { if (!value) throw new Exception(message); passed.Add(message); File.AppendAllText(Path.Combine(directory, "passed.txt"), message + Environment.NewLine); }
+        await VerifyFeedbackAndSchematics(Check, directory);
         await VerifyCommunityFilterDrawer(Check, directory);
         Check(IsModpackFile("Pack.MRPACK") && IsModpackFile("Pack.ZIP") && !IsModpackFile("mod.jar"), "drag import recognizes both archive extensions case insensitively");
         Check(Thread.CurrentThread.GetApartmentState() == ApartmentState.STA && ModpackDropRoot.AllowDrop && ModpackDropRoot.Background != null, "file drop window runs on STA with a hit-testable drop surface");
@@ -613,10 +614,10 @@ public sealed partial class MainWindow
         Check(ReferenceEquals(savePresetButton.Parent, deletePresetButton.Parent) && savePresetButton.Parent is StackPanel { Orientation: Orientation.Horizontal }, "save and delete preset actions share one row");
         Check(Descendants(PageBody).OfType<Button>().Any(b => b.Content?.ToString() == "导入预设"), "personalization provides preset import action");
         await Capture(Path.Combine(directory, "personalization.png"));
-        showAppearancePresetDeleteDialog = _ => Task.FromResult(ContentDialogResult.Primary);
+        popconfirmOverride = _ => Task.FromResult(true);
         ((IInvokeProvider)new ButtonAutomationPeer(deletePresetButton).GetPattern(PatternInterface.Invoke)).Invoke(); await Task.Delay(200);
         Check(!new Store(store.Root).Config.Settings.CustomAppearancePresets.Any(p => p.Name == "验证预设") && !deletePresetButton.IsEnabled, "confirmed preset deletion removes it and disables the delete action");
-        showAppearancePresetDeleteDialog = async dialog => await dialog.ShowAsync();
+        popconfirmOverride = null;
         store.Config.Settings.UiScale = 1; store.Config.Settings.UiFontSize = 14; store.Config.Settings.UiFontFamily = "Segoe UI Variable Text"; await store.Save(); ApplyPersonalization();
         await Task.Delay(150);
         page = "settings"; await RenderAsync(); await Task.Delay(100);
@@ -715,11 +716,12 @@ public sealed partial class MainWindow
         var disposableCard = Descendants(PageBody).OfType<Border>().Single(b => b.Tag?.ToString() == "instance-card" && Descendants(b).OfType<TextBlock>().Any(t => t.Text == disposable.Name));
         // 记录回收站调用参数来验证删除流程，不在验证期间触碰系统回收站。
         var recycledDirectory = "";
-        showInstanceDeleteDialog = _ => Task.FromResult(ContentDialogResult.Primary);
+        popconfirmOverride = _ => Task.FromResult(true);
         recycleInstanceDirectory = path => { recycledDirectory = path; Directory.Delete(path, true); };
         var deleteButton = Descendants(disposableCard).OfType<Button>().Single(b => Microsoft.UI.Xaml.Automation.AutomationProperties.GetName(b) == "删除版本");
         ((IInvokeProvider)new ButtonAutomationPeer(deleteButton).GetPattern(PatternInterface.Invoke)).Invoke(); await Task.Delay(350);
         Check(!Directory.Exists(deleteDirectory) && recycledDirectory == deleteDirectory && !new Store(store.Root).Config.Instances.Any(i => i.Id == disposable.Id), "deleting a version persists removal and recycles its isolated directory");
+        popconfirmOverride = null;
         var sharedDirectory = store.GameDirectory(store.Config.Instances[0]);
         var sharedReference = new Instance { Name = "共享目录保护测试", GameVersion = store.Config.Instances[0].GameVersion, Loader = "vanilla", Directory = sharedDirectory };
         store.Config.Instances.Add(sharedReference);

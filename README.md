@@ -32,12 +32,19 @@ The release archive includes the .NET and Windows App SDK runtimes, so you do no
 | Modpacks | Import Modrinth `.mrpack` files, ZIP archives with supported manifests, and MultiMC / Prism ZIP exports; drag-and-drop import |
 | Community content | Browse paginated Modrinth rankings and search results; view project versions and check game, loader, and installation-target compatibility |
 | Content management | Inspect Mod metadata and icons; import, disable, or remove content; manage data packs by world |
+| Schematics | Search, import, export, rename, and delete `.litematic`, `.schematic`, `.schem`, and `.nbt` files, including nested folders |
 | Java and memory | Scan, import, and download Temurin Java; match Java versions automatically; use automatic or manual heap allocation |
 | Downloads | View progress and speed, cancel tasks, and configure 1–256 simultaneous file downloads; default: 16 |
 | Appearance and language | Light, dark, and system themes; colors, fonts, scaling, and appearance presets; launcher and game language settings |
 | Accounts and diagnostics | Microsoft device-code sign-in, Windows DPAPI credential encryption, runtime logs, and game error report export |
 
 New instances keep Mods, saves, and settings separate. Imported games retain their original locations, including recognized version-isolation layouts.
+
+Completed tasks show a temporary toast at the bottom center of the window. Canceled and failed tasks show their respective outcomes there. Deletion uses a confirmation popover beside the action; dismissed popovers leave files unchanged.
+
+Schematics appears in version settings for modded instances with an existing `schematics` folder. If the folder is absent, the launcher checks enabled Mod metadata for supported Litematica/Schematica ports or Create and creates it when detected. Vanilla instances hide this page. File management preserves the original format; compatibility with a particular schematic remains the responsibility of the installed Mod.
+
+Schematic subfolders appear as expandable directories, including empty folders. Search expands matching paths automatically. Enable **DEBUG mode** on the runtime logs page for HTTP request status and header timings, page transitions, task durations, transfer counts, and exception traces. The setting persists across restarts; disabling it stops new DEBUG events. HTTP diagnostics omit query strings, headers, and response bodies.
 
 Community resource pages place filters above the search box. Filter by game version, applicable mod or shader loader, and resource category; resource packs also expose features and resolution, while shaders expose features and performance impact. The More filters button opens a right-side drawer with grouped environment, source availability, license, author, project details, count, date, and content disclosure options. Apply filters updates results from the first page; Reset clears only the drawer options. Closing the drawer keeps your inputs. Submit with Search or Enter, or use Reset filters. Submitted filters remain active while paging and when returning from project details. Game version lists show releases by default. Enable Show snapshots or Show April Fools to reveal those versions in the dropdown; these switches work independently. Select a version and submit the search to filter resources.
 

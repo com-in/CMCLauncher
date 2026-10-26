@@ -12,7 +12,6 @@ namespace CMCLauncher.WinUI;
 
 public sealed partial class MainWindow
 {
-    Func<ContentDialog, Task<ContentDialogResult>> showAppearancePresetDeleteDialog = async dialog => await dialog.ShowAsync();
     const string DefaultFontFamily = "Segoe UI Variable Text";
     sealed class OriginalAppearance
     {
@@ -126,22 +125,12 @@ public sealed partial class MainWindow
         var presetName = new TextBox { PlaceholderText = Ui("预设名称", "Preset name"), HorizontalAlignment = HorizontalAlignment.Stretch };
         var updatingPresetList = false;
         Button deletePreset = null!;
-        deletePreset = Action(Ui("删除所选预设", "Delete selected preset"), async (_, _) =>
+        deletePreset = Action(Ui("删除所选预设", "Delete selected preset"), async (sender, _) =>
         {
             if (presetNames.SelectedItem is not string name) return;
             var preset = settings.CustomAppearancePresets.FirstOrDefault(p => string.Equals(p.Name, name, StringComparison.OrdinalIgnoreCase));
             if (preset == null) return;
-            var confirm = new ContentDialog
-            {
-                XamlRoot = Content.XamlRoot,
-                RequestedTheme = lightTheme ? ElementTheme.Light : ElementTheme.Dark,
-                Title = Ui("删除预设？", "Delete preset?"),
-                Content = name,
-                PrimaryButtonText = Ui("删除", "Delete"),
-                CloseButtonText = Ui("取消", "Cancel"),
-                DefaultButton = ContentDialogButton.Close
-            };
-            if (await showAppearancePresetDeleteDialog(confirm) != ContentDialogResult.Primary) return;
+            if (!await ConfirmPop((FrameworkElement)sender, Ui("删除预设？", "Delete preset?"), name)) return;
             settings.CustomAppearancePresets.Remove(preset);
             updatingPresetList = true;
             presetNames.ItemsSource = settings.CustomAppearancePresets.Select(p => p.Name).ToArray();
@@ -149,6 +138,7 @@ public sealed partial class MainWindow
             presetNames.IsEnabled = settings.CustomAppearancePresets.Count > 0;
             updatingPresetList = false;
             await store.Save();
+            ShowToast(Ui("预设已删除", "Preset deleted") + " · " + name);
             DispatcherQueue.TryEnqueue(() =>
             {
                 deletePreset.IsEnabled = presetNames.SelectedItem is string selectedName && settings.CustomAppearancePresets.Any(p => string.Equals(p.Name, selectedName, StringComparison.OrdinalIgnoreCase));

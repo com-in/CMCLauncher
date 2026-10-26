@@ -127,12 +127,11 @@ public sealed partial class MainWindow
                     if (contentType != "mod" && item.Description.Length > 0) { var description = Text(item.Description, 12); description.TextWrapping = TextWrapping.NoWrap; description.TextTrimming = TextTrimming.CharacterEllipsis; stack.Children.Add(description); }
                     var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
                     row.Children.Add(Action(item.Enabled ? "停用" : "恢复", async (_, _) => { await Run(_ => { ContentManager.Toggle(gameDir, contentType, targetWorld, item.File); return Task.CompletedTask; }); Render(); }));
-                    row.Children.Add(Action("移除", async (_, _) =>
+                    row.Children.Add(Action("移除", async (sender, _) =>
                     {
                         var path = ContentManager.Locate(gameDir, contentType, targetWorld, item.File);
-                        var confirm = new ContentDialog { XamlRoot = Content.XamlRoot, RequestedTheme = lightTheme ? ElementTheme.Light : ElementTheme.Dark, Title = Ui("移到回收站？", "Move to Recycle Bin?"), Content = item.Name, PrimaryButtonText = Ui("移到回收站", "Move to Recycle Bin"), CloseButtonText = Ui("取消", "Cancel") };
-                        if (await confirm.ShowAsync() != ContentDialogResult.Primary) return;
-                        await Run(_ => { if (Directory.Exists(path)) Microsoft.VisualBasic.FileIO.FileSystem.DeleteDirectory(path, Microsoft.VisualBasic.FileIO.UIOption.OnlyErrorDialogs, Microsoft.VisualBasic.FileIO.RecycleOption.SendToRecycleBin); else Microsoft.VisualBasic.FileIO.FileSystem.DeleteFile(path, Microsoft.VisualBasic.FileIO.UIOption.OnlyErrorDialogs, Microsoft.VisualBasic.FileIO.RecycleOption.SendToRecycleBin); return Task.CompletedTask; }); Render();
+                        if (!await ConfirmPop((FrameworkElement)sender, Ui("移到回收站？", "Move to Recycle Bin?"), item.Name, Ui("移到回收站", "Move to Recycle Bin"))) return;
+                        await Run(_ => { RecyclePath(path); return Task.CompletedTask; }); Render();
                     }));
                     foreach (var button in row.Children.OfType<Button>()) { button.MinWidth = 48; button.MinHeight = 28; button.Padding = new Thickness(6, 3, 6, 3); }
                     var compact = new Grid { ColumnSpacing = 12, MinHeight = 48 };

@@ -9,7 +9,6 @@ using System.Text.Json.Nodes;
 namespace CMCLauncher.WinUI;
 public sealed partial class MainWindow
 {
-    Func<ContentDialog, Task<ContentDialogResult>> showInstanceDeleteDialog = async dialog => await dialog.ShowAsync();
     Action<string> recycleInstanceDirectory = path => Microsoft.VisualBasic.FileIO.FileSystem.DeleteDirectory(path, Microsoft.VisualBasic.FileIO.UIOption.OnlyErrorDialogs, Microsoft.VisualBasic.FileIO.RecycleOption.SendToRecycleBin);
 
     // 列表和平铺共用筛选结果，收藏优先，再按加载器分组展示。
@@ -68,7 +67,7 @@ public sealed partial class MainWindow
                 var remove = new Button { Content = new FontIcon { Glyph = "\uE74D", FontSize = 14 }, Width = 30, Height = 28, Padding = new Thickness(0), MinWidth = 30, IsEnabled = task == null };
                 ToolTipService.SetToolTip(remove, Ui("删除版本", "Delete version"));
                 Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(remove, Ui("删除版本", "Delete version"));
-                remove.Click += async (_, _) => { try { await ConfirmDeleteInstance(instance); } catch (Exception ex) { await Error(ex); } };
+                remove.Click += async (_, _) => { try { await ConfirmDeleteInstance(instance, remove); } catch (Exception ex) { await Error(ex); } };
                 remove.AddHandler(UIElement.TappedEvent, new Microsoft.UI.Xaml.Input.TappedEventHandler((_, e) => e.Handled = true), true);
                 var actions = Buttons(favorite, Action(instance == selected ? "当前版本" : "选择", async (_, _) => { await SelectInstance(instance); page = "home"; Render(); }, instance == selected), Action("设置", async (_, _) => { await SelectInstance(instance); page = "version-settings"; kind = "overview"; Render(); }), remove);
                 foreach (var button in actions.Children.OfType<Button>().Where(b => b.Content is not FontIcon)) { button.MinWidth = 56; button.MinHeight = 28; button.Padding = new Thickness(8, 4, 8, 4); }
@@ -133,7 +132,7 @@ public sealed partial class MainWindow
         return target;
     }
 
-    async Task ConfirmDeleteInstance(Instance instance)
+    async Task ConfirmDeleteInstance(Instance instance, FrameworkElement anchor)
     {
         if (task != null) throw new InvalidOperationException(Ui("请先等待当前任务完成，或取消任务后再删除版本。", "Wait for the current task to finish, or cancel it before deleting a version."));
         var directory = DeletableInstanceDirectory(instance);
@@ -143,8 +142,7 @@ public sealed partial class MainWindow
         content.Children.Add(deleteFiles);
         if (directory == null) content.Children.Add(Text(Ui("此目录为共享目录或不属于独立版本目录，磁盘文件会保留。", "Files will be kept because this is a shared directory or is outside an isolated version folder."), 12));
         else { var path = Text(directory, 12); path.Opacity = .7; content.Children.Add(path); }
-        var dialog = new ContentDialog { XamlRoot = Content.XamlRoot, RequestedTheme = lightTheme ? ElementTheme.Light : ElementTheme.Dark, Title = Ui("删除版本？", "Delete version?"), Content = content, PrimaryButtonText = Ui("删除", "Delete"), CloseButtonText = Ui("取消", "Cancel"), DefaultButton = ContentDialogButton.Close };
-        if (await showInstanceDeleteDialog(dialog) != ContentDialogResult.Primary) return;
+        if (!await ConfirmPop(anchor, Ui("删除版本？", "Delete version?"), content)) return;
         if (task != null) throw new InvalidOperationException(Ui("请先等待当前任务完成，或取消任务后再删除版本。", "Wait for the current task to finish, or cancel it before deleting a version."));
         if (deleteFiles.IsChecked == true && !string.Equals(directory, DeletableInstanceDirectory(instance), StringComparison.OrdinalIgnoreCase))
             throw new InvalidOperationException(Ui("版本目录发生变化，请重新打开删除确认。", "The version directory has changed. Please confirm deletion again."));
@@ -174,6 +172,7 @@ public sealed partial class MainWindow
             throw;
         }
         Report(Ui("版本已删除", "Version deleted") + "：" + instance.Name);
+        ShowToast(Ui("版本已删除", "Version deleted") + " · " + instance.Name);
         if (page == "version-settings") page = selected == null ? "home" : "instances";
         Render();
     }
