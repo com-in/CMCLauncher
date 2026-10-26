@@ -1,3 +1,5 @@
+English · [简体中文](README_zh.md)
+
 # CMCLauncher
 
 A native Windows launcher for Minecraft Java Edition, built with C#, .NET 8, and WinUI 3. Manage isolated instances, download game versions and loaders, install Modrinth content, and manage Java and accounts.
