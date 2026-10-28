@@ -1,9 +1,4 @@
-﻿// 控件传入的是基础配色的 hex，实际显示什么颜色由 PaletteColor 决定。
-// 清新绿的深色模式、浅湖青和樱花粉查替换表，原生和自定义配色按颜色用途取值。
-// 加预设时，除了替换表，还要改 PaletteColor 的分支和 ThemeEditor 的选项、索引、
-// 编辑器显隐及默认值重置条件。Personalization.cs 的恢复索引和导入校验也要一起改，
-// 否则下拉框能选到，保存恢复或导入时仍可能不认这个预设。
-using Microsoft.UI;
+﻿using Microsoft.UI;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
@@ -12,7 +7,7 @@ using Windows.UI;
 namespace CMCLauncher.WinUI;
 
 // 基础主题色值常量，供配色映射等代码复用；部分 UI 仍直接传入相同的 hex，
-// LakeCyan 的目标色值、XAML 初始色值和用户自定义色值也在各自位置定义。
+// 预设色值保存在 themes/*.json；这里的常量保留控件使用的颜色标识。
 static class ThemeTokens
 {
     // 背景色 — 窗口主内容区域底色
@@ -75,6 +70,15 @@ static class ThemeTokens
     public const string LightTitlebarPressed = "#D5DCD0",
         DarkTitlebarPressed = "#404354";
 
+    internal static readonly IReadOnlyDictionary<string, string> ColorNames = typeof(ThemeTokens)
+        .GetFields(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static)
+        .Where(field => field.IsLiteral && field.FieldType == typeof(string))
+        .ToDictionary(
+            field => (string)field.GetRawConstantValue()!,
+            field => field.Name,
+            StringComparer.OrdinalIgnoreCase
+        );
+
     // WinUI 原生主题取色失败时的兜底色
     public const string NativeFallbackLight = "#F3F3F3",
         NativeFallbackDark = "#202020";
@@ -82,6 +86,11 @@ static class ThemeTokens
 
 public sealed partial class MainWindow
 {
+    readonly ThemeCatalog themeCatalog = new(
+        Path.Combine(AppContext.BaseDirectory, "themes"),
+        message => RuntimeLog.Write("WARN", message)
+    );
+
     // 共享画刷只更新颜色，已经展开的弹层和已生成的选项也会立即刷新。
     internal static SolidColorBrush ComboSurfaceBrush { get; } = new();
     internal static SolidColorBrush ComboHoverBrush { get; } = new();
@@ -165,126 +174,6 @@ public sealed partial class MainWindow
         ["accent"] = (ThemeTokens.LightAccent, ThemeTokens.DarkAccent),
     };
 
-    // 清新绿的深色模式使用森林绿底色和叶绿色高亮，浅色模式沿用原配色。
-    static readonly Dictionary<string, string> FreshGreenDark = new(
-        StringComparer.OrdinalIgnoreCase
-    )
-    {
-        [ThemeTokens.DarkBg] = "#121E16",
-        [ThemeTokens.DarkBgAlt] = "#101B14",
-        [ThemeTokens.DarkSidebar] = "#182A1E",
-        [ThemeTokens.DarkSurface] = "#203728",
-        [ThemeTokens.DarkSurfaceAlt] = "#2A4431",
-        [ThemeTokens.DarkText] = "#E7F1E4",
-        [ThemeTokens.DarkTextCaption] = "#DDEAD8",
-        [ThemeTokens.DarkTextSub] = "#CBDCC5",
-        [ThemeTokens.DarkMuted] = "#A4B99C",
-        [ThemeTokens.DarkMutedAlt] = "#98AF90",
-        [ThemeTokens.DarkAccent] = "#3F7042",
-        [ThemeTokens.LightAccentText] = "#A2D58A",
-        [ThemeTokens.DarkAccentText] = "#A2D58A",
-        [ThemeTokens.DarkSelection] = "#2C4B33",
-        [ThemeTokens.DarkHover] = "#467B47",
-        [ThemeTokens.DarkPressed] = "#315A35",
-        [ThemeTokens.DarkBorder] = "#3B5741",
-        [ThemeTokens.DarkBorderAlt] = "#2C4232",
-        [ThemeTokens.DarkTitlebarHover] = "#2B4232",
-        [ThemeTokens.DarkTitlebarPressed] = "#37533D",
-    };
-
-    // 用清新绿的色值作键，这样现有控件不用为浅湖青另写一套取色代码。
-    static readonly Dictionary<string, string> LakeCyan = new(StringComparer.OrdinalIgnoreCase)
-    {
-        [ThemeTokens.LightBg] = "#EDF4F6",
-        [ThemeTokens.DarkBg] = "#172427",
-        [ThemeTokens.DarkBgAlt] = "#172427",
-        [ThemeTokens.LightSidebar] = "#E6EFF1",
-        [ThemeTokens.DarkSidebar] = "#1D2426",
-        [ThemeTokens.White] = "#FFFFFF",
-        [ThemeTokens.DarkSurface] = "#232A2C",
-        [ThemeTokens.LightSurface] = "#EDF4F6",
-        [ThemeTokens.LightText] = "#2B3537",
-        [ThemeTokens.DarkText] = "#E1EBED",
-        [ThemeTokens.LightTextCaption] = "#2B3537",
-        [ThemeTokens.DarkTextCaption] = "#E1EBED",
-        [ThemeTokens.LightTextSub] = "#2B3537",
-        [ThemeTokens.DarkTextSub] = "#D8E2E4",
-        [ThemeTokens.LightMuted] = "#697779",
-        [ThemeTokens.DarkMuted] = "#849294",
-        [ThemeTokens.LightMutedAlt] = "#697779",
-        [ThemeTokens.DarkMutedAlt] = "#849294",
-        [ThemeTokens.LightAccent] = "#7DB6BF",
-        [ThemeTokens.DarkAccent] = "#7DB6BF",
-        [ThemeTokens.LightAccentText] = "#7DB6BF",
-        [ThemeTokens.DarkAccentText] = "#7DB6BF",
-        [ThemeTokens.LightSelection] = "#D0E3E6",
-        [ThemeTokens.DarkSelection] = "#232E30",
-        [ThemeTokens.LightHover] = "#8DBFC7",
-        [ThemeTokens.DarkHover] = "#6D9EA6",
-        [ThemeTokens.LightPressed] = "#6A9EA6",
-        [ThemeTokens.DarkPressed] = "#59868E",
-        [ThemeTokens.LightSurfaceAlt] = "#FFFFFF",
-        [ThemeTokens.DarkSurfaceAlt] = "#232A2C",
-        [ThemeTokens.LightBorder] = "#D8E2E4",
-        [ThemeTokens.DarkBorder] = "#343E40",
-        [ThemeTokens.DarkBorderAlt] = "#343E40",
-        [ThemeTokens.LightTitlebarHover] = "#E0EBED",
-        [ThemeTokens.DarkTitlebarHover] = "#242D30",
-        [ThemeTokens.LightTitlebarPressed] = "#D4E2E5",
-        [ThemeTokens.DarkTitlebarPressed] = "#2F3A3D",
-    };
-
-    // 配色
-    static readonly Dictionary<string, string> Sakura = new(StringComparer.OrdinalIgnoreCase)
-    {
-        // 浅色模式
-        [ThemeTokens.LightBg] = "#FFF7FA",
-        [ThemeTokens.LightSidebar] = "#FCE8F0",
-        [ThemeTokens.White] = "#FFFFFF",
-        [ThemeTokens.LightSurface] = "#FFF0F5",
-        [ThemeTokens.LightSurfaceAlt] = "#FBE7EF",
-
-        [ThemeTokens.LightText] = "#49343F",
-        [ThemeTokens.LightTextCaption] = "#49343F",
-        [ThemeTokens.LightTextSub] = "#66515C",
-        [ThemeTokens.LightMuted] = "#8A7180",
-        [ThemeTokens.LightMutedAlt] = "#8A7180",
-
-        [ThemeTokens.LightAccent] = "#D46A98",
-        [ThemeTokens.LightAccentText] = "#D46A98",
-        [ThemeTokens.LightSelection] = "#F8D9E6",
-        [ThemeTokens.LightHover] = "#E889AF",
-        [ThemeTokens.LightPressed] = "#BE5684",
-
-        [ThemeTokens.LightBorder] = "#EEDAE3",
-        [ThemeTokens.LightTitlebarHover] = "#F9E5ED",
-        [ThemeTokens.LightTitlebarPressed] = "#F1D5E1",
-
-        // 深色模式
-        [ThemeTokens.DarkBg] = "#211A22",
-        [ThemeTokens.DarkBgAlt] = "#211A22",
-        [ThemeTokens.DarkSidebar] = "#2C222D",
-        [ThemeTokens.DarkSurface] = "#352936",
-        [ThemeTokens.DarkSurfaceAlt] = "#403142",
-
-        [ThemeTokens.DarkText] = "#F7EAF2",
-        [ThemeTokens.DarkTextCaption] = "#F7EAF2",
-        [ThemeTokens.DarkTextSub] = "#E3CEDB",
-        [ThemeTokens.DarkMuted] = "#BDA4B4",
-        [ThemeTokens.DarkMutedAlt] = "#BDA4B4",
-
-        [ThemeTokens.DarkAccent] = "#E79AC1",
-        [ThemeTokens.DarkAccentText] = "#E79AC1",
-        [ThemeTokens.DarkSelection] = "#54374B",
-        [ThemeTokens.DarkHover] = "#EEACCD",
-        [ThemeTokens.DarkPressed] = "#CB79A4",
-
-        [ThemeTokens.DarkBorder] = "#554353",
-        [ThemeTokens.DarkBorderAlt] = "#554353",
-        [ThemeTokens.DarkTitlebarHover] = "#403241",
-        [ThemeTokens.DarkTitlebarPressed] = "#503C50",
-    };
-
     Color RawColor(string hex) =>
         ColorHelper.FromArgb(
             255,
@@ -316,18 +205,12 @@ public sealed partial class MainWindow
     // hex 可以来自 ThemeTokens，也可以是已有 UI 传入的同值字符串。
     Color PaletteColor(string hex)
     {
-        if (store.Config.Settings.ColorPreset is "craft" or "lakecyan" or "sakura")
+        if (store.Config.Settings.ColorPreset is not ("native" or "custom"))
         {
-            if (store.Config.Settings.ColorPreset == "craft" && !lightTheme)
-                hex = FreshGreenDark.GetValueOrDefault(hex, hex);
-
-            if (store.Config.Settings.ColorPreset == "lakecyan")
-                hex = LakeCyan.GetValueOrDefault(hex, hex);
-
-            if (store.Config.Settings.ColorPreset == "sakura")
-                hex = Sakura.GetValueOrDefault(hex, hex);
-
-            return RawColor(hex);
+            var token = ThemeTokens.ColorNames.GetValueOrDefault(hex, "");
+            return RawColor(
+                themeCatalog.Resolve(store.Config.Settings.ColorPreset, token, lightTheme, hex)
+            );
         }
         // 原生和自定义配色只区分颜色用途，不保留基础配色中同类颜色的细微差别。
         // 新增基础色时要检查这里；没匹配到的颜色会落到 border。
@@ -446,11 +329,16 @@ public sealed partial class MainWindow
                 brush.Color = PaletteColor(entry.Source);
     }
 
-    // 预设的内部标识，和下拉框选项顺序对应；新增预设时要改这里。
-    static readonly string[] ColorPresetIds = ["native", "craft", "lakecyan", "sakura", "custom"];
+    // 原生与自定义选项固定保留，JSON 主题按目录内容加入中间。
+    string[] ColorPresetIds => ["native", .. themeCatalog.Presets.Select(p => p.Id), "custom"];
     bool syncingAppearanceControls;
 
-    static int ColorPresetIndex(string id) => Math.Max(0, Array.IndexOf(ColorPresetIds, id));
+    int ColorPresetIndex(string id)
+    {
+        var ids = ColorPresetIds;
+        var index = Array.IndexOf(ids, id);
+        return index >= 0 ? index : Array.IndexOf(ids, "craft");
+    }
 
     // 浅色和深色各存一套自定义颜色，编辑哪套由 mode 决定，不必切换整个窗口的主题。
     UIElement ThemeEditor(System.Action? defaultsChanged = null)
@@ -459,14 +347,10 @@ public sealed partial class MainWindow
         var preset = new BelowComboBox
         {
             Header = Ui("Preset"),
-            ItemsSource = new[]
-            {
-                Ui("WinUI3 native"),
-                Ui("Fresh green"),
-                Ui("Lake Cyan"),
-                Ui("Sakura"),
-                Ui("Custom"),
-            },
+            ItemsSource = new[] { Ui("WinUI3 native") }
+                .Concat(themeCatalog.Presets.Select(p => Ui(p.DisplayName)))
+                .Append(Ui("Custom"))
+                .ToArray(),
             SelectedIndex = ColorPresetIndex(store.Config.Settings.ColorPreset),
             HorizontalAlignment = HorizontalAlignment.Stretch,
         };
@@ -579,9 +463,12 @@ public sealed partial class MainWindow
             if (syncingAppearanceControls || preset.SelectedIndex < 0)
                 return;
             store.Config.Settings.ColorPreset = ColorPresetIds[preset.SelectedIndex];
-            if (preset.SelectedIndex is 0 or 1 or 2)
+            if (
+                store.Config.Settings.ColorPreset == "native"
+                || themeCatalog.IsBuiltIn(store.Config.Settings.ColorPreset)
+            )
             {
-                // 内置预设连同字号、缩放一起恢复默认值；切到自定义时保留用户的设置。
+                // 原生和内置预设恢复默认排版；外部主题与自定义颜色保留用户的排版设置。
                 store.Config.Settings.UiScale = 1;
                 store.Config.Settings.UiButtonScale = 1;
                 store.Config.Settings.UiMenuScale = 1;

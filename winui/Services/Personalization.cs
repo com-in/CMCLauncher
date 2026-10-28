@@ -151,6 +151,8 @@ public sealed partial class MainWindow
 
     void Personalization()
     {
+        themeCatalog.Reload();
+        ApplyTheme();
         Header("个性化", "");
         var settings = store.Config.Settings;
         var theme = new BelowComboBox
@@ -635,7 +637,7 @@ public sealed partial class MainWindow
     }
 
     // 导入前检查格式版本和数值范围，不把任意 JSON 当作启动器配置应用。
-    static CustomAppearancePreset ImportAppearancePreset(string json, string name)
+    CustomAppearancePreset ImportAppearancePreset(string json, string name)
     {
         using var document = JsonDocument.Parse(json);
         var root = document.RootElement;

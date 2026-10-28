@@ -1,4 +1,4 @@
-using System.IO;
+﻿using System.IO;
 using System.IO.Compression;
 using System.Net;
 using System.Net.Http;
@@ -197,6 +197,8 @@ internal static class Program
             "the current directory takes precedence when both exist"
         );
         Pass("renamed data directory preserves existing installations");
+        await ThemeCatalogTests.Run(Path.Combine(root, "themes"));
+        Pass("JSON theme discovery, mode overrides, embedded fallback and native preset isolation");
         await LocalizationCatalogTests.Run(Path.Combine(root, "locales"));
         Pass(
             "JSON language packs, embedded fallback, templates, rules, overrides and additional languages"

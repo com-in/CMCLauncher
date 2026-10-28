@@ -35,6 +35,20 @@
     >$(DefineConstants);SINGLE_FILE</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
+    <EmbeddedResource
+      Include="themes/craft.json"
+      LogicalName="CMCLauncher.Themes.craft.json"
+    />
+    <Content
+      Include="themes/*.json"
+      CopyToOutputDirectory="PreserveNewest"
+      CopyToPublishDirectory="PreserveNewest"
+    />
+    <Compile
+      Include="../native/ThemeCatalog.cs"
+      Link="Core/ThemeCatalog.cs"
+    />
+
     <Content
       Include="locales/*.json"
       CopyToOutputDirectory="PreserveNewest"

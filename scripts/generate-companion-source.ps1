@@ -44,12 +44,15 @@ if (Test-Path $TargetDir)
             $files.Add($f)
         }
     }
-    $localeDir = Join-Path $TargetDir "locales"
-    if (Test-Path $localeDir)
+    foreach ($folder in @("locales", "themes"))
     {
-        foreach ($f in Get-ChildItem -LiteralPath $localeDir -File -Filter '*.json')
+        $jsonDir = Join-Path $TargetDir $folder
+        if (Test-Path $jsonDir)
         {
-            $files.Add($f)
+            foreach ($f in Get-ChildItem -LiteralPath $jsonDir -File -Filter '*.json')
+            {
+                $files.Add($f)
+            }
         }
     }
     $msDir = Join-Path $TargetDir "Microsoft.UI.Xaml"

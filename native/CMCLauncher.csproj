@@ -12,6 +12,11 @@
   <!-- 本地构建可嵌入公开 OAuth 客户端 ID，源文件不进入发行包。 -->
   <ItemGroup>
     <EmbeddedResource
+      Include="../winui/themes/craft.json"
+      LogicalName="CMCLauncher.Themes.craft.json"
+    />
+
+    <EmbeddedResource
       Include="../winui/locales/*.json"
       LogicalName="CMCLauncher.Locales.%(Filename).json"
     />

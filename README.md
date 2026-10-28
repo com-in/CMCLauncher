@@ -57,6 +57,10 @@ Schematic subfolders appear as expandable directories, including empty folders. 
 
 Community resource pages place filters above the search box. Filter by game version, applicable mod or shader loader, and resource category; resource packs also expose features and resolution, while shaders expose features and performance impact. The More filters button opens a right-side drawer with grouped environment, source availability, license, author, project details, count, date, and content disclosure options. Apply filters updates results from the first page; Reset clears only the drawer options. Closing the drawer keeps your inputs. Submit with Search or Enter, or use Reset filters. Submitted filters remain active while paging and when returning from project details. Game version lists show releases by default. Enable Show snapshots or Show April Fools to reveal those versions in the dropdown; these switches work independently. Select a version and submit the search to filter resources.
 
+### Theme presets
+
+Color presets are loaded from `themes/*.json`. Fresh green is embedded as a fallback; Lake Cyan and Sakura are external palettes. The WinUI3 native preset continues to use Windows resources. See [Theme presets](docs/THEMES.md) for editing and adding palettes.
+
 ## Support and limitations
 
 ### frpc

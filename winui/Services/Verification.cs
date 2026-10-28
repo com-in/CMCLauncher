@@ -133,6 +133,7 @@ public sealed partial class MainWindow
         await VerifyFeedbackAndSchematics(Check, directory);
         await VerifyFrpcPage(Check, directory);
         await VerifyJsonLocalization(Check);
+        await VerifyJsonThemes(Check);
         await VerifyCommunityFilterDrawer(Check, directory);
         Check(
             IsModpackFile("Pack.MRPACK") && IsModpackFile("Pack.ZIP") && !IsModpackFile("mod.jar"),
