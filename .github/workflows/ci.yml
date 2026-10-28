@@ -3,7 +3,7 @@ name: CI
 on:
   push:
     branches: [main]
-    tags: ['v*', '[0-9]*']
+    tags: ['CMCL-v*', 'v*', '[0-9]*']
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -50,12 +50,12 @@ jobs:
         run: dotnet publish winui/CMCLauncher.WinUI.csproj -c Release -p:Platform=x64 -r win-x64 --self-contained true -o dist/cmc-launcher
       - name: Package and scan release archive
         shell: pwsh
-        run: ./scripts/package-release.ps1 -PublishDirectory dist/cmc-launcher -ArchivePath dist/CMCLauncher-0.9.4-win-x64.zip
+        run: ./scripts/package-release.ps1 -PublishDirectory dist/cmc-launcher -ArchivePath dist/CMCLauncher-win-x64.zip
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
-          name: CMCLauncher-0.9.4-win-x64
-          path: dist/CMCLauncher-0.9.4-win-x64.zip
+          name: CMCLauncher-win-x64
+          path: dist/CMCLauncher-win-x64.zip
           if-no-files-found: error
   # 发布任务只处理标签，复用上一步已打包并检查过的 ZIP。
   release:
@@ -71,12 +71,31 @@ jobs:
       - name: Download build artifact
         uses: actions/download-artifact@v4
         with:
-          name: CMCLauncher-0.9.4-win-x64
+          name: CMCLauncher-win-x64
           path: release-files
+      # Only release assets receive a version; workflow artifacts keep a stable name.
+      - name: Name release archive
+        id: archive
+        shell: pwsh
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          if ($env:RELEASE_TAG -notmatch '^(?:CMCL-)?v?(?<version>\d+\.\d+\.\d+)(?:-(?<channel>release|beta|alpha)(?<revision>(?:[.-]\d+)?))?$') {
+            throw "Unsupported release tag: $env:RELEASE_TAG"
+          }
+          $version = $Matches['version']
+          $channel = $Matches['channel']
+          $revision = $Matches['revision']
+          $prerelease = $channel -in @('beta', 'alpha')
+          $suffix = if ($prerelease) { "-$channel$revision" } else { '' }
+          $archivePath = "release-files/CMCLauncher-$version$suffix-win-x64.zip"
+          Move-Item -LiteralPath release-files/CMCLauncher-win-x64.zip -Destination $archivePath
+          "path=$archivePath" >> $env:GITHUB_OUTPUT
+          "prerelease=$($prerelease.ToString().ToLowerInvariant())" >> $env:GITHUB_OUTPUT
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           body_path: docs/RELEASE_NOTES.md
           generate_release_notes: true
-          prerelease: ${{ contains(github.ref_name, '-') }}
-          files: release-files/CMCLauncher-0.9.4-win-x64.zip
+          prerelease: ${{ steps.archive.outputs.prerelease == 'true' }}
+          files: ${{ steps.archive.outputs.path }}
