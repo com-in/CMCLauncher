@@ -87,7 +87,7 @@ public sealed class LauncherCore : IDisposable
         {
             Timeout = TimeSpan.FromMinutes(3),
         };
-        http.DefaultRequestHeaders.UserAgent.ParseAdd("CMCLauncher/0.9.3-beta");
+        http.DefaultRequestHeaders.UserAgent.ParseAdd("CMCLauncher/0.9.4");
     }
 
     public HttpClient Http => http;
@@ -1197,7 +1197,7 @@ public sealed class LauncherCore : IDisposable
         {
             ["natives_directory"] = natives,
             ["launcher_name"] = "CMCLauncher",
-            ["launcher_version"] = "0.3.0",
+            ["launcher_version"] = "0.9.4",
             ["classpath"] = string.Join(Path.PathSeparator, classpath),
             ["classpath_separator"] = Path.PathSeparator.ToString(),
             ["library_directory"] = Path.Combine(storage, "libraries"),

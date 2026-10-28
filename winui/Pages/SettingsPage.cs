@@ -294,6 +294,6 @@ public sealed class SettingsPage : CMCPage
             await PersistSettings();
         };
 
-        PageBody.Children.Add(Text("版本 0.9.3-beta", 12));
+        PageBody.Children.Add(Text("版本 0.9.4", 12));
     }
 }

@@ -8,7 +8,7 @@ English · [简体中文](README_zh.md)
 
 A native Windows launcher for Minecraft Java Edition, built with C#, .NET 8, and WinUI 3. Manage isolated instances, download game versions and loaders, install Modrinth content, and manage Java and accounts.
 
-Current version: **0.9.3-beta** · Platform: **Windows x64**
+Current version: **0.9.4** · Platform: **Windows x64**
 
 [Download](https://github.com/com-in/CMCLauncher/releases) · [Website](https://cmcl.ctfun.top/) · [Report an issue](https://github.com/com-in/CMCLauncher/issues)
 
@@ -16,7 +16,7 @@ Current version: **0.9.3-beta** · Platform: **Windows x64**
 
 ## Quick start
 
-1. Download `CMCLauncher-0.9.3-beta-win-x64.zip` from [Releases](https://github.com/com-in/CMCLauncher/releases), extract the entire archive, and run `CMCLauncher.exe`.
+1. Download `CMCLauncher-0.9.4-win-x64.zip` from [Releases](https://github.com/com-in/CMCLauncher/releases), extract the entire archive, and run `CMCLauncher.exe`.
 2. Open **Settings → Java** to scan for or import an existing Java installation, or download Temurin Java.
 3. Open **Settings → Accounts** and choose Microsoft device-code sign-in. Complete authorization in your browser, then wait for the launcher to verify your Minecraft Java profile.
 4. Download a game version, import an existing `.minecraft` folder, or import a modpack. Select a version and account on Home, then launch.
@@ -138,7 +138,7 @@ Publish a self-contained directory and create a ZIP archive:
 
 ```powershell
 dotnet publish winui/CMCLauncher.WinUI.csproj -c Release -p:Platform=x64 -r win-x64 --self-contained true -o dist/cmc-launcher
-./scripts/package-release.ps1 -PublishDirectory dist/cmc-launcher -ArchivePath dist/CMCLauncher-0.9.3-beta-win-x64.zip
+./scripts/package-release.ps1 -PublishDirectory dist/cmc-launcher -ArchivePath dist/CMCLauncher-0.9.4-win-x64.zip
 ```
 
 The packaging script excludes local configuration, credential, and key files, then checks that the archive contains the launcher executable.

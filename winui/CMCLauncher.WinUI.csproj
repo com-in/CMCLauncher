@@ -21,7 +21,7 @@
     <Product>CMCLauncher</Product>
     <Title>CMCLauncher</Title>
     <RootNamespace>CMCLauncher.WinUI</RootNamespace>
-    <Version>0.9.3-beta</Version>
+    <Version>0.9.4</Version>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>assets/cmc-logo.ico</ApplicationIcon>
     <!-- 使用 Program.cs 中的自定义入口，负责 OLE 初始化和资源准备。 -->

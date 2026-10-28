@@ -7,7 +7,7 @@
     <Nullable>enable</Nullable>
     <AssemblyName>CMCLauncher</AssemblyName>
     <RootNamespace>CMCLauncher</RootNamespace>
-    <Version>0.3.0</Version>
+    <Version>0.9.4</Version>
   </PropertyGroup>
   <!-- 本地构建可嵌入公开 OAuth 客户端 ID，源文件不进入发行包。 -->
   <ItemGroup>

@@ -50,12 +50,12 @@ jobs:
         run: dotnet publish winui/CMCLauncher.WinUI.csproj -c Release -p:Platform=x64 -r win-x64 --self-contained true -o dist/cmc-launcher
       - name: Package and scan release archive
         shell: pwsh
-        run: ./scripts/package-release.ps1 -PublishDirectory dist/cmc-launcher -ArchivePath dist/CMCLauncher-0.9.3-beta-win-x64.zip
+        run: ./scripts/package-release.ps1 -PublishDirectory dist/cmc-launcher -ArchivePath dist/CMCLauncher-0.9.4-win-x64.zip
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
-          name: CMCLauncher-0.9.3-beta-win-x64
-          path: dist/CMCLauncher-0.9.3-beta-win-x64.zip
+          name: CMCLauncher-0.9.4-win-x64
+          path: dist/CMCLauncher-0.9.4-win-x64.zip
           if-no-files-found: error
   # 发布任务只处理标签，复用上一步已打包并检查过的 ZIP。
   release:
@@ -66,14 +66,17 @@ jobs:
     permissions:
       contents: write
     steps:
+      - name: Checkout release notes
+        uses: actions/checkout@v4
       - name: Download build artifact
         uses: actions/download-artifact@v4
         with:
-          name: CMCLauncher-0.9.3-beta-win-x64
+          name: CMCLauncher-0.9.4-win-x64
           path: release-files
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
+          body_path: docs/RELEASE_NOTES.md
           generate_release_notes: true
           prerelease: ${{ contains(github.ref_name, '-') }}
-          files: release-files/CMCLauncher-0.9.3-beta-win-x64.zip
+          files: release-files/CMCLauncher-0.9.4-win-x64.zip
