@@ -32,3 +32,7 @@ Copy a pack to a file such as `locales/fr_fr.json`, set its `code` to `fr_fr`, a
 The English pack also contains ordered `prefixes` and `rules` for older dynamic status messages. Exact string entries take precedence, followed by regex rules and then prefix replacements. Regex rules may define capture translations and replacements. Patterns run with a timeout; malformed patterns invalidate the external pack. New parameterized UI messages should use `UiFormat(key, values)` and `strings` templates rather than adding more regex rules.
 
 The launcher does not translate project descriptions, user configuration contents, or raw third-party output such as frpc logs. Native Windows file picker text is controlled by Windows, not these JSON packs.
+
+## Native WinUI resources
+
+Release packaging retains only native WinUI language folders matching the source interface packs in `winui/locales/`, with English always kept as a fallback. The current distribution includes `languages/en-US` and `languages/zh-CN`. Both regular publishes and single-file companion resources use the same filter. Adding an external JSON language pack after installation does not install additional WinUI native resources; native controls use an available fallback. To bundle another native language, add its source interface pack and rebuild.

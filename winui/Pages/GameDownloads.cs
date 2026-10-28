@@ -435,14 +435,9 @@ public sealed partial class MainWindow
                 };
                 // 真正开始下载前再校验名称，界面上的实时提示不能代替提交检查。
                 store.EnsureUniqueInstanceName(instance);
-                store.PrepareIsolatedInstance(instance);
                 await Run(async ct =>
                 {
-                    if (type is "forge" or "neoforge")
-                    {
-                        await core.InstallLoader(instance, build, ct);
-                    }
-                    await core.DownloadGame(instance, ct);
+                    await core.InstallNewGame(instance, build, ct);
                     store.Config.Instances.Add(instance);
                     selected = instance;
                     store.Config.SelectedInstanceId = instance.Id;

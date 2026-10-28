@@ -10,6 +10,18 @@ public sealed partial class MainWindow
     CancellationTokenSource? task;
     readonly List<Button> taskButtons = new();
 
+    // 抽屉跨页面保留，卡片单独登记，避免页面重建后失去主题刷新。
+    readonly List<Border> taskCards = new();
+
+    Border TaskCard(UIElement content)
+    {
+        var card = Card(content);
+        card.Tag = "task-card";
+        themeCards.Remove(card);
+        taskCards.Add(card);
+        return card;
+    }
+
     // 下载回调可以跨线程累计字节数，显示和状态切换统一在窗口线程处理。
     internal sealed class WorkItem
     {
@@ -96,6 +108,7 @@ public sealed partial class MainWindow
     void Tasks()
     {
         TaskDrawerBody.Children.Clear();
+        taskCards.Clear();
         taskStage = null;
         taskMetrics = null;
         taskElapsed = null;
@@ -111,18 +124,29 @@ public sealed partial class MainWindow
                 Minimum = 0,
                 Maximum = 100,
                 Height = 5,
+                Foreground = ComboAccentBrush,
+                Background = ComboBorderBrush,
             };
             panel.Children.Add(taskProgress);
             taskMetrics = Text("", 12);
             panel.Children.Add(taskMetrics);
             taskElapsed = Text("", 12);
-            panel.Children.Add(taskElapsed);
+
             var cancel = new Button
             {
                 Content = Ui("Cancel task"),
-                HorizontalAlignment = HorizontalAlignment.Left,
+                HorizontalAlignment = HorizontalAlignment.Right,
+                VerticalAlignment = VerticalAlignment.Center,
+                Background = ComboSurfaceBrush,
+                Foreground = ComboTextBrush,
+                BorderBrush = ComboBorderBrush,
+                IsEnabled = task != null && !task.IsCancellationRequested,
                 Padding = new Thickness(12, 6, 12, 6),
             };
+            cancel.Resources["ButtonBackgroundPointerOver"] = ComboHoverBrush;
+            cancel.Resources["ButtonBackgroundPressed"] = ComboPressedBrush;
+            cancel.Resources["ButtonForegroundPointerOver"] = ComboTextBrush;
+            cancel.Resources["ButtonForegroundPressed"] = ComboTextBrush;
             cancel.Click += (_, _) =>
             {
                 task?.Cancel();
@@ -130,8 +154,15 @@ public sealed partial class MainWindow
                 work.Stage = "正在取消…";
                 RefreshTaskMetrics();
             };
-            panel.Children.Add(cancel);
-            TaskDrawerBody.Children.Add(panel);
+            var footer = new Grid { ColumnSpacing = 12 };
+            footer.ColumnDefinitions.Add(new ColumnDefinition());
+            footer.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            taskElapsed.VerticalAlignment = VerticalAlignment.Center;
+            footer.Children.Add(taskElapsed);
+            Grid.SetColumn(cancel, 1);
+            footer.Children.Add(cancel);
+            panel.Children.Add(footer);
+            TaskDrawerBody.Children.Add(TaskCard(panel));
         }
         else
             TaskDrawerBody.Children.Add(Text("当前没有进行中的任务。", 14));
@@ -149,7 +180,7 @@ public sealed partial class MainWindow
                 panel.Children.Add(
                     Text(UiFormat("Elapsed {0}", FormatDuration(Elapsed(recent))), 12)
                 );
-                TaskDrawerBody.Children.Add(CompactCard(panel));
+                TaskDrawerBody.Children.Add(TaskCard(panel));
             }
         }
         RefreshTaskMetrics();

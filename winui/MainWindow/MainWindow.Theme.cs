@@ -40,6 +40,8 @@ public sealed partial class MainWindow
         RefreshPaletteBrushes();
         RefreshComboPalette();
         RefreshToastPalette();
+        if (page == "frpc")
+            RefreshFrpcPalette();
         var bg = lightTheme ? ThemeTokens.LightBg : ThemeTokens.DarkBg;
         var sidebar = lightTheme ? ThemeTokens.LightSidebar : ThemeTokens.DarkSidebar;
         var text = lightTheme ? ThemeTokens.LightText : ThemeTokens.DarkText;
@@ -80,12 +82,8 @@ public sealed partial class MainWindow
         CustomTitleBar.Background = Brush(bg);
         TitleBrandBackground.Background = Brush(sidebar);
         TitleLabel.Foreground = Brush(text);
-        foreach (var card in themeCards)
-        {
-            card.Background = new SolidColorBrush(SoftSurfaceColor());
-
-            card.BorderBrush = Brush(lightTheme ? ThemeTokens.LightBorder : ThemeTokens.DarkBorder);
-        }
+        foreach (var card in themeCards.Concat(taskCards))
+            ApplyCardTheme(card);
         // 标题栏按钮由系统绘制，不会跟随 XAML 画刷刷新，需要单独赋色。
         if (AppWindowTitleBar.IsCustomizationSupported())
         {
@@ -107,6 +105,13 @@ public sealed partial class MainWindow
             bar.ButtonInactiveBackgroundColor = Colors.Transparent;
             bar.ButtonInactiveForegroundColor = Brush(muted).Color;
         }
+    }
+
+    // 新建与已显示的卡片采用同一取色规则，避免首次进入页面时仍使用旧的表面色。
+    void ApplyCardTheme(Border card)
+    {
+        card.Background = new SolidColorBrush(SoftSurfaceColor());
+        card.BorderBrush = Brush(lightTheme ? ThemeTokens.LightBorder : ThemeTokens.DarkBorder);
     }
 
     void UpdateTitleBarInset()

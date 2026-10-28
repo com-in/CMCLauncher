@@ -1,5 +1,6 @@
 ﻿using System.Text.Json.Nodes;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media;
 
 namespace CMCLauncher.WinUI;
 
@@ -45,6 +46,67 @@ public sealed partial class MainWindow
                     WindowBackground.Color == RawColor(mode == "light" ? light : dark),
                     "JSON preserves the window palette for " + id + " " + mode
                 );
+            }
+            foreach (var mode in new[] { "light", "dark" })
+            {
+                store.Config.Settings.Theme = mode;
+                store.Config.Settings.ColorPreset = "native";
+                page = "personalization";
+                await RenderAsync();
+                check(
+                    themeCards.Count > 0
+                        && themeCards.All(card =>
+                            card.Background is SolidColorBrush brush
+                            && brush.Color == SoftSurfaceColor()
+                        ),
+                    "new native cards use their current surface color in " + mode
+                );
+                var picker = Descendants(PageBody)
+                    .OfType<ComboBox>()
+                    .Single(c => c.Header?.ToString() == Ui("Preset"));
+                foreach (var id in new[] { "craft", "lakecyan", "sakura", "native" })
+                {
+                    var existingCards = themeCards.ToArray();
+                    picker.SelectedIndex = ColorPresetIndex(id);
+                    await Task.Delay(100);
+                    check(
+                        store.Config.Settings.Theme == mode
+                            && existingCards.SequenceEqual(themeCards)
+                            && themeCards.All(card =>
+                                card.Background is SolidColorBrush brush
+                                && brush.Color == SoftSurfaceColor()
+                            ),
+                        "preset selection immediately recolors existing cards without changing appearance: "
+                            + id
+                            + " "
+                            + mode
+                    );
+                    if (id == "lakecyan" && mode == "light")
+                        check(
+                            themeCards.All(card =>
+                                card.Background is SolidColorBrush brush
+                                && brush.Color == RawColor("#E4EFF1")
+                            ),
+                            "Lake Cyan light cards immediately use the blended theme color rather than white"
+                        );
+                }
+                store.Config.Settings.ColorPreset = "lakecyan";
+                await RenderAsync();
+                check(
+                    themeCards.All(card =>
+                        card.Background is SolidColorBrush brush
+                        && brush.Color == SoftSurfaceColor()
+                    ),
+                    "reentering personalization creates correctly themed cards without toggling appearance: "
+                        + mode
+                );
+                var compact = CompactCard(new TextBlock { Text = "Card palette fixture" });
+                check(
+                    compact.Background is SolidColorBrush compactBrush
+                        && compactBrush.Color == SoftSurfaceColor(),
+                    "compact cards use the same initial theme surface in " + mode
+                );
+                themeCards.Remove(compact);
             }
             var json = JsonNode.Parse(original)!;
             json["colors"]!["LightBg"] = "#123456";

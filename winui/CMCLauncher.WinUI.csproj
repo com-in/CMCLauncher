@@ -157,6 +157,50 @@
       Link="Core/GlobalUsings.cs"
     />
   </ItemGroup>
+  <!-- Filter before copying or bundling, so single-file releases cannot retain unused MUI files. -->
+  <Target
+    Name="FilterWinUIMuiLanguages"
+    AfterTargets="ComputeResolvedFilesToPublishList"
+    BeforeTargets="_ComputeFilesToBundle"
+  >
+    <ItemGroup>
+      <LauncherMuiLanguage Include="$(MSBuildProjectDirectory)/locales/*.json" />
+    </ItemGroup>
+    <PropertyGroup>
+      <LauncherMuiCultureNames>@(LauncherMuiLanguage->'%(Filename)', '|')</LauncherMuiCultureNames>
+      <LauncherMuiCulturePattern
+      >(?i)^(en-us|$([System.String]::Copy('$(LauncherMuiCultureNames)').Replace('_', '-')))[\\/]</LauncherMuiCulturePattern>
+    </PropertyGroup>
+    <ItemGroup>
+      <UnsupportedMui
+        Include="@(ResolvedFileToPublish)"
+        Condition="'%(ResolvedFileToPublish.Extension)' == '.mui' and $([System.Text.RegularExpressions.Regex]::IsMatch('%(ResolvedFileToPublish.RelativePath)', '^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})+[\\/]')) and !$([System.Text.RegularExpressions.Regex]::IsMatch('%(ResolvedFileToPublish.RelativePath)', '$(LauncherMuiCulturePattern)'))"
+      />
+      <ResolvedFileToPublish Remove="@(UnsupportedMui)" />
+    </ItemGroup>
+    <Message
+      Importance="high"
+      Text="Excluded @(UnsupportedMui->Count()) unsupported WinUI MUI files from publishing."
+    />
+  </Target>
+  <!-- Windows paths are case-insensitive; avoid duplicate SDK asset entries in single-file bundles. -->
+  <Target
+    Name="DeduplicateSingleFileInputs"
+    BeforeTargets="GenerateSingleFileBundle"
+    DependsOnTargets="_ComputeFilesToBundle"
+    Condition="'$(PublishSingleFile)' == 'true'"
+  >
+    <RemoveDuplicates Inputs="@(FilesToBundle)">
+      <Output
+        TaskParameter="Filtered"
+        ItemName="UniqueFilesToBundle"
+      />
+    </RemoveDuplicates>
+    <ItemGroup>
+      <FilesToBundle Remove="@(FilesToBundle)" />
+      <FilesToBundle Include="@(UniqueFilesToBundle)" />
+    </ItemGroup>
+  </Target>
   <!-- 普通发布复制外部 WinUI 资源；单文件发布由伴生数据释放资源。 -->
   <Target
     Name="PublishWinUIResources"

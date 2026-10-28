@@ -8,6 +8,8 @@ public sealed partial class MainWindow
     async Task VerifyFrpcPage(Action<bool, string> check, string directory)
     {
         var savedPage = page;
+        var savedTheme = store.Config.Settings.Theme;
+        var savedPreset = store.Config.Settings.ColorPreset;
         var savedLanguage = store.Config.Settings.LauncherLanguage;
         var savedVersion = store.Config.Settings.FrpcVersion;
         var savedConfig = store.Config.Settings.FrpcConfigPath;
@@ -193,6 +195,31 @@ public sealed partial class MainWindow
                     Path.Combine(directory, $"frpc-configurations-{language}-{width}.png")
                 );
             }
+            foreach (var mode in new[] { "light", "dark" })
+            foreach (var preset in new[] { "craft", "lakecyan", "sakura", "native" })
+            {
+                store.Config.Settings.Theme = mode;
+                store.Config.Settings.ColorPreset = preset;
+                ApplyTheme();
+                var themed = AppearanceElements(PageBody)
+                    .OfType<Control>()
+                    .Where(c => c is TextBox or Expander)
+                    .ToArray();
+                check(
+                    themed.Length > 2
+                        && themed.All(c =>
+                            preset == "native"
+                                ? c.ReadLocalValue(Control.BackgroundProperty)
+                                    == DependencyProperty.UnsetValue
+                                : ReferenceEquals(c.Background, ComboSurfaceBrush)
+                                    && ReferenceEquals(c.Foreground, ComboTextBrush)
+                        ),
+                    "frpc fields and expanders follow the current palette: " + preset + " " + mode
+                );
+            }
+            store.Config.Settings.Theme = savedTheme;
+            store.Config.Settings.ColorPreset = savedPreset;
+            ApplyTheme();
             var newPanel = Descendants(PageBody)
                 .OfType<Expander>()
                 .Single(e => e.Tag?.ToString() == "frpc-new-panel");
@@ -262,6 +289,9 @@ public sealed partial class MainWindow
         }
         finally
         {
+            store.Config.Settings.Theme = savedTheme;
+            store.Config.Settings.ColorPreset = savedPreset;
+            ApplyTheme();
             store.Config.Settings.FrpcVersion = savedVersion;
             store.Config.Settings.FrpcConfigPath = savedConfig;
             store.Config.Settings.LauncherLanguage = savedLanguage;

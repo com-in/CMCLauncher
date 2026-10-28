@@ -175,10 +175,9 @@ public sealed partial class MainWindow
             Child = content,
             Padding = padding,
             CornerRadius = new CornerRadius(cornerRadius),
-            Background = Brush(lightTheme ? "#FFFFFF" : "#242530"),
-            BorderBrush = Brush(lightTheme ? "#E4E3ED" : "#3A3B4B"),
             BorderThickness = new Thickness(1),
         };
+        ApplyCardTheme(card);
         themeCards.Add(card);
         return card;
     }

@@ -5,6 +5,8 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+. (Join-Path $PSScriptRoot "launcher-mui-languages.ps1")
+$supportedLanguages = @(Get-LauncherMuiLanguages)
 
 $sb = [System.Text.StringBuilder]::new()
 [void]$sb.AppendLine(@"
@@ -39,9 +41,12 @@ if (Test-Path $TargetDir)
     $langDir = Join-Path $TargetDir "languages"
     if (Test-Path $langDir)
     {
-        foreach ($f in Get-ChildItem -LiteralPath $langDir -File -Recurse -ErrorAction SilentlyContinue)
+        foreach ($culture in Get-ChildItem -LiteralPath $langDir -Directory | Where-Object { $_.Name -in $supportedLanguages })
         {
-            $files.Add($f)
+            foreach ($f in Get-ChildItem -LiteralPath $culture.FullName -File -Recurse -ErrorAction SilentlyContinue)
+            {
+                $files.Add($f)
+            }
         }
     }
     foreach ($folder in @("locales", "themes"))
@@ -65,7 +70,7 @@ if (Test-Path $TargetDir)
     }
     foreach ($dir in Get-ChildItem -LiteralPath $TargetDir -Directory -ErrorAction SilentlyContinue)
     {
-        if ($dir.Name -match $culturePattern)
+        if ($dir.Name -match $culturePattern -and $dir.Name -in $supportedLanguages)
         {
             foreach ($f in Get-ChildItem -LiteralPath $dir.FullName -File -Recurse -ErrorAction SilentlyContinue)
             {
@@ -92,6 +97,7 @@ $targetDirUri = [System.Uri]::new($TargetDir.TrimEnd('\') + '\')
 $fileEntries = [System.Collections.Generic.List[string]]::new()
 $sha256 = [System.Security.Cryptography.SHA256]::Create()
 $allBytes = [System.Collections.Generic.List[byte]]::new()
+$seenPaths = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
 
 # 固定文件顺序后拼接内容计算版本哈希，运行时据此判断是否需要重新释放。
 foreach ($file in $files | Sort-Object FullName -Unique)
@@ -99,6 +105,16 @@ foreach ($file in $files | Sort-Object FullName -Unique)
     $relative = [System.Uri]::UnescapeDataString(
         $targetDirUri.MakeRelativeUri([System.Uri]::new($file.FullName)).ToString()
     ).Replace('/', '\\')
+    # Build output keeps MUI beside the executable; companion extraction uses languages/.
+    $firstDirectory = $relative.Split([char]92)[0]
+    if ($firstDirectory -in $supportedLanguages)
+    {
+        $relative = 'languages' + [string]::new([char]92, 2) + $relative
+    }
+    if (!$seenPaths.Add($relative))
+    {
+        continue
+    }
     $bytes = [System.IO.File]::ReadAllBytes($file.FullName)
     $allBytes.AddRange($bytes)
     $hex = [System.BitConverter]::ToString($bytes).Replace('-', ',0x')

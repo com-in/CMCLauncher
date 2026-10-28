@@ -197,6 +197,10 @@ internal static class Program
             "the current directory takes precedence when both exist"
         );
         Pass("renamed data directory preserves existing installations");
+        await InstallationCleanupTests.Run(Path.Combine(root, "installation-cleanup"));
+        Pass(
+            "new game installation cancellation rollback, loader failure and existing directory protection"
+        );
         await ThemeCatalogTests.Run(Path.Combine(root, "themes"));
         Pass("JSON theme discovery, mode overrides, embedded fallback and native preset isolation");
         await LocalizationCatalogTests.Run(Path.Combine(root, "locales"));

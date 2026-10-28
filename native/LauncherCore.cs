@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
 using System.Net;
@@ -716,6 +716,84 @@ public sealed class LauncherCore : IDisposable
                 return Path.GetFileNameWithoutExtension(file);
         }
         return null;
+    }
+
+    // Only fresh installations own their destination; repairs and imported instances must never roll it back.
+    public async Task InstallNewGame(Instance instance, string build, CancellationToken ct)
+    {
+        ct.ThrowIfCancellationRequested();
+        if (
+            instance.Directory != null
+            || instance.ImportRoot != null
+            || store.Config.Instances.Any(i => i.Id == instance.Id)
+        )
+            throw new InvalidOperationException(
+                "Only new isolated instances can be installed here."
+            );
+        store.EnsureUniqueInstanceName(instance);
+        store.PrepareIsolatedInstance(instance);
+        var directory = Path.GetFullPath(store.GameDirectory(instance));
+        var versions = Path.GetFullPath(
+            Store.SafePath(store.StorageDirectory(instance), "versions")
+        );
+        if (
+            !string.Equals(
+                Path.GetDirectoryName(directory),
+                versions,
+                StringComparison.OrdinalIgnoreCase
+            ) || Directory.Exists(directory)
+        )
+            throw new IOException("The installation directory must be a new version directory.");
+        Directory.CreateDirectory(directory);
+        try
+        {
+            if (instance.Loader is "forge" or "neoforge")
+                await InstallLoader(instance, build, ct);
+            await DownloadGame(instance, ct);
+            ct.ThrowIfCancellationRequested();
+        }
+        catch
+        {
+            // Parallel downloads have finished disposing their streams before this rollback runs.
+            for (var attempt = 0; attempt < 3; attempt++)
+            {
+                try
+                {
+                    var target = Path.GetFullPath(directory);
+                    if (
+                        !string.Equals(
+                            Path.GetDirectoryName(target),
+                            versions,
+                            StringComparison.OrdinalIgnoreCase
+                        )
+                    )
+                        throw new IOException("Unexpected installation cleanup path.");
+                    if (Directory.Exists(target))
+                    {
+                        if ((File.GetAttributes(target) & FileAttributes.ReparsePoint) != 0)
+                            throw new IOException(
+                                "The installation directory was replaced by a link."
+                            );
+                        Directory.Delete(target, recursive: true);
+                    }
+                    break;
+                }
+                catch (Exception cleanupError)
+                    when (cleanupError is IOException or UnauthorizedAccessException)
+                {
+                    if (attempt == 2)
+                        Log?.Invoke(
+                            "Could not remove incomplete installation: "
+                                + directory
+                                + " · "
+                                + cleanupError.Message
+                        );
+                    else
+                        await Task.Delay(80);
+                }
+            }
+            throw;
+        }
     }
 
     public async Task DownloadGame(Instance instance, CancellationToken ct)

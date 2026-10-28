@@ -279,9 +279,12 @@ public sealed partial class MainWindow
             "Forge build prefix includes Minecraft version"
         );
         Check(
-            Directory.GetDirectories(Path.Combine(AppContext.BaseDirectory, "languages")).Length
-                >= 80,
-            "WinUI system language resources are organized under languages folder"
+            Directory
+                .GetDirectories(Path.Combine(AppContext.BaseDirectory, "languages"))
+                .Select(path => Path.GetFileName(path).ToLowerInvariant())
+                .OrderBy(name => name)
+                .SequenceEqual(new[] { "en-us", "zh-cn" }),
+            "WinUI resources include only the bundled English and Simplified Chinese languages"
         );
         Check(
             !File.Exists(Path.ChangeExtension(Environment.ProcessPath, ".pdb")),
@@ -1130,6 +1133,15 @@ public sealed partial class MainWindow
                             && taskElapsed!.Text.StartsWith("耗时："),
                         "task manager displays progress transferred bytes speed and elapsed time"
                     );
+                    Check(
+                        TaskDrawerBody
+                            .Children.OfType<Border>()
+                            .Any(card =>
+                                card.Tag?.ToString() == "task-card"
+                                && Descendants(card).Contains(taskProgress!)
+                            ),
+                        "active task progress is enclosed in a separate themed card"
+                    );
                     activeWork!.CompletedElapsed = TimeSpan.FromHours(27.5);
                     AppWindow.Resize(new Windows.Graphics.SizeInt32(740, 820));
                     await Task.Delay(300);
@@ -1148,6 +1160,18 @@ public sealed partial class MainWindow
                             && elapsedPosition.X + taskElapsed.ActualWidth
                                 <= ((FrameworkElement)Content).ActualWidth + 1,
                         "elapsed time stays visible on its own row in a narrow window"
+                    );
+                    var footer = (Grid)taskElapsed.Parent;
+                    var footerCancel = footer.Children.OfType<Button>().Single();
+                    Check(
+                        Grid.GetColumn(taskElapsed) == 0
+                            && Grid.GetColumn(footerCancel) == 1
+                            && footerCancel.HorizontalAlignment == HorizontalAlignment.Right,
+                        "task cancellation sits at the lower right beside elapsed time"
+                    );
+                    Check(
+                        ReferenceEquals(taskProgress!.Foreground, ComboAccentBrush),
+                        "task progress uses the selected theme accent"
                     );
                     await Capture(Path.Combine(directory, "task-elapsed-narrow.png"));
                     activeWork.CompletedElapsed = null;

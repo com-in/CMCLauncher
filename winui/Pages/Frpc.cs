@@ -96,6 +96,78 @@ public sealed partial class MainWindow
             frpcStopButton.IsEnabled = frpc.Running;
     }
 
+    // 共享画刷随预设更新；原生预设则交还系统控件资源。
+    void RefreshFrpcPalette()
+    {
+        var native = store.Config.Settings.ColorPreset == "native";
+        foreach (var control in AppearanceElements(PageBody).OfType<Control>())
+        {
+            if (
+                control is not (TextBox or Expander or Button)
+                || control is Button { BorderThickness: { Left: 0, Top: 0, Right: 0, Bottom: 0 } }
+            )
+                continue;
+            var resources =
+                control is Expander
+                    ? new Dictionary<string, object>
+                    {
+                        ["ExpanderHeaderBackground"] = ComboSurfaceBrush,
+                        ["ExpanderHeaderBackgroundPointerOver"] = ComboHoverBrush,
+                        ["ExpanderHeaderBackgroundPressed"] = ComboPressedBrush,
+                        ["ExpanderHeaderForeground"] = ComboTextBrush,
+                        ["ExpanderHeaderForegroundPointerOver"] = ComboTextBrush,
+                        ["ExpanderContentBackground"] = ComboSurfaceBrush,
+                        ["ExpanderContentBorderBrush"] = ComboBorderBrush,
+                        ["ExpanderHeaderBorderBrush"] = ComboBorderBrush,
+                    }
+                : control is Button
+                    ? new Dictionary<string, object>
+                    {
+                        ["ButtonBackgroundPointerOver"] = ComboHoverBrush,
+                        ["ButtonBackgroundPressed"] = ComboPressedBrush,
+                        ["ButtonForegroundPointerOver"] = ComboTextBrush,
+                        ["ButtonForegroundPressed"] = ComboTextBrush,
+                        ["ButtonBorderBrushPointerOver"] = ComboAccentBrush,
+                    }
+                : new Dictionary<string, object>
+                {
+                    ["TextControlHeaderForeground"] = ComboTextBrush,
+                    ["TextControlBackground"] = ComboSurfaceBrush,
+                    ["TextControlBackgroundPointerOver"] = ComboHoverBrush,
+                    ["TextControlBackgroundFocused"] = ComboSurfaceBrush,
+                    ["TextControlForeground"] = ComboTextBrush,
+                    ["TextControlForegroundFocused"] = ComboTextBrush,
+                    ["TextControlPlaceholderForeground"] = ComboMutedBrush,
+                    ["TextControlBorderBrush"] = ComboBorderBrush,
+                    ["TextControlBorderBrushFocused"] = ComboAccentBrush,
+                };
+            foreach (var pair in resources)
+                if (native)
+                    control.Resources.Remove(pair.Key);
+                else
+                    control.Resources[pair.Key] = pair.Value;
+            if (control is TextBox input)
+            {
+                if (native)
+                    input.ClearValue(TextBox.SelectionHighlightColorProperty);
+                else
+                    input.SelectionHighlightColor = ComboAccentBrush;
+            }
+            if (native)
+            {
+                control.ClearValue(Control.BackgroundProperty);
+                control.ClearValue(Control.ForegroundProperty);
+                control.ClearValue(Control.BorderBrushProperty);
+            }
+            else
+            {
+                control.Background = ComboSurfaceBrush;
+                control.Foreground = ComboTextBrush;
+                control.BorderBrush = ComboBorderBrush;
+            }
+        }
+    }
+
     void FrpcPage()
     {
         Header(Ui("frpc"), Ui("INI / TOML configuration"));
@@ -168,6 +240,7 @@ public sealed partial class MainWindow
             Tag = "frpc-output",
         };
         PageBody.Children.Add(frpcLogView);
+        RefreshFrpcPalette();
         UpdateFrpcStatus();
     }
 }
