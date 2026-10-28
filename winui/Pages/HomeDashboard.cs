@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using Microsoft.UI;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
@@ -31,13 +31,13 @@ public sealed partial class MainWindow
         if (homeCustomizeMode)
         {
             var catalog = new StackPanel { Spacing = 8 };
-            catalog.Children.Add(Text(Ui("主页卡片", "Home cards"), 16, true));
-            catalog.Children.Add(Text(Ui("调整每张卡片的顺序、宽度和高度，设置会自动保存。可添加以下卡片：", "Change each card's order, width, and height. Changes are saved automatically. Add a card:"), 12));
+            catalog.Children.Add(Text(Ui("Home cards"), 16, true));
+            catalog.Children.Add(Text(Ui("context.homedashboard.change_each_card_s_order_width_and_height_changes_are_saved_auto"), 12));
             foreach (var (id, label) in new[] { ("performance", "性能监视器"), ("note", "笔记"), ("news", "Minecraft 新闻") })
             {
                 var exists = settings.HomeCards.Any(c => c.Id == id);
                 var title = Ui(label);
-                var actionTitle = exists ? title + " (" + Ui("已添加") + ")" : Ui("添加") + " " + title;
+                var actionTitle = exists ? title + " (" + Ui("Added") + ")" : Ui("Add") + " " + title;
                 var add = Action(actionTitle, async (_, _) => { if (!exists) { settings.HomeCards.Add(new HomeCardPlacement { Id = id, Width = 1 }); await SaveHomeLayout(); Render(); } }); add.IsEnabled = !exists; catalog.Children.Add(add);
             }
             area.Children.Add(Card(catalog));
@@ -56,9 +56,9 @@ public sealed partial class MainWindow
                 var index = settings.HomeCards.IndexOf(placement);
                 var up = HomeCardTool("\uE74A", "上移", async () => { if (index > 0) { (settings.HomeCards[index - 1], settings.HomeCards[index]) = (settings.HomeCards[index], settings.HomeCards[index - 1]); await SaveHomeLayout(); Render(); } }); up.IsEnabled = index > 0; tools.Children.Add(up);
                 var down = HomeCardTool("\uE74B", "下移", async () => { if (index >= 0 && index < settings.HomeCards.Count - 1) { (settings.HomeCards[index + 1], settings.HomeCards[index]) = (settings.HomeCards[index], settings.HomeCards[index + 1]); await SaveHomeLayout(); Render(); } }); down.IsEnabled = index < settings.HomeCards.Count - 1; tools.Children.Add(down);
-                var width = new BelowComboBox { Header = Ui("宽度", "Width"), ItemsSource = new[] { Ui("全宽", "Full width"), Ui("半宽", "Half width") }, SelectedIndex = placement.Width == 1 ? 1 : 0, Width = 125 };
+                var width = new BelowComboBox { Header = Ui("Width"), ItemsSource = new[] { Ui("Full width"), Ui("Half width") }, SelectedIndex = placement.Width == 1 ? 1 : 0, Width = 125 };
                 width.SelectionChanged += async (_, _) => { if (width.SelectedIndex >= 0) { placement.Width = width.SelectedIndex == 1 ? 1 : 2; await SaveHomeLayout(); Render(); } };
-                var height = new BelowComboBox { Header = Ui("高度", "Height"), ItemsSource = new[] { Ui("紧凑", "Compact"), Ui("标准", "Standard"), Ui("宽松", "Spacious") }, SelectedIndex = Math.Clamp(placement.Height, 1, 3) - 1, Width = 125 };
+                var height = new BelowComboBox { Header = Ui("Height"), ItemsSource = new[] { Ui("Compact"), Ui("Standard"), Ui("Spacious") }, SelectedIndex = Math.Clamp(placement.Height, 1, 3) - 1, Width = 125 };
                 height.SelectionChanged += async (_, _) => { if (height.SelectedIndex >= 0) { placement.Height = height.SelectedIndex + 1; await SaveHomeLayout(); Render(); } };
                 tools.Children.Add(width); tools.Children.Add(height);
                 if (placement.Id is not ("account" or "game")) tools.Children.Add(HomeCardTool("\uE74D", "移除卡片", async () => { settings.HomeCards.Remove(placement); await SaveHomeLayout(); Render(); }));
@@ -131,11 +131,11 @@ public sealed partial class MainWindow
             var process = Process.GetCurrentProcess();
             var memory = GC.GetGCMemoryInfo();
             var processMemory = Muted($"{Ui("启动器内存占用")}: {process.WorkingSet64 / 1024 / 1024:N0} MB");
-            var systemMemory = Muted($"{Ui("设备总内存")}: {memory.TotalAvailableMemoryBytes / 1024 / 1024:N0} MB · CPU {Environment.ProcessorCount} {Ui("核")}");
+            var systemMemory = Muted($"{Ui("System memory")}: {memory.TotalAvailableMemoryBytes / 1024 / 1024:N0} MB · CPU {Environment.ProcessorCount} {Ui("cores")}");
             stack.Children.Add(processMemory); stack.Children.Add(systemMemory);
-            stack.Children.Add(Action("刷新", (_, _) => { process.Refresh(); var latest = GC.GetGCMemoryInfo(); processMemory.Text = $"{Ui("启动器内存")}: {process.WorkingSet64 / 1024 / 1024:N0} MB"; systemMemory.Text = $"{Ui("设备总内存")}: {latest.TotalAvailableMemoryBytes / 1024 / 1024:N0} MB · CPU {Environment.ProcessorCount} {Ui("核")}"; }));
+            stack.Children.Add(Action("刷新", (_, _) => { process.Refresh(); var latest = GC.GetGCMemoryInfo(); processMemory.Text = $"{Ui("Launcher memory")}: {process.WorkingSet64 / 1024 / 1024:N0} MB"; systemMemory.Text = $"{Ui("System memory")}: {latest.TotalAvailableMemoryBytes / 1024 / 1024:N0} MB · CPU {Environment.ProcessorCount} {Ui("cores")}"; }));
         }
-        else if (placement.Id == "note") { stack.Children.Add(Text("笔记", 18, true)); var note = new TextBox { Text = store.Config.Settings.HomeNote, AcceptsReturn = true, TextWrapping = TextWrapping.Wrap, MinHeight = 80, PlaceholderText = Ui("记录一些内容…") }; note.LostFocus += async (_, _) => { store.Config.Settings.HomeNote = note.Text; await SaveHomeLayout(); }; stack.Children.Add(note); }
+        else if (placement.Id == "note") { stack.Children.Add(Text("笔记", 18, true)); var note = new TextBox { Text = store.Config.Settings.HomeNote, AcceptsReturn = true, TextWrapping = TextWrapping.Wrap, MinHeight = 80, PlaceholderText = Ui("Write a note…") }; note.LostFocus += async (_, _) => { store.Config.Settings.HomeNote = note.Text; await SaveHomeLayout(); }; stack.Children.Add(note); }
         else if (placement.Id == "news")
         {
             stack.Children.Add(Text("Minecraft 新闻", 18, true)); stack.Children.Add(Muted("浏览 Minecraft 官方新闻与更新动态。"));
@@ -181,7 +181,7 @@ public sealed partial class MainWindow
         PageBody.Children.Add(Text(instance.Name, 18, true));
         PageBody.Children.Add(Text($"Minecraft {instance.GameVersion} · {LoaderCategory(instance.Loader)}", 14, true));
         if (instance.Description.Length > 0) PageBody.Children.Add(Text(instance.Description, 13));
-        PageBody.Children.Add(Buttons(Action("编辑名称、描述与图标", async (_, _) => await EditInstance()), Action("打开目录", (_, _) => OpenFolder(store.GameDirectory(instance))), Action("全部版本", (_, _) => { page = "instances"; Render(); }), Action(Ui("删除版本", "Delete version"), async (sender, _) => await ConfirmDeleteInstance(instance, (FrameworkElement)sender))));
+        PageBody.Children.Add(Buttons(Action("编辑名称、描述与图标", async (_, _) => await EditInstance()), Action("打开目录", (_, _) => OpenFolder(store.GameDirectory(instance))), Action("全部版本", (_, _) => { page = "instances"; Render(); }), Action(Ui("Delete version"), async (sender, _) => await ConfirmDeleteInstance(instance, (FrameworkElement)sender))));
         InstanceFiles(instance, false);
 
         async Task DiscoverSchematics()
@@ -192,7 +192,7 @@ public sealed partial class MainWindow
             if (generation != renderVersion || selected != instance || !ReferenceEquals(body, PageBody)) return;
             if (directory != null)
             {
-                tabs.Children.Add(Action(Ui("投影管理", "Schematics"), (_, _) => { kind = "schematics"; Render(); }, kind == "schematics"));
+                tabs.Children.Add(Action(Ui("Schematics"), (_, _) => { kind = "schematics"; Render(); }, kind == "schematics"));
                 if (pendingSchematics != null)
                 {
                     body.Children.Remove(pendingSchematics);

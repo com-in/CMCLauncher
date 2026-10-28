@@ -1,4 +1,4 @@
-using Microsoft.UI.Xaml;
+﻿using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Windows.Storage.Pickers;
 using WinRT.Interop;
@@ -14,22 +14,22 @@ public sealed partial class MainWindow
 
     void Schematics(Instance instance, string directory)
     {
-        var search = new TextBox { PlaceholderText = Ui("搜索投影文件", "Search schematic files"), Text = schematicQuery, Tag = "schematic-search" };
+        var search = new TextBox { PlaceholderText = Ui("Search schematic files"), Text = schematicQuery, Tag = "schematic-search" };
         var rows = new StackPanel { Spacing = 8 };
-        var status = Text(Ui("正在读取投影文件…", "Loading schematics…"), 12);
+        var status = Text(Ui("Loading schematics…"), 12);
         PageBody.Children.Add(Buttons(
-            Action(Ui("导入投影", "Import schematics"), async (_, _) =>
+            Action(Ui("Import schematics"), async (_, _) =>
             {
                 var picker = new FileOpenPicker(); InitializeWithWindow.Initialize(picker, WindowNative.GetWindowHandle(this));
                 foreach (var extension in SchematicManager.Extensions) picker.FileTypeFilter.Add(extension);
                 var files = await picker.PickMultipleFilesAsync(); if (files.Count == 0) return;
-                await Run(ct => SchematicManager.Import(directory, files.Select(f => f.Path).ToArray(), ct), Ui("导入投影", "Import schematics"));
+                await Run(ct => SchematicManager.Import(directory, files.Select(f => f.Path).ToArray(), ct), Ui("Import schematics"));
                 Render();
             }, true),
-            Action(Ui("打开投影文件夹", "Open schematics folder"), (_, _) => OpenFolder(directory)),
+            Action(Ui("Open schematics folder"), (_, _) => OpenFolder(directory)),
             Action("刷新", (_, _) => Render())));
         PageBody.Children.Add(search);
-        PageBody.Children.Add(Text(Ui("支持 .litematic、.schematic、.schem 和机械动力 .nbt 蓝图，保留原文件格式。", "Supports .litematic, .schematic, .schem, and Create .nbt blueprints without converting formats."), 12));
+        PageBody.Children.Add(Text(Ui("Supports .litematic, .schematic, .schem, and Create .nbt blueprints without converting formats."), 12));
         PageBody.Children.Add(status); PageBody.Children.Add(rows);
         var generation = renderVersion;
         var queryVersion = 0;
@@ -44,8 +44,8 @@ public sealed partial class MainWindow
                 if (generation != renderVersion || revision != queryVersion) return;
                 rows.Children.Clear();
                 var filtered = files.Where(f => f.RelativePath.Contains(schematicQuery, StringComparison.OrdinalIgnoreCase)).ToArray();
-                status.Text = Ui($"共 {files.Count} 个投影，显示 {filtered.Length} 个", $"{files.Count} schematics · {filtered.Length} shown");
-                if (filtered.Length == 0) rows.Children.Add(Text(Ui("没有匹配的投影文件。", "No matching schematic files."), 13));
+                status.Text = UiFormat("{0} schematics · {1} shown", files.Count, filtered.Length);
+                if (filtered.Length == 0) rows.Children.Add(Text(Ui("No matching schematic files."), 13));
                 var folders = new Dictionary<string, StackPanel>(StringComparer.OrdinalIgnoreCase) { [""] = rows };
                 StackPanel Folder(string path)
                 {
@@ -69,25 +69,25 @@ public sealed partial class MainWindow
                     ToolTipService.SetToolTip(name, file.RelativePath);
                     var detail = new StackPanel { Spacing = 0, VerticalAlignment = VerticalAlignment.Center, Children = { name, Text($"{Path.GetExtension(file.RelativePath).ToUpperInvariant()} · {file.Size / 1024d:N1} KB · {file.ModifiedUtc.ToLocalTime():yyyy-MM-dd HH:mm}", 12) } };
                     var actions = Buttons(
-                        Action(Ui("导出", "Export"), async (_, _) =>
+                        Action(Ui("Export"), async (_, _) =>
                         {
                             var picker = new FileSavePicker(); InitializeWithWindow.Initialize(picker, WindowNative.GetWindowHandle(this));
-                            picker.FileTypeChoices.Add(Ui("投影文件", "Schematic file"), [Path.GetExtension(file.RelativePath)]);
+                            picker.FileTypeChoices.Add(Ui("Schematic file"), [Path.GetExtension(file.RelativePath)]);
                             picker.SuggestedFileName = Path.GetFileNameWithoutExtension(file.RelativePath);
                             var output = await picker.PickSaveFileAsync(); if (output == null) return;
-                            await Run(ct => SchematicManager.Export(directory, file.RelativePath, output.Path, ct), Ui("导出投影", "Export schematic"));
+                            await Run(ct => SchematicManager.Export(directory, file.RelativePath, output.Path, ct), Ui("Export schematic"));
                         }),
-                        Action(Ui("重命名", "Rename"), async (sender, _) =>
+                        Action(Ui("Rename"), async (sender, _) =>
                         {
-                            var input = new TextBox { Header = Ui("文件名（不含扩展名）", "File name (without extension)"), Text = Path.GetFileNameWithoutExtension(file.RelativePath), MaxLength = 160 };
-                            if (!await ConfirmPop((FrameworkElement)sender, Ui("重命名投影", "Rename schematic"), input, Ui("保存", "Save"))) return;
-                            await Run(_ => { SchematicManager.Rename(directory, file.RelativePath, input.Text); return Task.CompletedTask; }, Ui("重命名投影", "Rename schematic"));
+                            var input = new TextBox { Header = Ui("File name (without extension)"), Text = Path.GetFileNameWithoutExtension(file.RelativePath), MaxLength = 160 };
+                            if (!await ConfirmPop((FrameworkElement)sender, Ui("Rename schematic"), input, Ui("Save"))) return;
+                            await Run(_ => { SchematicManager.Rename(directory, file.RelativePath, input.Text); return Task.CompletedTask; }, Ui("Rename schematic"));
                             Render();
                         }),
-                        Action(Ui("删除", "Delete"), async (sender, _) =>
+                        Action(Ui("Delete"), async (sender, _) =>
                         {
-                            if (!await ConfirmPop((FrameworkElement)sender, Ui("移到回收站？", "Move to Recycle Bin?"), file.RelativePath, Ui("移到回收站", "Move to Recycle Bin"))) return;
-                            await Run(_ => { RecyclePath(SchematicManager.ExistingFile(directory, file.RelativePath)); return Task.CompletedTask; }, Ui("删除投影", "Delete schematic"));
+                            if (!await ConfirmPop((FrameworkElement)sender, Ui("Move to Recycle Bin?"), file.RelativePath, Ui("Move to Recycle Bin"))) return;
+                            await Run(_ => { RecyclePath(SchematicManager.ExistingFile(directory, file.RelativePath)); return Task.CompletedTask; }, Ui("Delete schematic"));
                             Render();
                         }));
                     actions.VerticalAlignment = VerticalAlignment.Center;
@@ -103,7 +103,7 @@ public sealed partial class MainWindow
                     await Task.Yield();
                 }
             }
-            catch (Exception ex) { if (generation == renderVersion && revision == queryVersion) status.Text = Ui("读取投影失败：", "Could not load schematics: ") + ex.Message; }
+            catch (Exception ex) { if (generation == renderVersion && revision == queryVersion) status.Text = Ui("Could not load schematics: ") + ex.Message; }
         }
         search.TextChanged += (_, _) => { schematicQuery = search.Text.Trim(); schematicLoad = Load(); };
         schematicLoad = Load();

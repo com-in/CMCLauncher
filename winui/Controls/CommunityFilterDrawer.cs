@@ -1,4 +1,4 @@
-using Microsoft.UI.Xaml;
+﻿using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 
@@ -48,12 +48,12 @@ public sealed partial class MainWindow
         communityFilterReturnFocus = opener; communityFilterGeneration = renderVersion;
         CommunityFilterDrawerBody.Content = content;
         CommunityFilterDrawerScroll.ChangeView(null, 0, null, true);
-        CommunityFilterDrawerTitle.Text = Ui("更多筛选", "More filters");
-        CommunityFilterDrawerHint.Text = Ui("组合条件，缩小资源范围。", "Combine filters to narrow down resources.");
-        CommunityFilterResetButton.Content = Ui("重置", "Reset");
-        CommunityFilterApplyButton.Content = Ui("应用筛选", "Apply filters");
-        ToolTipService.SetToolTip(CommunityFilterCloseButton, Ui("关闭筛选", "Close filters"));
-        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(CommunityFilterCloseButton, Ui("关闭筛选", "Close filters"));
+        CommunityFilterDrawerTitle.Text = Ui("More filters");
+        CommunityFilterDrawerHint.Text = Ui("Combine filters to narrow down resources.");
+        CommunityFilterResetButton.Content = Ui("Reset");
+        CommunityFilterApplyButton.Content = Ui("Apply filters");
+        ToolTipService.SetToolTip(CommunityFilterCloseButton, Ui("Close filters"));
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(CommunityFilterCloseButton, Ui("Close filters"));
         UpdateCommunityFilterDrawerWidth();
         communityFilterCloseRequested = false;
         CommunityFilterDrawer.IsPaneOpen = true;

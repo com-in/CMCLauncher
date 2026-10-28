@@ -31,6 +31,9 @@
     <DefineConstants Condition="'$(PublishSingleFile)' == 'true'">$(DefineConstants);SINGLE_FILE</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
+    <Content Include="locales/*.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <EmbeddedResource Include="locales/*.json" LogicalName="CMCLauncher.Locales.%(Filename).json" />
+    <Compile Include="../native/LocalizationCatalog.cs" Link="Core/LocalizationCatalog.cs" />
     <EmbeddedResource Include="clientid.local.json" LogicalName="CMCLauncher.MicrosoftClient" Condition="Exists('clientid.local.json')" />
     <Content Update="assets/cmc-logo.png" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <Content Update="assets/grass-block.png" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
@@ -46,6 +49,8 @@
     <Compile Include="../native/LauncherCore.cs" Link="Core/LauncherCore.cs" />
     <Compile Include="../native/CertificatePolicy.cs" Link="Core/CertificatePolicy.cs" />
     <Compile Include="../native/SchematicManager.cs" Link="Core/SchematicManager.cs" />
+    <Compile Include="../native/FrpcManager.cs" Link="Core/FrpcManager.cs" />
+    <Compile Include="../native/FrpcConfigurations.cs" Link="Core/FrpcConfigurations.cs" />
     <Compile Include="../native/ContentManager.cs" Link="Core/ContentManager.cs" />
     <Compile Include="../native/ModrinthService.cs" Link="Core/ModrinthService.cs" />
     <Compile Include="../native/CurseForgeService.cs" Link="Core/CurseForgeService.cs" />

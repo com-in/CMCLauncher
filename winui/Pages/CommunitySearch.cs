@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using Microsoft.UI;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
@@ -33,18 +33,18 @@ public sealed partial class MainWindow
         Header(preset switch { "modpack" => "下载整合包", "resourcepack" => "下载资源包", "datapack" => "下载数据包", "shader" => "下载光影包", _ => "下载 Mod" }, "");
         var state = communityBrowseStates.GetValueOrDefault(preset) ?? new("", 0);
         var filters = BuildCommunityFilters(preset, state.Filters ?? new());
-        var query = new TextBox { PlaceholderText = Ui("搜索社区内容", "Search community content"), Text = state.Query, Tag = "community-query", HorizontalAlignment = HorizontalAlignment.Stretch };
+        var query = new TextBox { PlaceholderText = Ui("Search community content"), Text = state.Query, Tag = "community-query", HorizontalAlignment = HorizontalAlignment.Stretch };
         var results = new StackPanel { Spacing = 10 };
         var heading = Text("", 12, true);
         var status = Text("", 12);
         var pageLabel = Text("", 12); pageLabel.VerticalAlignment = VerticalAlignment.Center;
-        var previous = new Button { Content = Ui("上一页", "Previous"), Tag = "community-previous", IsEnabled = false };
-        var next = new Button { Content = Ui("下一页", "Next"), Tag = "community-next", IsEnabled = false };
+        var previous = new Button { Content = Ui("Previous"), Tag = "community-previous", IsEnabled = false };
+        var next = new Button { Content = Ui("Next"), Tag = "community-next", IsEnabled = false };
         var pageInput = new TextBox { Width = 72, MaxLength = 10, Text = "1", Tag = "community-page-input", IsEnabled = false };
-        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(pageInput, Ui("跳转页码", "Page number"));
-        var jump = new Button { Content = Ui("跳转", "Go"), Tag = "community-jump", IsEnabled = false };
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(pageInput, Ui("Page number"));
+        var jump = new Button { Content = Ui("Go"), Tag = "community-jump", IsEnabled = false };
         var pageError = Text("", 12); pageError.Tag = "community-page-error"; pageError.Visibility = Visibility.Collapsed;
-        var retry = new Button { Content = Ui("重试", "Retry"), Tag = "community-retry", Visibility = Visibility.Collapsed };
+        var retry = new Button { Content = Ui("Retry"), Tag = "community-retry", Visibility = Visibility.Collapsed };
         var navigation = new Grid { ColumnSpacing = 8, HorizontalAlignment = HorizontalAlignment.Left };
         navigation.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         navigation.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
@@ -75,8 +75,8 @@ public sealed partial class MainWindow
             pageInput.IsEnabled = jump.IsEnabled = !loading && hasLoaded && total > 0;
             pageInput.Text = (state.Page + 1).ToString(System.Globalization.CultureInfo.InvariantCulture);
             pageLabel.Text = hasLoaded
-                ? Ui($"第 {state.Page + 1} / {Math.Max(1, (int)Math.Ceiling(total / (double)CommunityPageSize))} 页", $"Page {state.Page + 1} of {Math.Max(1, (int)Math.Ceiling(total / (double)CommunityPageSize))}")
-                : Ui($"第 {state.Page + 1} 页", $"Page {state.Page + 1}");
+                ? UiFormat("Page {0} of {1}", state.Page + 1, Math.Max(1, (int)Math.Ceiling(total / (double)CommunityPageSize)))
+                : UiFormat("Page {0}", state.Page + 1);
         }
         Task BeginLoad(int targetPage, string term, CommunitySearchFilters? selectedFilters = null) => communityLoad = LoadResources(targetPage, term, selectedFilters ?? state.Filters ?? new());
         async Task JumpToPage()
@@ -85,7 +85,7 @@ public sealed partial class MainWindow
             var pageCount = Math.Max(1, (int)Math.Ceiling(total / (double)CommunityPageSize));
             if (!int.TryParse(pageInput.Text.Trim(), System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var number) || number < 1 || number > pageCount)
             {
-                pageError.Text = Ui($"请输入 1–{pageCount} 之间的整数页码。", $"Enter a whole page number from 1 to {pageCount}.");
+                pageError.Text = UiFormat("Enter a whole page number from 1 to {0}.", pageCount);
                 pageError.Visibility = Visibility.Visible;
                 return;
             }
@@ -120,7 +120,7 @@ public sealed partial class MainWindow
                 foreach (var button in resultButtons) taskButtons.Remove(button);
                 resultButtons.Clear();
                 results.Children.Clear();
-                heading.Text = (string.IsNullOrWhiteSpace(term) && selectedFilters.Sort is not ("" or "downloads") ? Ui("社区资源", "Community resources") : Ui(string.IsNullOrWhiteSpace(term) ? "下载量排行" : "搜索结果")) + Ui($" · 共 {total:N0} 项", $" · {total:N0} results");
+                heading.Text = (string.IsNullOrWhiteSpace(term) && selectedFilters.Sort is not ("" or "downloads") ? Ui("context.communitysearch.community_resources") : Ui(string.IsNullOrWhiteSpace(term) ? "下载量排行" : "搜索结果")) + UiFormat(" · {0:N0} results", total);
                 status.Text = "";
                 status.Visibility = Visibility.Collapsed;
                 if (response.Hits.Count == 0) results.Children.Add(Text("没有找到匹配的内容"));
@@ -159,11 +159,11 @@ public sealed partial class MainWindow
             }
             catch (OperationCanceledException)
             {
-                if (version == renderVersion && requestId == requestVersion) { status.Text = Ui("加载超时，请重试。", "Loading timed out. Try again."); retry.Visibility = Visibility.Visible; }
+                if (version == renderVersion && requestId == requestVersion) { status.Text = Ui("context.communitysearch.loading_timed_out_try_again"); retry.Visibility = Visibility.Visible; }
             }
             catch (Exception ex)
             {
-                if (version == renderVersion && requestId == requestVersion) { status.Text = Ui("加载失败：", "Failed to load: ") + ex.Message; retry.Visibility = Visibility.Visible; }
+                if (version == renderVersion && requestId == requestVersion) { status.Text = Ui("Failed to load: ") + ex.Message; retry.Visibility = Visibility.Visible; }
             }
             finally
             {
@@ -188,7 +188,7 @@ public sealed partial class MainWindow
             if (args.Key != Windows.System.VirtualKey.Enter) return;
             args.Handled = true; await BeginLoad(0, query.Text.Trim(), filters.Read());
         };
-        var reset = new Button { Content = Ui("重置筛选", "Reset filters"), Tag = "community-filter-reset" };
+        var reset = new Button { Content = Ui("Reset filters"), Tag = "community-filter-reset" };
         reset.Click += async (_, _) => { filters.Reset(); await BeginLoad(0, query.Text.Trim(), filters.Read()); };
         var searchRow = new Grid { ColumnSpacing = 8 };
         searchRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });

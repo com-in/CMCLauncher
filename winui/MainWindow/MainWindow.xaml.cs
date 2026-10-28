@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using Microsoft.UI;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
@@ -60,12 +60,12 @@ public sealed partial class MainWindow : Window
         ModpackDropRoot.AddHandler(UIElement.DropEvent, new DragEventHandler(Modpack_Drop), true);
         TaskDrawer.RegisterPropertyChangedCallback(SplitView.IsPaneOpenProperty, (_, _) => SyncTaskDrawerOverlay());
         TaskDrawer.SizeChanged += (_, _) => ApplyPersonalization();
-        TaskDrawerTitle.Text = Ui("进行中的任务", "Tasks in progress");
-        TaskManagerLabel.Text = Ui("任务", "Tasks");
+        TaskDrawerTitle.Text = Ui("Tasks in progress");
+        TaskManagerLabel.Text = Ui("Tasks");
         PageTitle.Text = Ui(PageTitle.Text);
         PageSubtitle.Text = Ui(PageSubtitle.Text);
-        ToolTipService.SetToolTip(TaskDrawerBackButton, Ui("返回", "Back"));
-        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(TaskDrawerBackButton, Ui("返回", "Back"));
+        ToolTipService.SetToolTip(TaskDrawerBackButton, Ui("Back"));
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(TaskDrawerBackButton, Ui("Back"));
         ExtendsContentIntoTitleBar = true;
         SetTitleBar(CustomTitleBar);
         CustomTitleBar.SizeChanged += (_, _) => UpdateTitleBarInset();
@@ -80,7 +80,7 @@ public sealed partial class MainWindow : Window
         Title = "CMCLauncher";
         TitleIcon.Source = new BitmapImage(new Uri(Path.Combine(AppContext.BaseDirectory, "assets", "cmc-logo.png")));
         AppWindow.SetIcon(Path.Combine(AppContext.BaseDirectory, "assets", "cmc-logo.ico"));
-        core = new LauncherCore(store); modrinth = new ModrinthService(core, store); auth = new MicrosoftAuth(core);
+        core = new LauncherCore(store); InitializeFrpc(args.Length == 2 && args[0] == "--verify-ui" ? Path.Combine(Path.GetFullPath(args[1]), "program", "frpc", "configs") : null); modrinth = new ModrinthService(core, store); auth = new MicrosoftAuth(core);
         fetchVersions = ct => core.VersionCatalog(ct);
         fetchDownloadLoaderBuilds = core.LoaderBuilds;
         fetchProject = modrinth.ProjectDetails;
@@ -128,11 +128,16 @@ public sealed partial class MainWindow : Window
     void RuntimeLogWritten(string line) => DispatcherQueue.TryEnqueue(() =>
     {
         logs.Enqueue(line); while (logs.Count > 1000) logs.Dequeue();
-        if (page == "logs" && logView != null) logView.Text = string.Join(Environment.NewLine, logs);
+        if (page == "logs" && logView != null)
+        {
+            var text = logView.Text + Environment.NewLine + line;
+            logView.Text = text.Length > 250_000 ? text[^250_000..] : text;
+        }
     });
     // 切换界面语言后需重建导航栏和所有文本
     internal async Task SwitchLanguage(string lang)
     {
+        localization.Reload();
         store.Config.Settings.LauncherLanguage = lang;
         await store.Save();
         LocalizeStaticChrome();

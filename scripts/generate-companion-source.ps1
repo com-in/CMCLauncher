@@ -29,6 +29,10 @@ if (Test-Path $TargetDir) {
     if (Test-Path $langDir) {
         foreach ($f in Get-ChildItem -LiteralPath $langDir -File -Recurse -ErrorAction SilentlyContinue) { $files.Add($f) }
     }
+    $localeDir = Join-Path $TargetDir "locales"
+    if (Test-Path $localeDir) {
+        foreach ($f in Get-ChildItem -LiteralPath $localeDir -File -Filter '*.json') { $files.Add($f) }
+    }
     $msDir = Join-Path $TargetDir "Microsoft.UI.Xaml"
     if (Test-Path $msDir) {
         foreach ($f in Get-ChildItem -LiteralPath $msDir -File -Recurse -ErrorAction SilentlyContinue) { $files.Add($f) }

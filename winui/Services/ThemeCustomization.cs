@@ -1,4 +1,4 @@
-// 控件传入的是基础配色的 hex，实际显示什么颜色由 PaletteColor 决定。
+﻿// 控件传入的是基础配色的 hex，实际显示什么颜色由 PaletteColor 决定。
 // 清新绿的深色模式、浅湖青和樱花粉查替换表，原生和自定义配色按颜色用途取值。
 // 加预设时，除了替换表，还要改 PaletteColor 的分支和 ThemeEditor 的选项、索引、
 // 编辑器显隐及默认值重置条件。Personalization.cs 的恢复索引和导入校验也要一起改，
@@ -319,19 +319,16 @@ public sealed partial class MainWindow
     UIElement ThemeEditor(System.Action? defaultsChanged = null)
     {
         var panel = new StackPanel { Spacing = 12 };
-        var english = store.Config.Settings.LauncherLanguage == "en_us";
-        var preset = new BelowComboBox { Header = english ? "Preset" : "预设", ItemsSource = english ? new[] { "WinUI3 native", "Fresh green",  "Lake Cyan", "Sakura", "Custom" } : new[] { "WinUI3 原生", "清新绿", "浅湖青", "樱花粉", "自定义" }, SelectedIndex = ColorPresetIndex(store.Config.Settings.ColorPreset), HorizontalAlignment = HorizontalAlignment.Stretch };
+        var preset = new BelowComboBox { Header = Ui("Preset"), ItemsSource = new[] { Ui("WinUI3 native"), Ui("Fresh green"), Ui("Lake Cyan"), Ui("Sakura"), Ui("Custom") }, SelectedIndex = ColorPresetIndex(store.Config.Settings.ColorPreset), HorizontalAlignment = HorizontalAlignment.Stretch };
         var editor = new StackPanel { Spacing = 10, Visibility = preset.SelectedIndex == ColorPresetIndex("custom") ? Visibility.Visible : Visibility.Collapsed };
-        var mode = new BelowComboBox { Header = english ? "Edit colors" : "编辑配色", ItemsSource = english ? new[] { "Light", "Dark" } : new[] { "浅色", "深色" }, SelectedIndex = lightTheme ? 0 : 1 };
+        var mode = new BelowComboBox { Header = Ui("Edit colors"), ItemsSource = new[] { Ui("Light"), Ui("Dark") }, SelectedIndex = lightTheme ? 0 : 1 };
         var swatches = new StackPanel { Spacing = 8 };
         void BuildSwatches()
         {
             // 切换编辑模式时重建色板，让每个 ColorChanged 回调写入对应的那套字典。
             swatches.Children.Clear();
             var colors = mode.SelectedIndex == 0 ? store.Config.Settings.CustomLightColors : store.Config.Settings.CustomDarkColors;
-            foreach (var (role, label) in english
-                ? new[] { ("background", "Background"), ("sidebar", "Sidebar"), ("surface", "Surface"), ("text", "Text"), ("muted", "Secondary text"), ("border", "Border"), ("accent", "Accent") }
-                : new[] { ("background", "背景"), ("sidebar", "侧栏"), ("surface", "卡片"), ("text", "正文"), ("muted", "次要文字"), ("border", "边框"), ("accent", "强调色") })
+            foreach (var (role, label) in new[] { ("background", Ui("Background")), ("sidebar", Ui("Sidebar")), ("surface", Ui("Surface")), ("text", Ui("Text")), ("muted", Ui("Secondary text")), ("border", Ui("Border")), ("accent", Ui("Accent")) })
             {
                 var defaults = PaletteDefaults[role]; var fallback = mode.SelectedIndex == 0 ? defaults.Light : defaults.Dark;
                 var value = colors.GetValueOrDefault(role, fallback);

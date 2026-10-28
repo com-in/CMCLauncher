@@ -1,4 +1,4 @@
-using CMCLauncher;
+﻿using CMCLauncher;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Windows.Storage.Pickers;
@@ -26,7 +26,7 @@ public sealed class JavaSettingsPage : CMCPage
                 var picker = new FolderPicker(); InitializeWithWindow.Initialize(picker, WindowNative.GetWindowHandle(Window)); picker.FileTypeFilter.Add("*");
                 var folder = await picker.PickSingleFolderAsync(); if (folder != null) await ScanJava(folder.Path);
             })));
-        var versions = new BelowComboBox { Header = Ui("下载 Temurin Java（Windows x64）", "Download Temurin Java (Windows x64)"), ItemsSource = new[] { 8, 11, 17, 21, 25 }, SelectedItem = 21, Width = 260 };
+        var versions = new BelowComboBox { Header = Ui("Download Temurin Java (Windows x64)"), ItemsSource = new[] { 8, 11, 17, 21, 25 }, SelectedItem = 21, Width = 260 };
         PageBody.Children.Add(versions);
         var automaticRow = Buttons(Action("下载 Java", async (_, _) =>
         {
@@ -42,7 +42,7 @@ public sealed class JavaSettingsPage : CMCPage
         }));
         PageBody.Children.Add(automaticRow);
         if (!string.IsNullOrWhiteSpace(settings.JavaPath) && !settings.JavaInstallations.Any(j => string.Equals(j.Path, settings.JavaPath, StringComparison.OrdinalIgnoreCase)))
-            PageBody.Children.Add(Text(Store.Config.Settings.LauncherLanguage == "en_us" ? "Manual Java setting: " + settings.JavaPath + " (import it for full details)" : "当前手动配置：" + settings.JavaPath + "（导入后可识别详细信息）", 12));
+            PageBody.Children.Add(Text(UiFormat("Manual Java setting: {0} (import it for full details)", settings.JavaPath), 12));
         if (settings.JavaInstallations.Count == 0) PageBody.Children.Add(Text("尚未添加 Java，可导入或扫描本机安装。", 13));
         foreach (var java in settings.JavaInstallations.OrderByDescending(j => j.Major).ThenBy(j => j.Vendor))
         {
@@ -50,7 +50,7 @@ public sealed class JavaSettingsPage : CMCPage
             panel.Children.Add(Text($"Java {java.Version} · {java.Vendor}", 14, true));
             panel.Children.Add(Text(java.Architecture + " · " + java.Path, 12));
             if (!File.Exists(java.Path)) panel.Children.Add(Text("文件不存在，请重新导入或移除记录。", 12));
-            panel.Children.Add(Action("从列表移除", async (sender, _) => { if (!await Window.ConfirmPop((FrameworkElement)sender, Ui("移除 Java 记录？", "Remove Java entry?"), java.Path, Ui("移除", "Remove"))) return; JavaManager.Remove(settings, java); await Store.Save(); Window.ShowToast(Ui("Java 记录已移除", "Java entry removed")); Render(); }));
+            panel.Children.Add(Action("从列表移除", async (sender, _) => { if (!await Window.ConfirmPop((FrameworkElement)sender, Ui("Remove Java entry?"), java.Path, Ui("Remove"))) return; JavaManager.Remove(settings, java); await Store.Save(); Window.ShowToast(Ui("Java entry removed")); Render(); }));
             PageBody.Children.Add(CompactCard(panel));
         }
     }

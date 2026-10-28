@@ -1,4 +1,4 @@
-using Microsoft.UI.Xaml;
+﻿using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 
 namespace CMCLauncher.WinUI;
@@ -25,11 +25,11 @@ public sealed partial class MainWindow
         var disclosures = new List<CheckBox>();
         var allCombos = new List<ComboBox>();
         var advancedFields = new List<TextBox>();
-        ComboBox Choice(string zh, string en, string tag, IEnumerable<FilterChoice> choices, string selected)
+        ComboBox Choice(string zh, string tag, IEnumerable<FilterChoice> choices, string selected)
         {
-            var combo = new BelowComboBox { Header = Ui(zh, en), Tag = tag, HorizontalAlignment = HorizontalAlignment.Stretch, MinWidth = 0, Padding = new Thickness(12, 8, 12, 8), IsTextSearchEnabled = true };
+            var combo = new BelowComboBox { Header = Ui(zh), Tag = tag, HorizontalAlignment = HorizontalAlignment.Stretch, MinWidth = 0, Padding = new Thickness(12, 8, 12, 8), IsTextSearchEnabled = true };
             combo.Resources["ComboBoxThemeMinWidth"] = 0d;
-            combo.Items.Add(new FilterChoice("", Ui("全部", "Any")));
+            combo.Items.Add(new FilterChoice("", Ui("context.communityfilters.any")));
             foreach (var value in choices) combo.Items.Add(value);
             if (selected.Length > 0 && !combo.Items.OfType<FilterChoice>().Any(c => c.Value == selected))
                 combo.Items.Add(new FilterChoice(selected, selected));
@@ -38,12 +38,12 @@ public sealed partial class MainWindow
             return combo;
         }
         static string Value(ComboBox combo) => (combo.SelectedItem as FilterChoice)?.Value ?? "";
-        IEnumerable<FilterChoice> Values(params (string Id, string Zh, string En)[] entries) => entries.Select(e => new FilterChoice(e.Id, Ui(e.Zh, e.En)));
+        IEnumerable<FilterChoice> Values(params (string Id, string Key)[] entries) => entries.Select(e => new FilterChoice(e.Id, Ui(e.Key)));
 
-        var version = Choice("游戏版本", "Game version", "community-filter-version", [], initial.GameVersion);
-        CheckBox VersionToggle(string zh, string en, string tag, bool enabled)
+        var version = Choice("游戏版本", "community-filter-version", [], initial.GameVersion);
+        CheckBox VersionToggle(string zh, string tag, bool enabled)
         {
-            var label = Ui(zh, en);
+            var label = Ui(zh);
             var toggle = new CheckBox
             {
                 Content = new TextBlock { Text = label, TextWrapping = TextWrapping.Wrap, Tag = tag + "-label" },
@@ -54,11 +54,11 @@ public sealed partial class MainWindow
             var caption = (TextBlock)toggle.Content;
             caption.Tapped += (_, args) => { if (toggle.Content == null && toggle.IsEnabled) { toggle.IsChecked = toggle.IsChecked != true; args.Handled = true; } };
             Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(toggle, label);
-            ToolTipService.SetToolTip(toggle, Ui("控制版本下拉列表中的选项；选择具体版本后点击搜索。", "Changes the versions shown in the dropdown. Select a version and search to filter resources."));
+            ToolTipService.SetToolTip(toggle, Ui("Changes the versions shown in the dropdown. Select a version and search to filter resources."));
             return toggle;
         }
-        var showSnapshots = VersionToggle("显示快照版", "Show snapshots", "community-filter-snapshots", initial.ShowSnapshots);
-        var showAprilFools = VersionToggle("显示愚人节版", "Show April Fools", "community-filter-april-fools",
+        var showSnapshots = VersionToggle("显示快照版", "community-filter-snapshots", initial.ShowSnapshots);
+        var showAprilFools = VersionToggle("显示愚人节版", "community-filter-april-fools",
             initial.ShowAprilFools || GameRelease.IsAprilFoolsVersion(initial.GameVersion));
         var versionOptions = new Grid { ColumnSpacing = 12, Tag = "community-version-options" };
         versionOptions.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
@@ -103,14 +103,14 @@ public sealed partial class MainWindow
                 }
             }
         };
-        var loader = Choice(type == "shader" ? "光影加载器" : "加载器", type == "shader" ? "Shader loader" : "Mod loader", "community-filter-loader", [], initial.Loader);
+        var loader = Choice(type == "shader" ? "光影加载器" : "加载器", "community-filter-loader", [], initial.Loader);
         fields.Add(version);
         if (type is "mod" or "modpack" or "shader") fields.Add(loader);
-        var sort = Choice("排序", "Sort by", "community-filter-sort", Values(
-            ("relevance", "相关度", "Relevance"), ("downloads", "下载量", "Downloads"), ("follows", "关注数", "Followers"),
-            ("newest", "最新发布", "Newest"), ("updated", "最近更新", "Recently updated")), initial.Sort);
-        sort.Items[0] = new FilterChoice("", Ui("自动", "Automatic"));
-        ToolTipService.SetToolTip(sort, Ui("自动排序：榜单按下载量，关键词搜索按相关度。", "Automatic sorting uses downloads for browsing and relevance for keyword searches."));
+        var sort = Choice("排序", "community-filter-sort", Values(
+            ("relevance", "相关度"), ("downloads", "下载量"), ("follows", "关注数"),
+            ("newest", "最新发布"), ("updated", "最近更新")), initial.Sort);
+        sort.Items[0] = new FilterChoice("", Ui("Automatic"));
+        ToolTipService.SetToolTip(sort, Ui("Automatic sorting uses downloads for browsing and relevance for keyword searches."));
         if (initial.Sort.Length == 0) sort.SelectedIndex = 0;
         fields.Add(sort);
         root.Children.Add(basic);
@@ -129,8 +129,8 @@ public sealed partial class MainWindow
             for (var i = 0; i < fields.Count; i++) { Grid.SetRow(fields[i], i / columns); Grid.SetColumn(fields[i], i % columns); basic.Children.Add(fields[i]); }
         }
         LayoutFields();
-        var metadataStatus = Text(Ui("正在获取筛选选项…", "Loading filter options…"), 12);
-        var metadataRetry = new Button { Content = Ui("重试筛选选项", "Retry filter options"), Tag = "community-filter-retry", Visibility = Visibility.Collapsed };
+        var metadataStatus = Text(Ui("Loading filter options…"), 12);
+        var metadataRetry = new Button { Content = Ui("Retry filter options"), Tag = "community-filter-retry", Visibility = Visibility.Collapsed };
         root.Children.Add(metadataStatus); root.Children.Add(metadataRetry);
 
         var advanced = new StackPanel { Spacing = 14, Tag = "community-advanced-body" };
@@ -157,9 +157,9 @@ public sealed partial class MainWindow
             grid.SizeChanged += (_, _) => Arrange(); Arrange();
             return grid;
         }
-        Border Section(string zh, string en, UIElement content)
+        Border Section(string zh, UIElement content)
         {
-            var label = Text(Ui(zh, en), 14, true); label.Foreground = ComboTextBrush;
+            var label = Text(Ui(zh), 14, true); label.Foreground = ComboTextBrush;
             return new Border
             {
                 Padding = new Thickness(14), CornerRadius = new CornerRadius(6),
@@ -167,39 +167,39 @@ public sealed partial class MainWindow
                 Child = new StackPanel { Spacing = 12, Children = { label, content } }
             };
         }
-        var environment = Choice("运行环境", "Environment", "community-filter-environment", Values(
-            ("client_and_server", "客户端与服务端", "Client and server"), ("client_only", "仅客户端", "Client only"),
-            ("client_only_server_optional", "客户端必需，服务端可选", "Client required, server optional"),
-            ("singleplayer_only", "仅单人游戏", "Singleplayer only"), ("server_only", "仅服务端", "Server only"),
-            ("server_only_client_optional", "服务端必需，客户端可选", "Server required, client optional"),
-            ("dedicated_server_only", "仅专用服务器", "Dedicated server only"), ("client_or_server", "客户端或服务端", "Client or server"),
-            ("client_or_server_prefers_both", "客户端或服务端（推荐两端）", "Client or server (both preferred)"), ("unknown", "未知", "Unknown")), initial.Environment);
-        var openSource = Choice("开源状态", "Source availability", "community-filter-source", Values(
-            ("true", "开源", "Open source"), ("false", "闭源", "Closed source")), initial.OpenSource);
-        var license = Choice("许可证", "License", "community-filter-license", [], initial.License);
-        advanced.Children.Add(Section("兼容与授权", "Compatibility and licensing", FormGrid(environment, openSource, license)));
-        TextBox Input(string zh, string en, string tag, string text, string placeholder = "")
+        var environment = Choice("运行环境", "community-filter-environment", Values(
+            ("client_and_server", "客户端与服务端"), ("client_only", "仅客户端"),
+            ("client_only_server_optional", "客户端必需，服务端可选"),
+            ("singleplayer_only", "仅单人游戏"), ("server_only", "仅服务端"),
+            ("server_only_client_optional", "服务端必需，客户端可选"),
+            ("dedicated_server_only", "仅专用服务器"), ("client_or_server", "客户端或服务端"),
+            ("client_or_server_prefers_both", "客户端或服务端（推荐两端）"), ("unknown", "未知")), initial.Environment);
+        var openSource = Choice("开源状态", "community-filter-source", Values(
+            ("true", "开源"), ("false", "闭源")), initial.OpenSource);
+        var license = Choice("许可证", "community-filter-license", [], initial.License);
+        advanced.Children.Add(Section("兼容与授权", FormGrid(environment, openSource, license)));
+        TextBox Input(string zh, string tag, string text, string placeholder = "")
         {
-            var input = new TextBox { Header = Ui(zh, en), Tag = tag, Text = text, PlaceholderText = placeholder, MinWidth = 0, Padding = new Thickness(12, 8, 12, 8) };
+            var input = new TextBox { Header = Ui(zh), Tag = tag, Text = text, PlaceholderText = placeholder, MinWidth = 0, Padding = new Thickness(12, 8, 12, 8) };
             advancedFields.Add(input); return input;
         }
-        var author = Input("作者", "Author", "community-filter-author", initial.Author);
-        var title = Input("项目标题", "Project title", "community-filter-title", initial.Title);
-        var project = Input("项目 ID", "Project ID", "community-filter-project", initial.ProjectId);
-        advanced.Children.Add(Section("项目与作者", "Project and author", FormGrid(author, title, project)));
-        var downloads = Input("最低下载量", "Minimum downloads", "community-filter-downloads", initial.MinDownloads, "0");
-        var follows = Input("最低关注数", "Minimum followers", "community-filter-follows", initial.MinFollows, "0");
-        var created = Input("发布于此日期之后", "Created on or after", "community-filter-created", initial.CreatedAfter, "YYYY-MM-DD");
-        var updated = Input("更新于此日期之后", "Updated on or after", "community-filter-updated", initial.UpdatedAfter, "YYYY-MM-DD");
-        advanced.Children.Add(Section("数据与时间", "Counts and dates", FormGrid(downloads, follows, created, updated)));
+        var author = Input("作者", "community-filter-author", initial.Author);
+        var title = Input("项目标题", "community-filter-title", initial.Title);
+        var project = Input("项目 ID", "community-filter-project", initial.ProjectId);
+        advanced.Children.Add(Section("项目与作者", FormGrid(author, title, project)));
+        var downloads = Input("最低下载量", "community-filter-downloads", initial.MinDownloads, "0");
+        var follows = Input("最低关注数", "community-filter-follows", initial.MinFollows, "0");
+        var created = Input("发布于此日期之后", "community-filter-created", initial.CreatedAfter, "YYYY-MM-DD");
+        var updated = Input("更新于此日期之后", "community-filter-updated", initial.UpdatedAfter, "YYYY-MM-DD");
+        advanced.Children.Add(Section("数据与时间", FormGrid(downloads, follows, created, updated)));
         foreach (var choice in Values(
-            ("ai_content", "AI 生成内容", "AI-generated content"), ("ai_content_code", "AI 生成代码", "AI-generated code"),
-            ("ai_content_assets", "AI 生成素材", "AI-generated assets"), ("ai_content_text", "AI 生成文字", "AI-generated text"),
-            ("ai_functionality", "AI 功能", "AI functionality"), ("advertisements", "广告", "Advertisements"),
-            ("epilepsy_triggers", "光敏性癫痫诱发内容", "Epilepsy triggers"), ("system_interactions", "系统交互", "System interactions"),
-            ("telemetry", "遥测", "Telemetry"), ("telemetry_opt_in", "主动开启遥测", "Opt-in telemetry"),
-            ("telemetry_opt_out", "允许关闭遥测", "Opt-out telemetry"), ("telemetry_always_active", "始终开启遥测", "Always-on telemetry"),
-            ("derivative_work", "衍生作品", "Derivative work"), ("paid_features", "付费功能", "Paid features"), ("archived", "已归档", "Archived")))
+            ("ai_content", "AI 生成内容"), ("ai_content_code", "AI 生成代码"),
+            ("ai_content_assets", "AI 生成素材"), ("ai_content_text", "AI 生成文字"),
+            ("ai_functionality", "AI 功能"), ("advertisements", "广告"),
+            ("epilepsy_triggers", "光敏性癫痫诱发内容"), ("system_interactions", "系统交互"),
+            ("telemetry", "遥测"), ("telemetry_opt_in", "主动开启遥测"),
+            ("telemetry_opt_out", "允许关闭遥测"), ("telemetry_always_active", "始终开启遥测"),
+            ("derivative_work", "衍生作品"), ("paid_features", "付费功能"), ("archived", "已归档")))
         {
             var check = new CheckBox
             {
@@ -210,20 +210,20 @@ public sealed partial class MainWindow
             };
             disclosures.Add(check);
         }
-        var disclosureHint = Text(Ui("仅显示包含全部所选声明的项目。", "Only show projects that include every selected disclosure."), 12);
+        var disclosureHint = Text(Ui("Only show projects that include every selected disclosure."), 12);
         disclosureHint.Foreground = ComboMutedBrush;
         var disclosureSection = new Expander
         {
-            Tag = "community-disclosures", Header = Ui("内容声明", "Content disclosures"),
+            Tag = "community-disclosures", Header = Ui("Content disclosures"),
             HorizontalAlignment = HorizontalAlignment.Stretch, HorizontalContentAlignment = HorizontalAlignment.Stretch,
             Content = new StackPanel { Spacing = 12, Children = { disclosureHint, FormGrid(disclosures.Cast<FrameworkElement>().ToArray()) } }
         };
         advanced.Children.Add(disclosureSection);
-        var footerHint = Text(Ui("关闭会保留输入，点击“应用筛选”更新结果。", "Closing keeps your inputs. Choose Apply filters to update results."), 12);
+        var footerHint = Text(Ui("Closing keeps your inputs. Choose Apply filters to update results."), 12);
         footerHint.Foreground = ComboMutedBrush; advanced.Children.Add(footerHint);
         var advancedBadge = Text("", 12, true); advancedBadge.Foreground = ComboTextBrush;
         var badge = new Border { Padding = new Thickness(6, 1, 6, 1), CornerRadius = new CornerRadius(10), Background = ComboSelectedBrush, Child = advancedBadge, Visibility = Visibility.Collapsed };
-        var moreTitle = Text(Ui("更多筛选", "More filters"), 14); moreTitle.Foreground = ComboTextBrush;
+        var moreTitle = Text(Ui("More filters"), 14); moreTitle.Foreground = ComboTextBrush;
         var compactMore = false;
         var moreButton = new Button
         {
@@ -236,8 +236,8 @@ public sealed partial class MainWindow
             }
         };
         Grid.SetColumn(moreButton, 1); optionsRow.Children.Add(moreButton);
-        ToolTipService.SetToolTip(moreButton, Ui("更多筛选", "More filters"));
-        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(moreButton, Ui("更多筛选", "More filters"));
+        ToolTipService.SetToolTip(moreButton, Ui("More filters"));
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(moreButton, Ui("More filters"));
         optionsRow.SizeChanged += (_, _) =>
         {
             compactMore = optionsRow.ActualWidth < 420 * Math.Max(1, moreTitle.FontSize / 14);
@@ -255,8 +255,8 @@ public sealed partial class MainWindow
             advancedBadge.Text = count.ToString(System.Globalization.CultureInfo.InvariantCulture);
             badge.Visibility = count > 0 && !compactMore ? Visibility.Visible : Visibility.Collapsed;
             disclosureSection.Header = disclosureCount > 0
-                ? Ui($"内容声明 · 已选 {disclosureCount} 项", $"Content disclosures · {disclosureCount} selected")
-                : Ui("内容声明", "Content disclosures");
+                ? UiFormat("Content disclosures · {0} selected", disclosureCount)
+                : Ui("Content disclosures");
         }
         foreach (var combo in new[] { environment, openSource, license }) combo.SelectionChanged += (_, _) => UpdateAdvancedCount();
         foreach (var input in advancedFields) input.TextChanged += (_, _) => UpdateAdvancedCount();
@@ -300,7 +300,7 @@ public sealed partial class MainWindow
                 ? showAprilFools.IsChecked == true
                 : v.Type != "snapshot" || showSnapshots.IsChecked == true);
             version.Items.Clear();
-            version.Items.Add(new FilterChoice("", Ui("全部", "Any")));
+            version.Items.Add(new FilterChoice("", Ui("context.communityfilters.any")));
             foreach (var release in filtered.DistinctBy(v => v.Id))
                 version.Items.Add(new FilterChoice(release.Id, release.Id));
             version.SelectedItem = version.Items.OfType<FilterChoice>().FirstOrDefault(c => c.Value == selected) ?? version.Items[0];
@@ -322,7 +322,7 @@ public sealed partial class MainWindow
             using var request = new CancellationTokenSource(TimeSpan.FromSeconds(30));
             var generation = renderVersion;
             metadataRetry.IsEnabled = false; metadataRetry.Visibility = Visibility.Collapsed;
-            metadataStatus.Visibility = Visibility.Visible; metadataStatus.Text = Ui("正在获取筛选选项…", "Loading filter options…");
+            metadataStatus.Visibility = Visibility.Visible; metadataStatus.Text = Ui("Loading filter options…");
             try
             {
                 var catalog = await fetchCommunityFilters(request.Token);
@@ -330,7 +330,7 @@ public sealed partial class MainWindow
                 void Populate(ComboBox combo, IEnumerable<FilterChoice> choices)
                 {
                     var selected = Value(combo);
-                    combo.Items.Clear(); combo.Items.Add(new FilterChoice("", Ui("全部", "Any")));
+                    combo.Items.Clear(); combo.Items.Add(new FilterChoice("", Ui("context.communityfilters.any")));
                     foreach (var choice in choices.DistinctBy(c => c.Value)) combo.Items.Add(choice);
                     if (selected.Length > 0 && !combo.Items.OfType<FilterChoice>().Any(c => c.Value == selected)) combo.Items.Add(new FilterChoice(selected, selected));
                     combo.SelectedItem = combo.Items.OfType<FilterChoice>().First(c => c.Value == selected);
@@ -353,9 +353,9 @@ public sealed partial class MainWindow
                 if (type == "datapack" && applicable.Length == 0) applicable = catalog.Categories.Where(c => c.ProjectType == "mod").ToArray();
                 foreach (var group in applicable.GroupBy(c => c.Header))
                 {
-                    var label = group.Key switch { "categories" => Ui("类型", "Category"), "features" => Ui("特性", "Features"), "resolutions" => Ui("分辨率", "Resolution"), "performance impact" => Ui("性能影响", "Performance impact"), _ => group.Key };
+                    var label = group.Key switch { "categories" => Ui("Category"), "features" => Ui("Features"), "resolutions" => Ui("Resolution"), "performance impact" => Ui("Performance impact"), _ => group.Key };
                     var selected = initial.Categories?.FirstOrDefault(c => group.Any(option => option.Name == c)) ?? "";
-                    var combo = Choice(label, label, "community-filter-category-" + group.Key, group.Select(c => new FilterChoice(c.Name, c.Name)), selected);
+                    var combo = Choice(label, "community-filter-category-" + group.Key, group.Select(c => new FilterChoice(c.Name, c.Name)), selected);
                     categories.Add(combo); fields.Add(combo);
                 }
                 LayoutFields();
@@ -364,7 +364,7 @@ public sealed partial class MainWindow
             catch (Exception ex)
             {
                 if (generation != renderVersion) return;
-                metadataStatus.Text = Ui("筛选选项加载失败：", "Could not load filter options: ") + ex.Message;
+                metadataStatus.Text = Ui("Could not load filter options: ") + ex.Message;
                 metadataRetry.Visibility = Visibility.Visible;
             }
             finally { metadataRetry.IsEnabled = true; }

@@ -1,4 +1,4 @@
-using Microsoft.UI.Xaml;
+﻿using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Media;
@@ -41,13 +41,13 @@ public sealed partial class MainWindow
 
     internal Task<bool> ConfirmPop(FrameworkElement anchor, string title, UIElement body, string? confirmText = null)
     {
-        var request = new PopconfirmRequest(anchor, title, body, confirmText ?? Ui("删除", "Delete"));
+        var request = new PopconfirmRequest(anchor, title, body, confirmText ?? Ui("Delete"));
         if (popconfirmOverride != null) return popconfirmOverride(request);
         activePopconfirm?.Hide();
         var result = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
         var panel = new StackPanel { Spacing = 12, RequestedTheme = lightTheme ? ElementTheme.Light : ElementTheme.Dark };
         var heading = Text(title, 16, true); heading.Foreground = ComboTextBrush;
-        var cancel = new Button { Content = Ui("取消", "Cancel"), Tag = "popconfirm-cancel", Background = ComboSurfaceBrush, Foreground = ComboTextBrush, BorderBrush = ComboBorderBrush };
+        var cancel = new Button { Content = Ui("Cancel"), Tag = "popconfirm-cancel", Background = ComboSurfaceBrush, Foreground = ComboTextBrush, BorderBrush = ComboBorderBrush };
         var confirm = new Button { Content = request.ConfirmText, Tag = "popconfirm-confirm", Background = ComboSelectedBrush, Foreground = ComboTextBrush };
         panel.Children.Add(heading); panel.Children.Add(body);
         panel.Children.Add(new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, HorizontalAlignment = HorizontalAlignment.Right, Children = { cancel, confirm } });

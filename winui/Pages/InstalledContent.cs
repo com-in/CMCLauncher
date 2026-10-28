@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using Microsoft.UI;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
@@ -32,7 +32,7 @@ public sealed partial class MainWindow
             {
                 if (version != renderVersion || dialogOpen) return;
                 dialogOpen = true;
-                try { await showInstallDialog(new ContentDialog { XamlRoot = Content.XamlRoot, RequestedTheme = lightTheme ? ElementTheme.Light : ElementTheme.Dark, Title = Ui("此实例无法安装 Mod", "This instance does not support Mods"), Content = Ui(unsupported), CloseButtonText = Ui("知道了", "Got it") }); }
+                try { await showInstallDialog(new ContentDialog { XamlRoot = Content.XamlRoot, RequestedTheme = lightTheme ? ElementTheme.Light : ElementTheme.Dark, Title = Ui("This instance does not support Mods"), Content = Ui(unsupported), CloseButtonText = Ui("Got it") }); }
                 finally { dialogOpen = false; }
             });
             return Task.CompletedTask;
@@ -40,12 +40,12 @@ public sealed partial class MainWindow
         ComboBox? modCategory = null; TextBox? modSearch = null;
         if (contentType == "mod")
         {
-            var englishFilters = store.Config.Settings.LauncherLanguage == "en_us";
-            var localizedModFilters = englishFilters ? new[] { "All Mods", "Recognized", "Unrecognized", "Fabric", "Quilt", "Forge", "NeoForge" } : new[] { "全部 Mods", "已识别", "未识别", "Fabric", "Quilt", "Forge", "NeoForge" };
-            var selectedModFilter = englishFilters ? modFilter switch { "全部 Mods" => "All Mods", "已识别" => "Recognized", "未识别" => "Unrecognized", _ => modFilter } : modFilter switch { "All Mods" => "全部 Mods", "Recognized" => "已识别", "Unrecognized" => "未识别", _ => modFilter };
-            modCategory = new BelowComboBox { Header = Ui("筛选", "Filter"), ItemsSource = localizedModFilters, SelectedItem = selectedModFilter, Width = 190 };
-            modCategory.SelectionChanged += (_, _) => { if (modCategory.SelectedItem is string value) { modFilter = englishFilters ? value switch { "All Mods" => "全部 Mods", "Recognized" => "已识别", "Unrecognized" => "未识别", _ => value } : value; Render(); } };
-            modSearch = new TextBox { PlaceholderText = Ui("搜索名称、版本或文件", "Search names, versions, or files"), Text = modQuery, HorizontalAlignment = HorizontalAlignment.Stretch };
+            var filterIds = new[] { "全部 Mods", "已识别", "未识别", "Fabric", "Quilt", "Forge", "NeoForge" };
+            var localizedModFilters = new[] { Ui("All Mods"), Ui("Recognized"), Ui("context.installedcontent.unrecognized"), "Fabric", "Quilt", "Forge", "NeoForge" };
+            modFilter = modFilter switch { "All Mods" => "全部 Mods", "Recognized" => "已识别", "Unrecognized" => "未识别", _ => modFilter };
+            modCategory = new BelowComboBox { Header = Ui("Filter"), ItemsSource = localizedModFilters, SelectedIndex = Array.IndexOf(filterIds, modFilter), Width = 190 };
+            modCategory.SelectionChanged += (_, _) => { if (modCategory.SelectedIndex >= 0) { modFilter = filterIds[modCategory.SelectedIndex]; Render(); } };
+            modSearch = new TextBox { PlaceholderText = Ui("Search names, versions, or files"), Text = modQuery, HorizontalAlignment = HorizontalAlignment.Stretch };
             modSearch.KeyDown += (_, e) => { if (e.Key == Windows.System.VirtualKey.Enter) { modQuery = modSearch.Text.Trim(); Render(); } };
             var filters = new Grid { ColumnSpacing = 8 };
             filters.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(180) }); filters.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
@@ -67,7 +67,7 @@ public sealed partial class MainWindow
             if (worlds.Count == 0) { PageBody.Children.Add(Text("此实例还没有存档。请先进入游戏创建世界。")); return Task.CompletedTask; }
             if (!worlds.Contains(world ?? "")) world = worlds[0];
             targetWorld = world;
-            var picker = new BelowComboBox { Header = Ui("目标存档", "Target world"), ItemsSource = worlds, SelectedItem = world, HorizontalAlignment = HorizontalAlignment.Stretch };
+            var picker = new BelowComboBox { Header = Ui("Target world"), ItemsSource = worlds, SelectedItem = world, HorizontalAlignment = HorizontalAlignment.Stretch };
             picker.SelectionChanged += (_, _) => { if (picker.SelectedItem is string value && value != world) { world = value; Render(); } };
             PageBody.Children.Add(picker); PageBody.Children.Add(Text("数据包导入后，请在游戏内确认启用状态。", 12));
         }
@@ -119,9 +119,7 @@ public sealed partial class MainWindow
                     loading.Text = $"正在识别 {processed}/{total} · 显示 {visible} 项";
                     var stack = new StackPanel { Spacing = 3, VerticalAlignment = VerticalAlignment.Center };
                     var title = Text(item.Name, 14, true); title.TextWrapping = TextWrapping.NoWrap; title.TextTrimming = TextTrimming.CharacterEllipsis; stack.Children.Add(title);
-                    var stateLabels = store.Config.Settings.LauncherLanguage == "en_us"
-                        ? new[] { contentType == "mod" ? item.Recognized ? "Recognized" : "Unrecognized" : "", item.Version, item.Loader, item.Enabled ? "Enabled" : "Disabled" }
-                        : new[] { contentType == "mod" ? item.Recognized ? "已识别" : "未识别" : "", item.Version, item.Loader, item.Enabled ? "已启用" : "已停用" };
+                    var stateLabels = new[] { (contentType == "mod" ? (item.Recognized ? Ui("Recognized") : Ui("context.installedcontent.unrecognized")) : ""), item.Version, item.Loader, (item.Enabled ? Ui("Enabled") : Ui("Disabled")) };
                     stack.Children.Add(Text(string.Join(" · ", stateLabels.Where(x => x.Length > 0)), 12));
                     ToolTipService.SetToolTip(stack, item.Description + "\n" + item.File);
                     if (contentType != "mod" && item.Description.Length > 0) { var description = Text(item.Description, 12); description.TextWrapping = TextWrapping.NoWrap; description.TextTrimming = TextTrimming.CharacterEllipsis; stack.Children.Add(description); }
@@ -130,7 +128,7 @@ public sealed partial class MainWindow
                     row.Children.Add(Action("移除", async (sender, _) =>
                     {
                         var path = ContentManager.Locate(gameDir, contentType, targetWorld, item.File);
-                        if (!await ConfirmPop((FrameworkElement)sender, Ui("移到回收站？", "Move to Recycle Bin?"), item.Name, Ui("移到回收站", "Move to Recycle Bin"))) return;
+                        if (!await ConfirmPop((FrameworkElement)sender, Ui("Move to Recycle Bin?"), item.Name, Ui("Move to Recycle Bin"))) return;
                         await Run(_ => { RecyclePath(path); return Task.CompletedTask; }); Render();
                     }));
                     foreach (var button in row.Children.OfType<Button>()) { button.MinWidth = 48; button.MinHeight = 28; button.Padding = new Thickness(6, 3, 6, 3); }
@@ -155,7 +153,7 @@ public sealed partial class MainWindow
                 if (version != renderVersion) return;
                 loading.Text = contentType == "mod" ? $"显示 {visible} 个 Mod · 已识别 {known} · 未识别 {visible - known}" : $"显示 {visible} 项内容";
         }
-        catch (Exception ex) { if (version == renderVersion) loading.Text = Ui("无法加载内容：", "Could not load content: ") + ex.Message; }
+        catch (Exception ex) { if (version == renderVersion) loading.Text = Ui("Could not load content: ") + ex.Message; }
         }
     }
 

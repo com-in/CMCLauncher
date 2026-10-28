@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using Microsoft.UI;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
@@ -15,24 +15,10 @@ namespace CMCLauncher.WinUI;
 
 public sealed partial class MainWindow
 {
-    // 优先使用调用方给出的译文，动态状态消息再按字典和前缀补译。
-    internal string Ui(string text, string? english = null)
-    {
-        if (store.Config.Settings.LauncherLanguage != "en_us") return text;
-        if (english != null) return english;
-        if (EnglishText.TryGetValue(text, out var translated)) return translated;
-        if (text.StartsWith("所选文件不支持当前 Minecraft 实例", StringComparison.Ordinal)) return "This file does not support Minecraft " + text["所选文件不支持当前实例的 Minecraft ".Length..];
-        if (text.StartsWith("正在识别 ", StringComparison.Ordinal)) return "Identifying " + text["正在识别 ".Length..].Replace(" · 显示 ", " · Showing ").Replace(" 项", " items");
-        if (text.StartsWith("此实例使用 ", StringComparison.Ordinal) && text.Contains("当前不支持安装 Mod", StringComparison.Ordinal))
-        {
-            var loader = text["此实例使用 ".Length..].Split('，', 2)[0];
-            var englishLoader = loader.ToLowerInvariant() switch { "vanilla" or "原版" => "Vanilla", "forge" => "Forge", "neoforge" => "NeoForge", "fabric" => "Fabric", "quilt" => "Quilt", _ => loader };
-            return $"This instance uses {englishLoader}, which does not support Mods. Choose a Fabric, Forge, NeoForge, or Quilt instance.";
-        }
-        foreach (var (prefix, replacement) in EnglishStatusPrefixes)
-            if (text.StartsWith(prefix, StringComparison.Ordinal)) return replacement + text[prefix.Length..];
-        return text;
-    }
+    readonly LocalizationCatalog localization = new(Path.Combine(AppContext.BaseDirectory, "locales"), message => RuntimeLog.Write("WARN", message));
+    internal IReadOnlyList<InterfaceLanguage> InterfaceLanguages => localization.Languages;
+    internal string Ui(string key) => localization.Translate(store.Config.Settings.LauncherLanguage, key);
+    internal string UiFormat(string key, params object?[] values) => localization.Format(store.Config.Settings.LauncherLanguage, key, values);
     internal TextBlock Text(string text, double size = 14, bool bold = false)
     {
         var block = new TextBlock { Text = Ui(text), FontSize = size, Foreground = Brush(lightTheme ? "#303145" : "#F0F0FA"), FontWeight = bold ? Microsoft.UI.Text.FontWeights.SemiBold : Microsoft.UI.Text.FontWeights.Normal, TextWrapping = TextWrapping.Wrap };
@@ -68,7 +54,7 @@ public sealed partial class MainWindow
         {
             var detail = ex.Message.Replace("\r\n", "\n").Replace('\r', '\n');
         var firstLine = Ui(detail.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).FirstOrDefault() ?? "操作失败");
-            await new ContentDialog { XamlRoot = Content.XamlRoot, RequestedTheme = lightTheme ? ElementTheme.Light : ElementTheme.Dark, Title = Ui("操作未完成", "Operation incomplete"), Content = $"{firstLine}\n\n{Ui("详细错误已写入运行日志。", "Detailed error information was written to the log.")}", CloseButtonText = Ui("确定", "OK") }.ShowAsync();
+            await new ContentDialog { XamlRoot = Content.XamlRoot, RequestedTheme = lightTheme ? ElementTheme.Light : ElementTheme.Dark, Title = Ui("Operation incomplete"), Content = $"{firstLine}\n\n{Ui("Detailed error information was written to the log.")}", CloseButtonText = Ui("OK") }.ShowAsync();
         }
         finally { dialogOpen = false; }
     }
@@ -96,7 +82,7 @@ public sealed partial class MainWindow
         selected = instance; store.Config.SelectedInstanceId = instance.Id; world = null;
         await store.Save();
     }
-    internal ComboBox InstanceSelector() { var combo = new BelowComboBox { ItemsSource = store.Config.Instances, DisplayMemberPath = nameof(Instance.Name), SelectedItem = selected, PlaceholderText = Ui("选择实例", "Select an instance"), HorizontalAlignment = HorizontalAlignment.Stretch }; combo.SelectionChanged += async (_, _) => { if (combo.SelectedItem is Instance instance && instance != selected) { await SelectInstance(instance); Render(); } }; return combo; }
+    internal ComboBox InstanceSelector() { var combo = new BelowComboBox { ItemsSource = store.Config.Instances, DisplayMemberPath = nameof(Instance.Name), SelectedItem = selected, PlaceholderText = Ui("Select an instance"), HorizontalAlignment = HorizontalAlignment.Stretch }; combo.SelectionChanged += async (_, _) => { if (combo.SelectedItem is Instance instance && instance != selected) { await SelectInstance(instance); Render(); } }; return combo; }
     internal StackPanel Buttons(params Button[] buttons) { var panel = new StackPanel { Spacing = 8, Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Left }; foreach (var button in buttons) panel.Children.Add(button); return panel; }
     // 先用包内图标，再查项目图标缓存；读取或解码失败就显示占位图标。
     async Task<UIElement> ContentIcon(string file, string? project = null, byte[]? knownIcon = null, bool inspected = false)
@@ -136,7 +122,7 @@ public sealed partial class MainWindow
         PageSubtitle.Visibility = string.IsNullOrWhiteSpace(subtitle) ? Visibility.Collapsed : Visibility.Visible;
         HomeCustomizeButton.Visibility = page == "home" ? Visibility.Visible : Visibility.Collapsed;
         HomeCustomizeButton.Foreground = Brush(lightTheme ? "#41424D" : "#D1D1DC");
-        ToolTipService.SetToolTip(HomeCustomizeButton, homeCustomizeMode ? Ui("完成自定义", "Finish customizing") : Ui("自定义主页", "Customize home"));
+        ToolTipService.SetToolTip(HomeCustomizeButton, homeCustomizeMode ? Ui("Finish customizing") : Ui("Customize home"));
     }
     void PageBack_Click(object sender, RoutedEventArgs e)
     {
@@ -144,7 +130,7 @@ public sealed partial class MainWindow
         else { page = "home"; expandedNavigation = "home"; }
         Render();
     }
-    string LoaderCategory(string loader) => loader.ToLowerInvariant() switch { "fabric" => "Fabric", "forge" => "Forge", "neoforge" => "NeoForge", "quilt" => "Quilt", _ => Ui("原版", "Vanilla") };
+    string LoaderCategory(string loader) => loader.ToLowerInvariant() switch { "fabric" => "Fabric", "forge" => "Forge", "neoforge" => "NeoForge", "quilt" => "Quilt", _ => Ui("Vanilla") };
     async Task ImportContent(Instance instance, string type, string? world)
     {
         var picker = new FileOpenPicker(); InitializeWithWindow.Initialize(picker, WindowNative.GetWindowHandle(this)); picker.FileTypeFilter.Add(type == "mod" ? ".jar" : ".zip"); var files = await picker.PickMultipleFilesAsync(); if (files.Count == 0) return; await Run(_ => { ContentManager.Import(store.GameDirectory(instance), type, world, files.Select(f => f.Path)); return Task.CompletedTask; }); Render();

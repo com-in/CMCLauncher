@@ -25,6 +25,11 @@ internal static class Program
     static string Sha(string text) => Convert.ToHexString(SHA1.HashData(Encoding.UTF8.GetBytes(text))).ToLowerInvariant();
     [STAThread] static int Main(string[] args)
     {
+        if (args.Length == 2 && args[0] == "--verify-frpc")
+        {
+            try { FrpcManagerTests.Real(Path.GetFullPath(args[1])).GetAwaiter().GetResult(); return 0; }
+            catch (Exception ex) { Console.Error.WriteLine(ex); return 1; }
+        }
         if (args.Length == 2 && args[0] == "--diagnose-local-profile")
         {
             try { DiagnoseLocalProfile(args[1]).GetAwaiter().GetResult(); return 0; }
@@ -77,8 +82,12 @@ internal static class Program
         Directory.CreateDirectory(currentRoot);
         Check(Store.DefaultRoot(appData) == currentRoot, "the current directory takes precedence when both exist");
         Pass("renamed data directory preserves existing installations");
+        await LocalizationCatalogTests.Run(Path.Combine(root, "locales")); Pass("JSON language packs, embedded fallback, templates, rules, overrides and additional languages");
         await CurseForgeClientTests.Run(); Pass("reserved CurseForge API authentication, consent, transport and failure boundaries");
         await SchematicManagerTests.Run(Path.Combine(root, "schematics")); Pass("schematic discovery, ports, imports, exports, renaming and path boundaries");
+        await FrpcManagerTests.Run(Path.Combine(root, "frpc")); Pass("frpc official downloads, integrity, extraction, configuration paths and redaction");
+        await FrpcConfigurationTests.Run(Path.Combine(root, "frpc-configs")); Pass("frpc online releases, managed profiles, copies, directory dependencies and original isolation");
+        await FrpcFallbackTests.Run(Path.Combine(root, "frpc-fallback")); Pass("frpc 403/429 official fallback, cooldown, pagination, offline cache and verified download metadata");
         var diagnosticStore = new Store(Path.Combine(root, "diagnostics"));
         using (var diagnosticCore = new LauncherCore(diagnosticStore, new MockHandler(_ => new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("private response") })))
         {

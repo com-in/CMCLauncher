@@ -1,4 +1,4 @@
-using Microsoft.UI.Xaml;
+﻿using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Windows.ApplicationModel.DataTransfer;
 using Windows.Storage;
@@ -17,10 +17,10 @@ public sealed partial class MainWindow
         try { store.EnsureUniqueInstanceName(new Instance { Name = name.Trim() }); return null; }
         catch (Exception)
         {
-            if (string.IsNullOrWhiteSpace(name)) return Ui("请填写版本名称。", "Enter a version name.");
+            if (string.IsNullOrWhiteSpace(name)) return Ui("Enter a version name.");
             if (store.Config.Instances.Any(i => string.Equals(i.Name.Trim(), name.Trim(), StringComparison.OrdinalIgnoreCase)) || Directory.Exists(Path.Combine(store.MinecraftRoot, "versions", name.Trim())))
-                return Ui("已存在同名版本，请更换名称。", "A version with this name already exists. Choose another name.");
-            return Ui("版本名称包含无效字符，请更换名称。", "The version name contains invalid characters. Choose another name.");
+                return Ui("A version with this name already exists. Choose another name.");
+            return Ui("The version name contains invalid characters. Choose another name.");
         }
     }
 
@@ -41,14 +41,14 @@ public sealed partial class MainWindow
     {
         ct.ThrowIfCancellationRequested();
         if (InstallationNameError(instance.Name) == null) return;
-        var input = new TextBox { Header = Ui("版本名称", "Version name"), Text = instance.Name, MaxLength = 80 };
+        var input = new TextBox { Header = Ui("Version name"), Text = instance.Name, MaxLength = 80 };
         var error = new TextBlock { Foreground = Brush(lightTheme ? "#C42B1C" : "#FF99A4"), TextWrapping = TextWrapping.Wrap };
         var content = new StackPanel { Spacing = 8, Children = { input, error } };
         var dialog = new ContentDialog
         {
             XamlRoot = Content.XamlRoot, RequestedTheme = lightTheme ? ElementTheme.Light : ElementTheme.Dark,
-            Title = Ui("请为整合包输入新的版本名称", "Choose a new name for this modpack"), Content = content,
-            PrimaryButtonText = Ui("继续安装", "Continue installation"), CloseButtonText = Ui("取消", "Cancel"),
+            Title = Ui("Choose a new name for this modpack"), Content = content,
+            PrimaryButtonText = Ui("Continue installation"), CloseButtonText = Ui("Cancel"),
             DefaultButton = ContentDialogButton.Close
         };
         void Validate()
@@ -81,7 +81,7 @@ public sealed partial class MainWindow
         if (task != null || dialogOpen || readingPackDrop || !e.DataView.Contains(StandardDataFormats.StorageItems)) return;
         e.AcceptedOperation = DataPackageOperation.Copy;
         e.DragUIOverride.IsGlyphVisible = true;
-        e.DragUIOverride.Caption = Ui("松开以选择要安装的整合包", "Drop to choose modpacks to install");
+        e.DragUIOverride.Caption = Ui("Drop to choose modpacks to install");
         e.DragUIOverride.IsCaptionVisible = true;
     }
 
@@ -100,7 +100,7 @@ public sealed partial class MainWindow
             if (items.Count > 0 && items.All(item => item is StorageFile && IsModpackFile(item.Path)))
                 paths = items.Select(item => item.Path).ToArray();
             else if (items.Count > 0)
-                throw new InvalidDataException(Ui("请拖入 .mrpack 或 .zip 整合包文件。", "Drop .mrpack or .zip modpack files."));
+                throw new InvalidDataException(Ui("Drop .mrpack or .zip modpack files."));
         }
         catch (OperationCanceledException) { }
         catch (Exception ex) { failure = ex; }
@@ -128,18 +128,18 @@ public sealed partial class MainWindow
         try
         {
             var names = paths.Take(8).Select(Path.GetFileName).ToList();
-            if (paths.Length > names.Count) names.Add(Ui($"以及另外 {paths.Length - names.Count} 个文件", $"and {paths.Length - names.Count} more"));
+            if (paths.Length > names.Count) names.Add(UiFormat("and {0} more", paths.Length - names.Count));
             var content = new StackPanel { Spacing = 8 };
-            content.Children.Add(new TextBlock { Text = Ui("将为每个整合包创建独立游戏实例：", "A separate game instance will be created for each pack:"), TextWrapping = TextWrapping.Wrap });
+            content.Children.Add(new TextBlock { Text = Ui("A separate game instance will be created for each pack:"), TextWrapping = TextWrapping.Wrap });
             foreach (var name in names) content.Children.Add(new TextBlock { Text = "• " + name, TextWrapping = TextWrapping.Wrap });
             var dialog = new ContentDialog
             {
                 XamlRoot = Content.XamlRoot,
                 RequestedTheme = lightTheme ? ElementTheme.Light : ElementTheme.Dark,
-                Title = Ui("安装这些整合包？", "Install these modpacks?"),
+                Title = Ui("Install these modpacks?"),
                 Content = content,
-                PrimaryButtonText = Ui("安装", "Install"),
-                CloseButtonText = Ui("取消", "Cancel"),
+                PrimaryButtonText = Ui("Install"),
+                CloseButtonText = Ui("Cancel"),
                 DefaultButton = ContentDialogButton.Close
             };
             return await showModpackImportDialog(dialog) == ContentDialogResult.Primary;
@@ -161,7 +161,7 @@ public sealed partial class MainWindow
                     store.Config.SelectedInstanceId = instance.Id;
                     await store.Save();
                 }
-        }, Ui("安装整合包", "Install modpack"));
+        }, Ui("Install modpack"));
         page = "instances"; Render();
     }
 }

@@ -1,4 +1,4 @@
-using System.IO;
+﻿using System.IO;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Security.Cryptography;
@@ -9,6 +9,8 @@ namespace CMCLauncher;
 // settings.json 中的全局偏好；实例和账号另存在 Configuration 的列表里。
 public sealed class Settings
 {
+    public string FrpcVersion { get; set; } = "";
+    public string FrpcConfigPath { get; set; } = "";
     public bool DebugLogging { get; set; }
     public string JavaPath { get; set; } = "";
     public List<JavaInstallation> JavaInstallations { get; set; } = [];
@@ -35,7 +37,7 @@ public sealed class Settings
     public int WindowWidth { get; set; } = 1280;
     public int WindowHeight { get; set; } = 820;
     public bool ExpandProjectIntroduction { get; set; } = true;
-    public string LauncherLanguage { get; set; } = "zh_cn";
+    public string LauncherLanguage { get; set; } = "en_us";
     public string InstanceView { get; set; } = "list";
     public List<HomeCardPlacement> HomeCards { get; set; } = [new() { Id = "account" }, new() { Id = "game" }];
     public string HomeNote { get; set; } = "";

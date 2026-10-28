@@ -1,4 +1,4 @@
-using System.IO.Compression;
+﻿using System.IO.Compression;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
@@ -41,7 +41,11 @@ public sealed partial class MainWindow
             return new CommunitySearchPage([new SearchResult("fixture", "榜单测试 · " + type, "隔离榜单数据", type, "")], offset, limit, 1);
         };
         void Check(bool value, string message) { if (!value) throw new Exception(message); passed.Add(message); File.AppendAllText(Path.Combine(directory, "passed.txt"), message + Environment.NewLine); }
+        Check(new Settings().LauncherLanguage == "en_us", "new installations default to English");
+        await SwitchLanguage("zh_cn"); await RenderAsync();
         await VerifyFeedbackAndSchematics(Check, directory);
+        await VerifyFrpcPage(Check, directory);
+        await VerifyJsonLocalization(Check);
         await VerifyCommunityFilterDrawer(Check, directory);
         Check(IsModpackFile("Pack.MRPACK") && IsModpackFile("Pack.ZIP") && !IsModpackFile("mod.jar"), "drag import recognizes both archive extensions case insensitively");
         Check(Thread.CurrentThread.GetApartmentState() == ApartmentState.STA && ModpackDropRoot.AllowDrop && ModpackDropRoot.Background != null, "file drop window runs on STA with a hit-testable drop surface");
@@ -247,7 +251,7 @@ public sealed partial class MainWindow
         store.Config.Settings.LauncherLanguage = "en_us"; page = "home"; await RenderAsync();
         var englishHomeText = Descendants(PageBody).OfType<TextBlock>().Select(t => t.Text).ToArray();
         Check(englishHomeText.Contains("Sign in with Microsoft to unlock offline accounts.") && englishHomeText.Contains("Add an account to launch the game") && !englishHomeText.Any(text => text.Contains("登录正版账号") || text.Contains("添加账号后即可启动")), "English home localizes account and launch status copy");
-        Check(Ui("截图查看") == "Screenshots" && Ui("Java 管理") == "Java" && Ui("当前文件进度") == "Current file progress" && Ui("安装选项") == "Installation options", "English localization covers screenshots, Java, task status, and install options");
+        Check(Ui("Screenshots") == "Screenshots" && Ui("Java") == "Java" && Ui("Current file progress") == "Current file progress" && Ui("Installation options") == "Installation options", "English localization covers screenshots, Java, task status, and install options");
         store.Config.Settings.LauncherLanguage = "zh_cn"; await RenderAsync();
         foreach (var category in new[] { "mod", "resourcepack", "datapack", "shader" })
         {
@@ -634,12 +638,12 @@ public sealed partial class MainWindow
         Check(new Store(store.Root).Config.Settings.AutoMemory && new Store(store.Root).Config.Settings.MemoryMb == 3072, "automatic memory saves without losing manual value");
         Check(new Store(store.Root).Config.Settings.StartMaximized && !new Store(store.Root).Config.Settings.ExpandProjectIntroduction, "window and project introduction preferences persist");
         var launcherLanguage = Descendants(PageBody).OfType<ComboBox>().Single(c => c.Header?.ToString() == "启动器语言");
-        launcherLanguage.SelectedIndex = 1; await Task.Delay(250);
+        launcherLanguage.SelectedItem = launcherLanguage.Items.OfType<InterfaceLanguage>().Single(l => l.Code == "en_us"); await Task.Delay(250);
         Check(new Store(store.Root).Config.Settings.LauncherLanguage == "en_us" && PageTitle.Text == "Launcher settings", "launcher language changes and persists immediately");
         Check(Descendants(PageBody).OfType<ComboBox>().Any(c => c.Header?.ToString() == "Game language") && Descendants(PageBody).OfType<ComboBox>().Any(c => c.Header?.ToString() == "Default window mode") && Descendants(PageBody).OfType<ToggleSwitch>().Any(c => c.Header?.ToString() == "Game memory"), "English settings localizes language, window, and memory controls");
         Check(NavigationMenu.Children.OfType<Button>().Select(button => ((Grid)button.Content).Children.OfType<TextBlock>().Single().Text).SequenceEqual(new[] { "Home", "Downloads", "Settings", "More" }) && TaskManagerLabel.Text == "Tasks" && TaskDrawerTitle.Text == "Tasks in progress", "English navigation and task drawer labels update immediately");
         var englishLanguage = Descendants(PageBody).OfType<ComboBox>().Single(c => c.Header?.ToString() == "Launcher language");
-        englishLanguage.SelectedIndex = 0; await Task.Delay(250);
+        englishLanguage.SelectedItem = englishLanguage.Items.OfType<InterfaceLanguage>().Single(l => l.Code == "zh_cn"); await Task.Delay(250);
         Check(new Store(store.Root).Config.Settings.LauncherLanguage == "zh_cn" && PageTitle.Text == "启动器设置", "launcher language can switch back to Chinese");
         var javaFixturePath = Path.Combine(store.Root, "java-fixture.exe"); await File.WriteAllTextAsync(javaFixturePath, "preserve");
         var javaFixture = JavaManager.Parse(javaFixturePath, "    java.version = 21.0.8\n    java.vendor = Eclipse Adoptium\n    os.arch = amd64\n");

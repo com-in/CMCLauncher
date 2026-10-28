@@ -35,10 +35,13 @@ The release archive includes the .NET and Windows App SDK runtimes, so you do no
 | Schematics | Search, import, export, rename, and delete `.litematic`, `.schematic`, `.schem`, and `.nbt` files, including nested folders |
 | Java and memory | Scan, import, and download Temurin Java; match Java versions automatically; use automatic or manual heap allocation |
 | Downloads | View progress and speed, cancel tasks, and configure 1–256 simultaneous file downloads; default: 16 |
+| frpc client | Download official Windows x64 releases, verify INI/TOML configurations, start or stop the client, and view its output |
 | Appearance and language | Light, dark, and system themes; colors, fonts, scaling, and appearance presets; launcher and game language settings |
 | Accounts and diagnostics | Microsoft device-code sign-in, Windows DPAPI credential encryption, runtime logs, and game error report export |
 
 New instances keep Mods, saves, and settings separate. Imported games retain their original locations, including recognized version-isolation layouts.
+
+Interface translations are loaded from editable JSON files under `locales/` beside the executable, with built-in fallback copies. Additional valid packs appear in the language selector. See [Interface language packs](docs/LOCALIZATION.md) for the schema, reload behavior, and translation guidelines.
 
 Completed tasks show a temporary toast at the bottom center of the window. Canceled and failed tasks show their respective outcomes there. Deletion uses a confirmation popover beside the action; dismissed popovers leave files unchanged.
 
@@ -49,6 +52,22 @@ Schematic subfolders appear as expandable directories, including empty folders. 
 Community resource pages place filters above the search box. Filter by game version, applicable mod or shader loader, and resource category; resource packs also expose features and resolution, while shaders expose features and performance impact. The More filters button opens a right-side drawer with grouped environment, source availability, license, author, project details, count, date, and content disclosure options. Apply filters updates results from the first page; Reset clears only the drawer options. Closing the drawer keeps your inputs. Submit with Search or Enter, or use Reset filters. Submitted filters remain active while paging and when returning from project details. Game version lists show releases by default. Enable Show snapshots or Show April Fools to reveal those versions in the dropdown; these switches work independently. Select a version and submit the search to filter resources.
 
 ## Support and limitations
+
+### frpc client
+
+Open **More → frpc client**, select a version from the online release list, and choose **Download online**. **Refresh releases** updates the list; **Load more releases** fetches older versions. Downloads come from [official frp releases](https://github.com/fatedier/frp/releases) and must pass the official SHA-256 check. The client is downloaded on demand and is not included in the launcher package.
+
+The downloads section opens by default until a client is installed, then starts collapsed with the installed version shown in its header. Expand it to change or download versions. The selected saved profile stays above separate **New configuration** and **Import** sections, both collapsed by default. The entire creation form, including its own content editor and creation button, is inside the New configuration section. Imports close after a successful copy. Name, format, and path fields adapt to the available width.
+
+If GitHub's API returns 403/429 or is unavailable, the launcher uses the official release webpages and honors the API retry window. Download metadata can also use official release assets and checksums without the API. Previously fetched version lists and release metadata are cached in the launcher data directory and remain available when both online sources fail. Cached or alternate sources are identified on the page and in runtime logs; downloads still require the official SHA-256 check.
+
+Configurations are managed under `frpc/configs/` beside `CMCLauncher.exe`. Enter a file or folder path, choose files, or choose a folder to import copies. Folder imports also copy relative includes, certificates, and other supporting files; single-file imports copy only the selected configuration. The original files are never edited or used to launch frpc. Imports with matching names create separate copies. Existing external configuration selections are copied into this managed directory when the page opens.
+
+To create a configuration, expand **New configuration**, enter a name, choose INI or TOML, and type or paste the content in that section. Choose **Create configuration** to save and select the new profile. **Copy current content** fills the new draft from the selected profile without modifying it; **Save as** opens the same form with the current content prefilled. Keep multiple profiles, switch between them, edit and save a profile, save its text as a new profile, or delete a saved configuration with confirmation. The program directory must be writable. Select a downloaded client and a saved profile, then use **Verify** or **Start frpc**; edited content is saved and verified before starting. INI is a legacy format; new configurations should use TOML. Match your client version to your frps server.
+
+The client keeps running while you navigate the launcher. **Stop frpc** terminates the managed process and its children; closing the launcher stops it too. The page shows a bounded, redacted output log. “Running” indicates that the process is alive; check the frpc output to confirm the server connection. Configure your own frps server and credentials in the selected file. Client binaries are stored under `tools/frpc/` in the launcher data directory; only the selected version and configuration path are saved in launcher settings.
+
+### Other limitations
 
 - Forge and NeoForge installation is available, but installation and runtime compatibility have not been fully validated across game versions.
 - ZIP is a container, not a modpack format. Archives must contain a recognized Modrinth or MultiMC / Prism manifest. CurseForge modpack import and file downloads are not supported.

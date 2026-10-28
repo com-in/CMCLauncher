@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -68,7 +68,7 @@ public sealed partial class MainWindow
             taskProgress = new ProgressBar { Minimum = 0, Maximum = 100, Height = 5 }; panel.Children.Add(taskProgress);
             taskMetrics = Text("", 12); panel.Children.Add(taskMetrics);
             taskElapsed = Text("", 12); panel.Children.Add(taskElapsed);
-            var cancel = new Button { Content = Ui("取消任务", "Cancel task"), HorizontalAlignment = HorizontalAlignment.Left, Padding = new Thickness(12, 6, 12, 6) };
+            var cancel = new Button { Content = Ui("Cancel task"), HorizontalAlignment = HorizontalAlignment.Left, Padding = new Thickness(12, 6, 12, 6) };
             cancel.Click += (_, _) => { task?.Cancel(); cancel.IsEnabled = false; work.Stage = "正在取消…"; RefreshTaskMetrics(); };
             panel.Children.Add(cancel); TaskDrawerBody.Children.Add(panel);
         }
@@ -81,8 +81,8 @@ public sealed partial class MainWindow
                 var panel = new StackPanel { Spacing = 4 };
                 panel.Children.Add(Text(Ui(recent.Name) + " · " + Ui(recent.State), 14, true));
                 panel.Children.Add(Text(Ui(recent.Stage), 12));
-                panel.Children.Add(Text(store.Config.Settings.LauncherLanguage == "en_us" ? $"Received {ByteSize(Interlocked.Read(ref recent.Bytes))}" : $"已接收 {ByteSize(Interlocked.Read(ref recent.Bytes))}", 12));
-                panel.Children.Add(Text(store.Config.Settings.LauncherLanguage == "en_us" ? $"Elapsed {FormatDuration(Elapsed(recent))}" : $"耗时 {FormatDuration(Elapsed(recent))}", 12));
+                panel.Children.Add(Text(UiFormat("Received {0}", ByteSize(Interlocked.Read(ref recent.Bytes))), 12));
+                panel.Children.Add(Text(UiFormat("Elapsed {0}", FormatDuration(Elapsed(recent))), 12));
                 TaskDrawerBody.Children.Add(CompactCard(panel));
             }
         }
@@ -107,15 +107,12 @@ public sealed partial class MainWindow
             work.LastBytes = bytes; work.LastSample = now;
         }
         if (!TaskDrawer.IsPaneOpen || taskStage == null || taskMetrics == null || taskElapsed == null || taskProgress == null) return;
-        var english = store.Config.Settings.LauncherLanguage == "en_us";
-        var label = english ? work.Launch ? "Launch progress" : "Current file progress" : work.Launch ? "启动进度" : "当前文件进度";
-        var progressText = work.Progress is double progressValue ? progressValue.ToString("0") + "%" : english ? "Preparing" : "准备中";
+        var label = (work.Launch ? Ui("Launch progress") : Ui("Current file progress"));
+        var progressText = work.Progress is double progressValue ? progressValue.ToString("0") + "%" : Ui("Preparing");
         taskStage.Text = Ui(work.Stage);
         taskProgress.IsIndeterminate = !work.Progress.HasValue; taskProgress.Value = work.Progress ?? 0;
-        taskMetrics.Text = english
-            ? $"{label}: {progressText}\nSpeed: {ByteSize(work.Speed)}/s   ·   Received {ByteSize(bytes)}"
-            : $"{label}：{progressText}\n速度：{ByteSize(work.Speed)}/s   ·   已接收 {ByteSize(bytes)}";
-        taskElapsed.Text = english ? $"Elapsed: {FormatDuration(Elapsed(work))}" : $"耗时：{FormatDuration(Elapsed(work))}";
+        taskMetrics.Text = UiFormat("{0}: {1}\nSpeed: {2}/s   ·   Received {3}", label, progressText, ByteSize(work.Speed), ByteSize(bytes));
+        taskElapsed.Text = UiFormat("Elapsed: {0}", FormatDuration(Elapsed(work)));
     }
     static TimeSpan Elapsed(WorkItem work) => work.CompletedElapsed ?? work.Clock.Elapsed;
     static string FormatDuration(TimeSpan elapsed)
@@ -175,7 +172,7 @@ public sealed partial class MainWindow
             // 完成后固定耗时，最近任务列表不会继续增加计时。
             work.CompletedElapsed = work.Clock.Elapsed;
             RuntimeLog.Debug($"Task name={work.Name}; state={work.State}; elapsed={work.CompletedElapsed}; bytes={work.Bytes}; stage={work.Stage}; memory={Environment.WorkingSet / 1048576}MB");
-            var outcome = work.State == "已完成" ? Ui("成功", "succeeded") : work.State == "已取消" ? Ui("已取消", "canceled") : Ui("失败", "failed");
+            var outcome = work.State == "已完成" ? Ui("succeeded") : work.State == "已取消" ? Ui("context.taskmanagement.canceled") : Ui("context.taskmanagement.failed");
             ShowToast(Ui(work.Name) + " " + outcome, work.State == "已完成" ? InfoBarSeverity.Success : work.State == "已取消" ? InfoBarSeverity.Informational : InfoBarSeverity.Error);
             recentWork.Insert(0, work);
             if (recentWork.Count > 12) recentWork.RemoveAt(recentWork.Count - 1);
@@ -183,6 +180,7 @@ public sealed partial class MainWindow
             activeWork = null;
             task = null;
             SetTaskButtonsEnabled(true);
+            UpdateFrpcStatus();
             RefreshTaskMetrics();
             if (TaskDrawer.IsPaneOpen) Tasks();
         }

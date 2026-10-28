@@ -1,4 +1,4 @@
-using Microsoft.UI.Xaml;
+﻿using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Automation.Peers;
 using Microsoft.UI.Xaml.Automation.Provider;
@@ -37,7 +37,7 @@ public sealed partial class MainWindow
         async Task Search(string text)
         {
             Query().Text = text;
-            await Click(Descendants(PageBody).OfType<Button>().Single(b => b.Content?.ToString() == Ui("搜索")));
+            await Click(Descendants(PageBody).OfType<Button>().Single(b => b.Content?.ToString() == Ui("Search")));
         }
         try
         {
@@ -144,7 +144,7 @@ public sealed partial class MainWindow
             await Capture(Path.Combine(directory, "community-pagination.png"));
 
             Query().Text = "slow";
-            Invoke(Descendants(PageBody).OfType<Button>().Single(b => b.Content?.ToString() == Ui("搜索")));
+            Invoke(Descendants(PageBody).OfType<Button>().Single(b => b.Content?.ToString() == Ui("Search")));
             await Task.Delay(25); var oldLoad = communityLoad;
             check(!Tagged("community-next").IsEnabled && !Tagged("community-previous").IsEnabled && !Tagged("community-jump").IsEnabled && !PageInput().IsEnabled, "pager and jump input cannot queue requests while loading");
             page = "download-resourcepack"; await RenderAsync(); await communityLoad;

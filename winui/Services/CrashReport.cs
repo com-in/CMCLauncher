@@ -1,4 +1,4 @@
-using System.Text;
+﻿using System.Text;
 using System.Diagnostics;
 using Microsoft.UI.Xaml.Controls;
 using Windows.Storage.Pickers;
@@ -19,15 +19,15 @@ public sealed partial class MainWindow
             if (exitCode == 0 && (crashFile == null || File.GetLastWriteTimeUtc(crashFile) < launchStarted.UtcDateTime)) return;
             while (dialogOpen) await Task.Delay(150);
             var report = CrashReport.Build(store, instance, process, logs);
-            AddLog(Ui("游戏异常退出，已生成错误报告摘要。", "The game exited unexpectedly; a crash report summary is ready."));
+            AddLog(Ui("The game exited unexpectedly; a crash report summary is ready."));
             var content = new StackPanel { Spacing = 8 };
-            content.Children.Add(new TextBlock { Text = Ui($"游戏以退出码 {exitCode} 退出。", $"The game exited with code {exitCode}."), TextWrapping = Microsoft.UI.Xaml.TextWrapping.Wrap });
+            content.Children.Add(new TextBlock { Text = UiFormat("The game exited with code {0}.", exitCode), TextWrapping = Microsoft.UI.Xaml.TextWrapping.Wrap });
             content.Children.Add(new TextBlock { Text = report.Summary, TextWrapping = Microsoft.UI.Xaml.TextWrapping.Wrap, MaxLines = 5, TextTrimming = Microsoft.UI.Xaml.TextTrimming.CharacterEllipsis, Opacity = .8 });
             var dialog = new Microsoft.UI.Xaml.Controls.ContentDialog
             {
                 XamlRoot = Content.XamlRoot, RequestedTheme = lightTheme ? Microsoft.UI.Xaml.ElementTheme.Light : Microsoft.UI.Xaml.ElementTheme.Dark,
-                Title = Ui("游戏崩溃了", "The game crashed"), Content = content,
-                PrimaryButtonText = Ui("导出错误报告", "Export error report"), CloseButtonText = Ui("关闭", "Close"), DefaultButton = Microsoft.UI.Xaml.Controls.ContentDialogButton.Primary
+                Title = Ui("The game crashed"), Content = content,
+                PrimaryButtonText = Ui("Export error report"), CloseButtonText = Ui("context.crashreport.close"), DefaultButton = Microsoft.UI.Xaml.Controls.ContentDialogButton.Primary
             };
             dialogOpen = true;
             try
@@ -43,11 +43,11 @@ public sealed partial class MainWindow
     {
         var picker = new FileSavePicker { SuggestedFileName = report.FileName };
         InitializeWithWindow.Initialize(picker, WindowNative.GetWindowHandle(this));
-        picker.FileTypeChoices.Add(Ui("错误报告", "Error report"), [".txt"]);
+        picker.FileTypeChoices.Add(Ui("Error report"), [".txt"]);
         var file = await picker.PickSaveFileAsync();
         if (file == null) return;
         await File.WriteAllTextAsync(file.Path, report.Text, Encoding.UTF8);
-        Report(Ui("错误报告已导出。", "Error report exported."));
+        Report(Ui("Error report exported."));
     }
 }
 

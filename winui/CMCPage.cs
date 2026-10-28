@@ -1,4 +1,4 @@
-using Microsoft.UI.Xaml;
+﻿using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 
@@ -30,7 +30,8 @@ public abstract class CMCPage
     protected void Render() => Window.Render();
 
     // UI 构建
-    protected string Ui(string text, string? english = null) => Window.Ui(text, english);
+    protected string Ui(string key) => Window.Ui(key);
+    protected string UiFormat(string key, params object?[] values) => Window.UiFormat(key, values);
     protected TextBlock Text(string text, double size = 14, bool bold = false)
         => Window.Text(text, size, bold);
     protected Button Action(string label, Action<object, RoutedEventArgs> click, bool primary = false)

@@ -1,4 +1,4 @@
-using System.Runtime.CompilerServices;
+﻿using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using Microsoft.Win32;
@@ -90,7 +90,7 @@ public sealed partial class MainWindow
     {
         Header("个性化", "");
         var settings = store.Config.Settings;
-        var theme = new BelowComboBox { Header = Ui("外观", "Appearance"), ItemsSource = settings.LauncherLanguage == "en_us" ? new[] { "Light", "Dark", "System" } : new[] { "浅色", "深色", "跟随系统" }, SelectedIndex = settings.Theme switch { "light" => 0, "system" => 2, _ => 1 }, HorizontalAlignment = HorizontalAlignment.Stretch };
+        var theme = new BelowComboBox { Header = Ui("Appearance"), ItemsSource = new[] { Ui("Light"), Ui("Dark"), Ui("System") }, SelectedIndex = settings.Theme switch { "light" => 0, "system" => 2, _ => 1 }, HorizontalAlignment = HorizontalAlignment.Stretch };
         theme.SelectionChanged += async (_, _) =>
         {
             if (syncingAppearanceControls || theme.SelectedIndex < 0) return;
@@ -101,36 +101,36 @@ public sealed partial class MainWindow
         {
             foreach (var control in AppearanceElements(PageBody))
             {
-                if (control is NumberBox number && number.Header?.ToString() == Ui("控件大小 / %", "Control size / %")) number.Value = 100;
-                else if (control is NumberBox buttonNumber && buttonNumber.Header?.ToString() == Ui("按钮大小 / %", "Button size / %")) buttonNumber.Value = 100;
-                else if (control is NumberBox menuNumber && menuNumber.Header?.ToString() == Ui("菜单大小 / %", "Menu size / %")) menuNumber.Value = 100;
-                else if (control is NumberBox size && size.Header?.ToString() == Ui("字体大小", "Font size")) size.Value = 14;
-                else if (control is ComboBox fontChoice && fontChoice.Header?.ToString() == Ui("字体", "Font family")) fontChoice.SelectedItem = DefaultFontFamily;
+                if (control is NumberBox number && number.Header?.ToString() == Ui("Control size / %")) number.Value = 100;
+                else if (control is NumberBox buttonNumber && buttonNumber.Header?.ToString() == Ui("Button size / %")) buttonNumber.Value = 100;
+                else if (control is NumberBox menuNumber && menuNumber.Header?.ToString() == Ui("Menu size / %")) menuNumber.Value = 100;
+                else if (control is NumberBox size && size.Header?.ToString() == Ui("Font size")) size.Value = 14;
+                else if (control is ComboBox fontChoice && fontChoice.Header?.ToString() == Ui("Font family")) fontChoice.SelectedItem = DefaultFontFamily;
             }
         }) } }));
-        var scale = new NumberBox { Header = Ui("控件大小 / %", "Control size / %"), Value = Math.Clamp(settings.UiScale * 100, 80, 150), Minimum = 80, Maximum = 150, SmallChange = 5, SpinButtonPlacementMode = NumberBoxSpinButtonPlacementMode.Compact };
-        var buttonScale = new NumberBox { Header = Ui("按钮大小 / %", "Button size / %"), Value = Math.Clamp(settings.UiButtonScale * 100, 80, 150), Minimum = 80, Maximum = 150, SmallChange = 5, SpinButtonPlacementMode = NumberBoxSpinButtonPlacementMode.Compact };
-        var menuScale = new NumberBox { Header = Ui("菜单大小 / %", "Menu size / %"), Value = Math.Clamp(settings.UiMenuScale * 100, 80, 150), Minimum = 80, Maximum = 150, SmallChange = 5, SpinButtonPlacementMode = NumberBoxSpinButtonPlacementMode.Compact };
+        var scale = new NumberBox { Header = Ui("Control size / %"), Value = Math.Clamp(settings.UiScale * 100, 80, 150), Minimum = 80, Maximum = 150, SmallChange = 5, SpinButtonPlacementMode = NumberBoxSpinButtonPlacementMode.Compact };
+        var buttonScale = new NumberBox { Header = Ui("Button size / %"), Value = Math.Clamp(settings.UiButtonScale * 100, 80, 150), Minimum = 80, Maximum = 150, SmallChange = 5, SpinButtonPlacementMode = NumberBoxSpinButtonPlacementMode.Compact };
+        var menuScale = new NumberBox { Header = Ui("Menu size / %"), Value = Math.Clamp(settings.UiMenuScale * 100, 80, 150), Minimum = 80, Maximum = 150, SmallChange = 5, SpinButtonPlacementMode = NumberBoxSpinButtonPlacementMode.Compact };
         var fonts = InstalledFontFamilies(settings.UiFontFamily);
         if (string.IsNullOrWhiteSpace(settings.UiFontFamily)) settings.UiFontFamily = DefaultFontFamily;
-        var font = new BelowComboBox { Header = Ui("字体", "Font family"), ItemsSource = fonts, SelectedItem = settings.UiFontFamily, MaxDropDownHeight = 360, HorizontalAlignment = HorizontalAlignment.Stretch };
-        var fontSize = new NumberBox { Header = Ui("字体大小", "Font size"), Value = Math.Clamp(settings.UiFontSize, 12, 22), Minimum = 12, Maximum = 22, SmallChange = 1, SpinButtonPlacementMode = NumberBoxSpinButtonPlacementMode.Compact };
+        var font = new BelowComboBox { Header = Ui("Font family"), ItemsSource = fonts, SelectedItem = settings.UiFontFamily, MaxDropDownHeight = 360, HorizontalAlignment = HorizontalAlignment.Stretch };
+        var fontSize = new NumberBox { Header = Ui("Font size"), Value = Math.Clamp(settings.UiFontSize, 12, 22), Minimum = 12, Maximum = 22, SmallChange = 1, SpinButtonPlacementMode = NumberBoxSpinButtonPlacementMode.Compact };
         scale.ValueChanged += async (_, _) => { if (!double.IsFinite(scale.Value) || scale.Value < 80 || scale.Value > 150) return; settings.UiScale = scale.Value / 100; await SaveAppearance(); };
         buttonScale.ValueChanged += async (_, _) => { if (!double.IsFinite(buttonScale.Value) || buttonScale.Value < 80 || buttonScale.Value > 150) return; settings.UiButtonScale = buttonScale.Value / 100; await SaveAppearance(); };
         menuScale.ValueChanged += async (_, _) => { if (!double.IsFinite(menuScale.Value) || menuScale.Value < 80 || menuScale.Value > 150) return; settings.UiMenuScale = menuScale.Value / 100; await SaveAppearance(); };
         font.SelectionChanged += async (_, _) => { if (font.SelectedItem is string family && family.Length > 0) { settings.UiFontFamily = family; await SaveAppearance(); } };
         fontSize.ValueChanged += async (_, _) => { if (!double.IsFinite(fontSize.Value) || fontSize.Value < 12 || fontSize.Value > 22) return; settings.UiFontSize = fontSize.Value; await SaveAppearance(); };
         PageBody.Children.Add(Card(new StackPanel { Spacing = 12, Children = { scale, buttonScale, menuScale, font, fontSize } }));
-        var presetNames = new BelowComboBox { Header = Ui("已保存的预设", "Saved presets"), ItemsSource = settings.CustomAppearancePresets.Select(p => p.Name).ToArray(), PlaceholderText = Ui("选择已保存的预设", "Select a saved preset"), MaxDropDownHeight = 260, IsEnabled = settings.CustomAppearancePresets.Count > 0, HorizontalAlignment = HorizontalAlignment.Stretch };
-        var presetName = new TextBox { PlaceholderText = Ui("预设名称", "Preset name"), HorizontalAlignment = HorizontalAlignment.Stretch };
+        var presetNames = new BelowComboBox { Header = Ui("Saved presets"), ItemsSource = settings.CustomAppearancePresets.Select(p => p.Name).ToArray(), PlaceholderText = Ui("Select a saved preset"), MaxDropDownHeight = 260, IsEnabled = settings.CustomAppearancePresets.Count > 0, HorizontalAlignment = HorizontalAlignment.Stretch };
+        var presetName = new TextBox { PlaceholderText = Ui("Preset name"), HorizontalAlignment = HorizontalAlignment.Stretch };
         var updatingPresetList = false;
         Button deletePreset = null!;
-        deletePreset = Action(Ui("删除所选预设", "Delete selected preset"), async (sender, _) =>
+        deletePreset = Action(Ui("Delete selected preset"), async (sender, _) =>
         {
             if (presetNames.SelectedItem is not string name) return;
             var preset = settings.CustomAppearancePresets.FirstOrDefault(p => string.Equals(p.Name, name, StringComparison.OrdinalIgnoreCase));
             if (preset == null) return;
-            if (!await ConfirmPop((FrameworkElement)sender, Ui("删除预设？", "Delete preset?"), name)) return;
+            if (!await ConfirmPop((FrameworkElement)sender, Ui("Delete preset?"), name)) return;
             settings.CustomAppearancePresets.Remove(preset);
             updatingPresetList = true;
             presetNames.ItemsSource = settings.CustomAppearancePresets.Select(p => p.Name).ToArray();
@@ -138,7 +138,7 @@ public sealed partial class MainWindow
             presetNames.IsEnabled = settings.CustomAppearancePresets.Count > 0;
             updatingPresetList = false;
             await store.Save();
-            ShowToast(Ui("预设已删除", "Preset deleted") + " · " + name);
+            ShowToast(Ui("Preset deleted") + " · " + name);
             DispatcherQueue.TryEnqueue(() =>
             {
                 deletePreset.IsEnabled = presetNames.SelectedItem is string selectedName && settings.CustomAppearancePresets.Any(p => string.Equals(p.Name, selectedName, StringComparison.OrdinalIgnoreCase));
@@ -146,7 +146,7 @@ public sealed partial class MainWindow
         });
         deletePreset.IsEnabled = false;
         presetNames.SelectionChanged += (_, _) => deletePreset.IsEnabled = presetNames.SelectedItem is string selectedName && settings.CustomAppearancePresets.Any(p => string.Equals(p.Name, selectedName, StringComparison.OrdinalIgnoreCase));
-        var savePreset = Action(Ui("保存当前设置为预设", "Save current settings as preset"), async (_, _) =>
+        var savePreset = Action(Ui("Save current settings as preset"), async (_, _) =>
         {
             var name = presetName.Text.Trim();
             if (name.Length == 0) return;
@@ -161,7 +161,7 @@ public sealed partial class MainWindow
             updatingPresetList = false;
             await store.Save();
         });
-        var importPreset = Action(Ui("导入预设", "Import preset"), async (_, _) =>
+        var importPreset = Action(Ui("Import preset"), async (_, _) =>
         {
             var picker = new FileOpenPicker();
             InitializeWithWindow.Initialize(picker, WindowNative.GetWindowHandle(this));
@@ -187,7 +187,7 @@ public sealed partial class MainWindow
                 presetNames.IsEnabled = true;
                 updatingPresetList = false;
                 await store.Save();
-                Report(Ui("预设已导入。", "Preset imported."));
+                Report(Ui("Preset imported."));
             }
             catch (Exception ex) { await Error(ex); }
         });
@@ -205,19 +205,19 @@ public sealed partial class MainWindow
             {
                 foreach (var control in AppearanceElements(PageBody))
                 {
-                    if (control is ComboBox combo && combo.Header?.ToString() == Ui("外观", "Appearance")) combo.SelectedIndex = settings.Theme switch { "light" => 0, "system" => 2, _ => 1 };
-                    else if (control is NumberBox number && number.Header?.ToString() == Ui("控件大小 / %", "Control size / %")) number.Value = settings.UiScale * 100;
-                    else if (control is NumberBox buttonNumber && buttonNumber.Header?.ToString() == Ui("按钮大小 / %", "Button size / %")) buttonNumber.Value = settings.UiButtonScale * 100;
-                    else if (control is NumberBox menuNumber && menuNumber.Header?.ToString() == Ui("菜单大小 / %", "Menu size / %")) menuNumber.Value = settings.UiMenuScale * 100;
-                    else if (control is NumberBox size && size.Header?.ToString() == Ui("字体大小", "Font size")) size.Value = settings.UiFontSize;
-                    else if (control is ComboBox fontChoice && fontChoice.Header?.ToString() == Ui("字体", "Font family")) fontChoice.SelectedItem = settings.UiFontFamily;
-                    else if (control is ComboBox colorPreset && colorPreset.Header?.ToString() == Ui("预设", "Preset")) colorPreset.SelectedIndex = ColorPresetIndex(settings.ColorPreset);
+                    if (control is ComboBox combo && combo.Header?.ToString() == Ui("Appearance")) combo.SelectedIndex = settings.Theme switch { "light" => 0, "system" => 2, _ => 1 };
+                    else if (control is NumberBox number && number.Header?.ToString() == Ui("Control size / %")) number.Value = settings.UiScale * 100;
+                    else if (control is NumberBox buttonNumber && buttonNumber.Header?.ToString() == Ui("Button size / %")) buttonNumber.Value = settings.UiButtonScale * 100;
+                    else if (control is NumberBox menuNumber && menuNumber.Header?.ToString() == Ui("Menu size / %")) menuNumber.Value = settings.UiMenuScale * 100;
+                    else if (control is NumberBox size && size.Header?.ToString() == Ui("Font size")) size.Value = settings.UiFontSize;
+                    else if (control is ComboBox fontChoice && fontChoice.Header?.ToString() == Ui("Font family")) fontChoice.SelectedItem = settings.UiFontFamily;
+                    else if (control is ComboBox colorPreset && colorPreset.Header?.ToString() == Ui("Preset")) colorPreset.SelectedIndex = ColorPresetIndex(settings.ColorPreset);
                 }
             }
             finally { syncingAppearanceControls = false; }
         };
         PageBody.Children.Add(Card(new StackPanel { Spacing = 10, Children = { presetNames, presetName, Buttons(savePreset, deletePreset), importPreset } }));
-        PageBody.Children.Add(Action(Ui("导出当前个性化设置", "Export personalization"), async (_, _) =>
+        PageBody.Children.Add(Action(Ui("context.personalization.export_personalization"), async (_, _) =>
         {
             var picker = new FileSavePicker { SuggestedFileName = "CMCLauncher-personalization" };
             InitializeWithWindow.Initialize(picker, WindowNative.GetWindowHandle(this));
@@ -225,7 +225,7 @@ public sealed partial class MainWindow
             var file = await picker.PickSaveFileAsync();
             if (file == null) return;
             await File.WriteAllTextAsync(file.Path, AppearanceJson());
-            Report(Ui("个性化设置已导出。", "Personalization exported."));
+            Report(Ui("context.personalization.personalization_exported"));
         }));
     }
 

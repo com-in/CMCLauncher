@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using Microsoft.UI;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
@@ -26,7 +26,7 @@ public sealed partial class MainWindow
     // 先展示表单，再异步拉取版本目录；失败时仍保留已有缓存列表。
     Task Downloads()
     {
-        Header("版本下载", Ui("选择要安装的游戏版本。", "Choose a game version to install."));
+        Header("版本下载", Ui("Choose a game version to install."));
         var form = new Grid { HorizontalAlignment = HorizontalAlignment.Stretch, Tag = "game-download-form" };
         var releaseTypes = new[] { "正式版", "快照版", "愚人节版" };
         var category = new Grid { ColumnSpacing = 6 };
@@ -39,25 +39,25 @@ public sealed partial class MainWindow
             Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(button, value);
             Grid.SetColumn(button, categoryButtons.Count); categoryButtons.Add(button); category.Children.Add(button);
         }
-        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(category, Ui("版本类型"));
-        var versionSearch = new TextBox { PlaceholderText = Ui("搜索版本号，例如 1.21", "Find a version, e.g. 1.21"), Tag = "game-version-search", HorizontalAlignment = HorizontalAlignment.Stretch };
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(category, Ui("Release type"));
+        var versionSearch = new TextBox { PlaceholderText = Ui("Find a version, e.g. 1.21"), Tag = "game-version-search", HorizontalAlignment = HorizontalAlignment.Stretch };
         var versions = new ListView { SelectionMode = ListViewSelectionMode.Single, IsItemClickEnabled = true, HorizontalAlignment = HorizontalAlignment.Stretch, MinHeight = 240, MaxHeight = 400 };
-        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(versions, Ui("Minecraft 版本"));
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(versions, Ui("Minecraft version"));
         ScrollViewer.SetHorizontalScrollBarVisibility(versions, ScrollBarVisibility.Disabled);
         ScrollViewer.SetVerticalScrollBarVisibility(versions, ScrollBarVisibility.Hidden);
         var versionStatus = Text("正在获取官方版本列表…", 12);
-        var versionDetail = Text(Ui("尚未选择版本", "No version selected"), 21, true);
+        var versionDetail = Text(Ui("No version selected"), 21, true);
         versionDetail.Foreground = Brush(lightTheme ? "#69745F" : "#ACADBD");
-        var emptyVersions = Text(Ui("没有匹配的版本，试试其他版本号或分类。", "No matching versions. Try a different version number or category."), 12);
+        var emptyVersions = Text(Ui("No matching versions. Try a different version number or category."), 12);
         emptyVersions.Visibility = Visibility.Collapsed;
-        var versionSection = new StackPanel { Spacing = 12, Children = { Text(Ui("选择游戏版本", "Choose a game version"), 16, true), category, versionSearch, versionStatus, versions, emptyVersions } };
-        var back = new Button { Content = Ui("← 重新选择版本", "← Choose another version"), Tag = "game-download-back", HorizontalAlignment = HorizontalAlignment.Left };
-        var installSection = new StackPanel { Spacing = 16, Children = { back, Text(Ui("安装选项", "Installation options"), 16, true), versionDetail } };
-        var loader = new BelowComboBox { Header = Ui("加载器", "Mod loader"), ItemsSource = store.Config.Settings.LauncherLanguage == "en_us" ? new[] { "Vanilla", "Fabric", "Forge", "NeoForge" } : new[] { "原版", "Fabric", "Forge", "NeoForge" }, SelectedIndex = 0, HorizontalAlignment = HorizontalAlignment.Stretch };
-        var name = new TextBox { Header = Ui("安装名称", "Installation name"), Text = "", MaxLength = 80 };
+        var versionSection = new StackPanel { Spacing = 12, Children = { Text(Ui("context.gamedownloads.choose_a_game_version"), 16, true), category, versionSearch, versionStatus, versions, emptyVersions } };
+        var back = new Button { Content = Ui("← Choose another version"), Tag = "game-download-back", HorizontalAlignment = HorizontalAlignment.Left };
+        var installSection = new StackPanel { Spacing = 16, Children = { back, Text(Ui("Installation options"), 16, true), versionDetail } };
+        var loader = new BelowComboBox { Header = Ui("Mod loader"), ItemsSource = new[] { Ui("Vanilla"), "Fabric", "Forge", "NeoForge" }, SelectedIndex = 0, HorizontalAlignment = HorizontalAlignment.Stretch };
+        var name = new TextBox { Header = Ui("Installation name"), Text = "", MaxLength = 80 };
         var nameError = new TextBlock { Foreground = Brush(lightTheme ? "#C42B1C" : "#FF99A4"), TextWrapping = TextWrapping.Wrap, FontSize = 12, Visibility = Visibility.Collapsed };
         var loaderStatus = Text("", 12); loaderStatus.Visibility = Visibility.Collapsed;
-        var loaderRetry = new Button { Content = Ui("重试加载器查询", "Retry loader lookup"), Tag = "game-loader-retry", Visibility = Visibility.Collapsed, HorizontalAlignment = HorizontalAlignment.Left };
+        var loaderRetry = new Button { Content = Ui("Retry loader lookup"), Tag = "game-loader-retry", Visibility = Visibility.Collapsed, HorizontalAlignment = HorizontalAlignment.Left };
         var nameSection = new StackPanel { Spacing = 4, Children = { name, nameError } };
         var options = new StackPanel { Spacing = 14, Children = { loader, loaderStatus, loaderRetry, nameSection } };
         var note = Text("", 12); note.Visibility = Visibility.Collapsed;
@@ -84,8 +84,8 @@ public sealed partial class MainWindow
             versionCard.Visibility = installation ? Visibility.Collapsed : Visibility.Visible;
             installCard.Visibility = installation ? Visibility.Visible : Visibility.Collapsed;
             PageSubtitle.Text = installation
-                ? Ui("开始安装", "Start installation")
-                : Ui("选择要安装的游戏版本。", "Choose a game version to install.");
+                ? Ui("Start installation")
+                : Ui("Choose a game version to install.");
             PageViewport.ChangeView(null, 0, null, true);
             DispatcherQueue.TryEnqueue(() =>
             {
@@ -121,7 +121,7 @@ public sealed partial class MainWindow
             var mc = versions.SelectedItem as string;
             var type = LoaderType();
             loadingLoader = mc != null && type != "vanilla";
-            loaderStatus.Text = loadingLoader ? Ui("正在获取加载器版本…", "Loading loader version…") : "";
+            loaderStatus.Text = loadingLoader ? Ui("Loading loader version…") : "";
             loaderStatus.Visibility = loadingLoader ? Visibility.Visible : Visibility.Collapsed;
             SuggestName();
             if (!loadingLoader) return;
@@ -130,14 +130,14 @@ public sealed partial class MainWindow
             {
                 var builds = await fetchDownloadLoaderBuilds(mc!, type, timeout.Token);
                 if (request != loaderRequest || viewVersion != renderVersion) return;
-                resolvedBuild = builds.FirstOrDefault() ?? throw new Exception(Ui("此游戏版本暂无可用的加载器", "No loader is available for this game version"));
+                resolvedBuild = builds.FirstOrDefault() ?? throw new Exception(Ui("No loader is available for this game version"));
                 resolvedLoaderVersion = type == "forge" && resolvedBuild.StartsWith(mc + "-", StringComparison.Ordinal) ? resolvedBuild[(mc!.Length + 1)..] : resolvedBuild;
                 loaderStatus.Text = loader.SelectedItem + " " + resolvedLoaderVersion;
             }
             catch (Exception ex)
             {
                 if (request != loaderRequest || viewVersion != renderVersion) return;
-                loaderFailure = ex is OperationCanceledException ? Ui("加载器查询超时，请重新选择后重试。", "Loader lookup timed out. Select the loader again to retry.") : ex.Message;
+                loaderFailure = ex is OperationCanceledException ? Ui("Loader lookup timed out. Select the loader again to retry.") : ex.Message;
                 loaderStatus.Text = loaderFailure;
                 loaderRetry.Visibility = Visibility.Visible;
             }
@@ -153,7 +153,7 @@ public sealed partial class MainWindow
             loader.IsEnabled = name.IsEnabled = hasSelection;
             options.Opacity = hasSelection ? 1 : 0.5;
             ValidateName();
-            versionDetail.Text = versions.SelectedItem is string value ? "Minecraft " + value : Ui("尚未选择版本", "No version selected");
+            versionDetail.Text = versions.SelectedItem is string value ? "Minecraft " + value : Ui("No version selected");
             versionDetail.Foreground = Brush(hasSelection ? (lightTheme ? ThemeTokens.LightText : ThemeTokens.DarkText) : (lightTheme ? ThemeTokens.LightMuted : ThemeTokens.DarkMuted));
             if (!hasSelection && !changingVersionList) ShowStep(false);
         }
@@ -170,7 +170,7 @@ public sealed partial class MainWindow
             finally { changingVersionList = false; }
             versions.IsEnabled = values.Count > 0;
             versions.Visibility = values.Count == 0 && cachedVersions.Count > 0 ? Visibility.Collapsed : Visibility.Visible;
-            versionStatus.Text = $"{Ui(releaseCategory)} · {values.Count} {Ui("个版本", "versions")}";
+            versionStatus.Text = $"{Ui(releaseCategory)} · {values.Count} {Ui("versions")}";
             emptyVersions.Visibility = values.Count == 0 && cachedVersions.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
             SyncSelection();
         }
@@ -204,7 +204,7 @@ public sealed partial class MainWindow
             loadingVersions = true;
             using var request = new CancellationTokenSource(TimeSpan.FromSeconds(20));
             resourceSearch = request;
-            versionStatus.Text = Ui("正在获取官方版本列表…", "Loading official version list…"); versionStatus.Foreground = Brush(lightTheme ? "#69745F" : "#ACADBD");
+            versionStatus.Text = Ui("Loading official version list…"); versionStatus.Foreground = Brush(lightTheme ? "#69745F" : "#ACADBD");
             try
             {
                 var values = await fetchVersions(request.Token);
@@ -217,13 +217,13 @@ public sealed partial class MainWindow
                 if (viewVersion != renderVersion) return;
                 versions.IsEnabled = cachedVersions.Any(v => v.Category == releaseCategory);
                 versionStatus.Foreground = Brush(lightTheme ? "#A33A32" : "#FF8A80");
-                versionStatus.Text = (cachedVersions.Count > 0 ? Ui("已保留上次列表。", "The previous list was kept.") + " " : "") +
-                    (ex is OperationCanceledException ? Ui("获取版本列表超时。", "Timed out while loading the version list.") : Ui("获取失败：", "Failed to load: ") + ex.Message) +
-                    " " + Ui("请检查网络或配置代理后重试。", "Check your network or set up a proxy and try again.");
+                versionStatus.Text = (cachedVersions.Count > 0 ? Ui("The previous list was kept.") + " " : "") +
+                    (ex is OperationCanceledException ? Ui("Timed out while loading the version list.") : Ui("Failed to load:  [context 473]") + ex.Message) +
+                    " " + Ui("Check your network or set up a proxy and try again.");
             }
             finally { loadingVersions = false; if (ReferenceEquals(resourceSearch, request)) resourceSearch = null; }
         }
-        var refresh = Action(Ui("刷新", "Refresh"), async (_, _) => await LoadVersions());
+        var refresh = Action(Ui("Refresh"), async (_, _) => await LoadVersions());
         download = Action("下载并安装", async (_, _) =>
         {
             if (versions.SelectedItem is not string gameVersion) throw new Exception("请选择 Minecraft 版本");
@@ -248,7 +248,7 @@ public sealed partial class MainWindow
         loader.SelectionChanged += async (_, _) =>
         {
             var requiresJava = loader.SelectedItem?.ToString() is "Forge" or "NeoForge";
-            note.Text = requiresJava ? Ui("安装 Mod加载器 需要可用的 Java。", "Installing a mod loader requires a working Java.") : "";
+            note.Text = requiresJava ? Ui("Installing a mod loader requires a working Java.") : "";
             note.Visibility = requiresJava ? Visibility.Visible : Visibility.Collapsed;
             await ResolveLoader();
         };

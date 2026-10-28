@@ -1,4 +1,4 @@
-using CMCLauncher;
+﻿using CMCLauncher;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 
@@ -15,30 +15,28 @@ public sealed class SettingsPage : CMCPage
 
         var launcherLanguage = new BelowComboBox
         {
-            Header = Ui("启动器语言", "Launcher language"),
-            ItemsSource = new[] { "简体中文", "English" },
-            SelectedIndex = settings.LauncherLanguage == "en_us" ? 1 : 0,
+            Header = Ui("Launcher language"),
+            ItemsSource = Window.InterfaceLanguages,
+            SelectedItem = Window.InterfaceLanguages.FirstOrDefault(language => language.Code == settings.LauncherLanguage) ?? Window.InterfaceLanguages.FirstOrDefault(),
             HorizontalAlignment = HorizontalAlignment.Stretch
         };
         launcherLanguage.SelectionChanged += async (_, _) =>
         {
-            if (launcherLanguage.SelectedIndex < 0) return;
-            await SwitchLanguage(launcherLanguage.SelectedIndex == 1 ? "en_us" : "zh_cn");
+            if (launcherLanguage.SelectedItem is not InterfaceLanguage language || language.Code == settings.LauncherLanguage) return;
+            await SwitchLanguage(language.Code);
         };
 
         var language = new BelowComboBox
         {
-            Header = Ui("游戏语言", "Game language"),
-            ItemsSource = Store.Config.Settings.LauncherLanguage == "en_us"
-                ? new[] { "System default", "Simplified Chinese", "Traditional Chinese", "English", "Japanese", "Keep current" }
-                : new[] { "跟随系统", "简体中文", "繁體中文", "English", "日本語", "保留游戏原设置" },
+            Header = Ui("Game language"),
+            ItemsSource = new[] { Ui("context.settingspage.system_default"), Ui("Simplified Chinese"), Ui("Traditional Chinese"), "English", Ui("Japanese"), Ui("context.settingspage.keep_current") },
             SelectedIndex = settings.GameLanguage switch { "zh_cn" => 1, "zh_tw" => 2, "en_us" => 3, "ja_jp" => 4, "preserve" => 5, _ => 0 },
             HorizontalAlignment = HorizontalAlignment.Stretch
         };
 
         var memory = new NumberBox
         {
-            Header = Ui("最大内存 / MB", "Maximum memory / MB"),
+            Header = Ui("Maximum memory / MB"),
             Value = settings.MemoryMb,
             Minimum = 512, Maximum = 65536,
             SmallChange = 512,
@@ -46,7 +44,7 @@ public sealed class SettingsPage : CMCPage
         };
         var downloadThreads = new NumberBox
         {
-            Header = Ui("同时下载线程数", "Download threads"),
+            Header = Ui("Download threads"),
             Value = LauncherCore.DownloadConcurrency(settings),
             Minimum = 1, Maximum = 256,
             SmallChange = 1,
@@ -55,9 +53,9 @@ public sealed class SettingsPage : CMCPage
 
         var automaticMemory = new ToggleSwitch
         {
-            Header = Ui("游戏内存", "Game memory"),
-            OnContent = Ui("自动分配", "Automatic"),
-            OffContent = Ui("手动设置", "Manual"),
+            Header = Ui("Game memory"),
+            OnContent = Ui("Automatic [context 467]"),
+            OffContent = Ui("Manual"),
             IsOn = settings.AutoMemory
         };
         var memoryHint = Text("", 12);
@@ -65,34 +63,30 @@ public sealed class SettingsPage : CMCPage
         {
             memory.IsEnabled = !automaticMemory.IsOn;
             memoryHint.Text = automaticMemory.IsOn
-                ? (settings.LauncherLanguage == "en_us"
-                    ? $"Recommended: {GameMemory.Resolve(new Settings()):N0} MB. Recalculated at each launch based on physical and available memory."
-                    : $"当前建议 {GameMemory.Resolve(new Settings()):N0} MB；每次启动根据物理内存和可用内存重新计算。")
-                : Ui("手动指定 Java 最大堆内存。", "Set the maximum Java heap size manually.");
+                ? (UiFormat("Recommended: {0:N0} MB. Recalculated at each launch based on physical and available memory.", GameMemory.Resolve(new Settings())))
+                : Ui("Set the maximum Java heap size manually.");
         }
         automaticMemory.Toggled += (_, _) => RefreshMemory();
         RefreshMemory();
 
         var proxy = new TextBox
         {
-            Header = Ui("下载代理（留空使用系统代理）", "Download proxy (blank uses system proxy)"),
+            Header = Ui("Download proxy (blank uses system proxy)"),
             PlaceholderText = "http://127.0.0.1:7890",
             Text = settings.Proxy
         };
         var ignoreSslErrors = new ToggleSwitch
         {
-            Header = Ui("忽略 SSL 证书错误", "Ignore SSL certificate errors"),
+            Header = Ui("Ignore SSL certificate errors"),
             IsOn = settings.IgnoreSslErrors,
-            OnContent = Ui("启用", "On"), OffContent = Ui("关闭", "Off")
+            OnContent = Ui("context.settingspage.on"), OffContent = Ui("Off")
         };
-        var sslWarning = Text(Ui("跳过 SSL 证书验证会降低连接安全性。", "Skipping certificate validation reduces connection security."), 12);
+        var sslWarning = Text(Ui("Skipping certificate validation reduces connection security."), 12);
 
         var windowMode = new BelowComboBox
         {
-            Header = Ui("启动器默认窗口状态", "Default window mode"),
-            ItemsSource = Store.Config.Settings.LauncherLanguage == "en_us"
-                ? new[] { "Windowed", "Maximized" }
-                : new[] { "窗口化", "最大化" },
+            Header = Ui("Default window mode"),
+            ItemsSource = new[] { Ui("Windowed"), Ui("Maximized") },
             SelectedIndex = settings.StartMaximized ? 1 : 0
         };
         windowMode.SelectionChanged += async (_, _) =>
@@ -104,17 +98,15 @@ public sealed class SettingsPage : CMCPage
 
         var projectIntro = new ToggleSwitch
         {
-            Header = Ui("项目简介默认展开", "Expand project descriptions by default"),
+            Header = Ui("Expand project descriptions by default [context 568]"),
             IsOn = settings.ExpandProjectIntroduction,
-            OnContent = Ui("展开", "Expand"), OffContent = Ui("折叠", "Collapse")
+            OnContent = Ui("Expand"), OffContent = Ui("Collapse")
         };
 
         var localizedWindow = new BelowComboBox
         {
-            Header = Ui("启动器默认窗口状态", "Default window mode"),
-            ItemsSource = Store.Config.Settings.LauncherLanguage == "en_us"
-                ? new[] { "Windowed", "Maximized" }
-                : new[] { "窗口化", "最大化" },
+            Header = Ui("Default window mode"),
+            ItemsSource = new[] { Ui("Windowed"), Ui("Maximized") },
             SelectedIndex = windowMode.SelectedIndex,
             HorizontalAlignment = HorizontalAlignment.Stretch
         };
@@ -130,10 +122,8 @@ public sealed class SettingsPage : CMCPage
 
         var localizedGameLanguage = new BelowComboBox
         {
-            Header = Ui("游戏语言", "Game language"),
-            ItemsSource = Store.Config.Settings.LauncherLanguage == "en_us"
-                ? new[] { "System default", "Simplified Chinese", "Traditional Chinese", "English", "Japanese", "Keep current" }
-                : new[] { "跟随系统", "简体中文", "繁體中文", "English", "日本語", "保留游戏原设置" },
+            Header = Ui("Game language"),
+            ItemsSource = new[] { Ui("context.settingspage.system_default"), Ui("Simplified Chinese"), Ui("Traditional Chinese"), "English", Ui("Japanese"), Ui("context.settingspage.keep_current") },
             SelectedIndex = language.SelectedIndex,
             HorizontalAlignment = HorizontalAlignment.Stretch
         };
@@ -183,7 +173,7 @@ public sealed class SettingsPage : CMCPage
             var value = proxy.Text.Trim();
             if (value.Length > 0 && (!Uri.TryCreate(value, UriKind.Absolute, out var uri) || uri.Scheme is not ("http" or "https" or "socks5") || string.IsNullOrWhiteSpace(uri.Host)))
             {
-                proxyHint.Text = Ui("请输入有效的 HTTP、HTTPS 或 SOCKS5 代理地址；当前仍使用上次有效设置。", "Enter a valid HTTP, HTTPS, or SOCKS5 proxy address. The last valid setting remains active."); return;
+                proxyHint.Text = Ui("Enter a valid HTTP, HTTPS, or SOCKS5 proxy address. The last valid setting remains active."); return;
             }
             proxyHint.Text = ""; settings.Proxy = value; Core.ConfigureNetwork(); await PersistSettings();
         };

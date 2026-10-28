@@ -1,4 +1,4 @@
-using System.IO.Compression;
+﻿using System.IO.Compression;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
@@ -23,7 +23,7 @@ public sealed partial class MainWindow
             await Task.Delay(150); ((FrameworkElement)Content).UpdateLayout();
             var root = (FrameworkElement)Content;
             var toastPosition = TaskToast.TransformToVisual(root).TransformPoint(new Windows.Foundation.Point());
-            check(TaskToast.IsOpen && TaskToast.Severity == InfoBarSeverity.Success && TaskToast.Message == "Toast fixture " + Ui("成功", "succeeded"), "successful tasks show the task name followed by its outcome");
+            check(TaskToast.IsOpen && TaskToast.Severity == InfoBarSeverity.Success && TaskToast.Message == "Toast fixture " + Ui("succeeded"), "successful tasks show the task name followed by its outcome");
             check(Math.Abs(toastPosition.X + TaskToast.ActualWidth / 2 - root.ActualWidth / 2) < 1
                 && toastPosition.Y + TaskToast.ActualHeight <= root.ActualHeight - 20, "task toast is centered near the bottom of the window");
             await Capture(Path.Combine(directory, "task-completion-toast.png"));
@@ -35,11 +35,11 @@ public sealed partial class MainWindow
             check(TaskToast.IsOpen && TaskToast.Severity == InfoBarSeverity.Error, "failed tasks show an error toast");
             TaskToast.IsOpen = false;
 
-            var anchor = new Button { Content = Ui("删除测试项目", "Delete test item"), HorizontalAlignment = HorizontalAlignment.Left };
+            var anchor = new Button { Content = Ui("Delete test item"), HorizontalAlignment = HorizontalAlignment.Left };
             PageBody.Children.Insert(0, anchor); PageViewport.ChangeView(null, 0, null, true);
             await Task.Delay(250); PageViewport.UpdateLayout();
             check(anchor.IsLoaded && anchor.XamlRoot != null && anchor.ActualWidth > 0, "popconfirm anchor is attached and laid out");
-            var confirmation = ConfirmPop(anchor, Ui("删除项目？", "Delete item?"), "Fixture", Ui("删除", "Delete"));
+            var confirmation = ConfirmPop(anchor, Ui("Delete item?"), "Fixture", Ui("Delete"));
             await Task.Delay(180);
             check(activePopconfirm != null && !confirmation.IsCompleted && !dialogOpen, "delete confirmation uses an anchored non-modal flyout");
             var panel = (StackPanel)activePopconfirm!.Content;
@@ -47,7 +47,7 @@ public sealed partial class MainWindow
             Invoke(Descendants(panel).OfType<Button>().Single(b => b.Tag?.ToString() == "popconfirm-cancel"));
             check(!await confirmation, "canceling popconfirm rejects the delete operation");
             await Task.Delay(200);
-            confirmation = ConfirmPop(anchor, Ui("删除项目？", "Delete item?"), "Fixture");
+            confirmation = ConfirmPop(anchor, Ui("Delete item?"), "Fixture");
             await Task.Delay(100);
             panel = (StackPanel)activePopconfirm!.Content;
             Invoke(Descendants(panel).OfType<Button>().Single(b => b.Tag?.ToString() == "popconfirm-confirm"));
@@ -65,7 +65,7 @@ public sealed partial class MainWindow
             store.Config.Instances.Add(fixture); selected = fixture;
             page = "version-settings"; kind = "overview"; await RenderAsync(); await schematicAvailabilityLoad; await Task.Delay(450);
             var schematicDirectory = Path.Combine(gameRoot, "schematics");
-            check(Directory.Exists(schematicDirectory) && Descendants(PageBody).OfType<Button>().Any(b => b.Content?.ToString() == Ui("投影管理", "Schematics")),
+            check(Directory.Exists(schematicDirectory) && Descendants(PageBody).OfType<Button>().Any(b => b.Content?.ToString() == Ui("Schematics")),
                 "supported Mod metadata creates the folder and adds schematic management");
             await File.WriteAllTextAsync(Path.Combine(schematicDirectory, "house.litematic"), "fixture");
             Directory.CreateDirectory(Path.Combine(schematicDirectory, "parts"));
@@ -82,7 +82,7 @@ public sealed partial class MainWindow
             search.Text = ""; await Task.Delay(100); await schematicLoad; PageViewport.ChangeView(null, 0, null, true); await Task.Delay(450);
             await Capture(Path.Combine(directory, "schematics-management.png"));
             fixture.Loader = "vanilla"; await RenderAsync();
-            check(kind == "overview" && !Descendants(PageBody).OfType<Button>().Any(b => b.Content?.ToString() == Ui("投影管理", "Schematics")),
+            check(kind == "overview" && !Descendants(PageBody).OfType<Button>().Any(b => b.Content?.ToString() == Ui("Schematics")),
                 "vanilla versions hide schematic management even when a folder exists");
             page = "logs"; await RenderAsync(); await Task.Delay(200);
             var debug = Descendants(PageBody).OfType<ToggleSwitch>().Single(t => t.Tag?.ToString() == "debug-logging");
@@ -93,6 +93,11 @@ public sealed partial class MainWindow
             check(!logView!.Text.Contains("secret-test") && !logView.Text.Contains("refresh-test") && !logView.Text.Contains("bearer-test"), "DEBUG display and disk logger redact credential fields");
             await Capture(Path.Combine(directory, "debug-logs.png"));
             debug.IsOn = false; await Task.Delay(100);
+            RecordFrpcOutput("frpc runtime log fixture auth.token=hidden-frpc-secret"); await Task.Delay(100);
+            check(logView!.Text.Contains("[FRPC]") && logView.Text.Contains("frpc runtime log fixture") && RuntimeLog.ReadTail().Contains("frpc runtime log fixture") && !logView.Text.Contains("hidden-frpc-secret"), "frpc output reaches the runtime view and disk log with DEBUG disabled and credentials redacted");
+            var toolbar = Descendants(PageBody).OfType<StackPanel>().Single(p => p.Tag?.ToString() == "logs-toolbar");
+            check(toolbar.Orientation == Orientation.Horizontal && toolbar.Children.Contains(debug) && toolbar.Children.OfType<Button>().Count() == 2, "DEBUG switch and log actions share one horizontal toolbar");
+            await Capture(Path.Combine(directory, "runtime-logs-toolbar.png"));
             var before = logs.Count; RuntimeLog.Debug("hidden debug fixture"); await Task.Delay(100);
             check(logs.Count == before, "disabling DEBUG stops new diagnostic events");
         }
