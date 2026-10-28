@@ -38,7 +38,7 @@ public sealed partial class MainWindow
         {
             ("常规设置", "\uE713", "settings"), ("个性化", "\uE790", "personalization"), ("Java 管理", "\uE950", "java"), ("账号管理", "\uE77B", "accounts"), ("运行日志", "\uE9D9", "logs")
         });
-        AddNavGroup("更多", "\uE712", "more", new[] { ("frpc 客户端", "\uE968", "frpc") });
+        AddNavGroup("更多", "\uE712", "more", new[] { ("frpc", "\uE968", "frpc") });
         SyncNavigation();
     }
     void AddNavGroup(string title, string glyph, string key, (string Title, string Glyph, string Page)[] children)

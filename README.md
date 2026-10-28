@@ -41,7 +41,7 @@ The release archive includes the .NET and Windows App SDK runtimes, so you do no
 | Schematics | Search, import, export, rename, and delete `.litematic`, `.schematic`, `.schem`, and `.nbt` files, including nested folders |
 | Java and memory | Scan, import, and download Temurin Java; match Java versions automatically; use automatic or manual heap allocation |
 | Downloads | View progress and speed, cancel tasks, and configure 1–256 simultaneous file downloads; default: 16 |
-| frpc client | Download official Windows x64 releases, verify INI/TOML configurations, start or stop the client, and view its output |
+| frpc | Download official Windows x64 releases, verify INI/TOML configurations, start or stop the client, and view its output |
 | Appearance and language | Light, dark, and system themes; colors, fonts, scaling, and appearance presets; launcher and game language settings |
 | Accounts and diagnostics | Microsoft device-code sign-in, Windows DPAPI credential encryption, runtime logs, and game error report export |
 
@@ -59,9 +59,9 @@ Community resource pages place filters above the search box. Filter by game vers
 
 ## Support and limitations
 
-### frpc client
+### frpc
 
-Open **More → frpc client**, select a version from the online release list, and choose **Download online**. **Refresh releases** updates the list; **Load more releases** fetches older versions. Downloads come from [official frp releases](https://github.com/fatedier/frp/releases) and must pass the official SHA-256 check. The client is downloaded on demand and is not included in the launcher package.
+Open **More → frpc**, select a version from the online release list, and choose **Download online**. **Refresh releases** updates the list; **Load more releases** fetches older versions. Downloads come from [official frp releases](https://github.com/fatedier/frp/releases) and must pass the official SHA-256 check. The client is downloaded on demand and is not included in the launcher package.
 
 The downloads section opens by default until a client is installed, then starts collapsed with the installed version shown in its header. Expand it to change or download versions. The selected saved profile stays above separate **New configuration** and **Import** sections, both collapsed by default. The entire creation form, including its own content editor and creation button, is inside the New configuration section. Imports close after a successful copy. Name, format, and path fields adapt to the available width.
 

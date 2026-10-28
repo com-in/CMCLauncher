@@ -19,9 +19,9 @@ public sealed partial class MainWindow
     {
         Header("更多", Ui("Utilities"));
         PageBody.Children.Add(Card(new StackPanel { Spacing = 10, Children = {
-            Text(Ui("frpc client"), 18, true),
+            Text(Ui("frpc"), 18, true),
             Text(Ui("Download official frpc and manage connections using INI / TOML configurations."), 13),
-            Action(Ui("Open frpc client"), (_, _) => { page = "frpc"; expandedNavigation = "more"; Render(); }, true)
+            Action(Ui("Open frpc"), (_, _) => { page = "frpc"; expandedNavigation = "more"; Render(); }, true)
         } }));
     }
     void InitializeFrpc(string? configurationRoot = null)
@@ -55,7 +55,7 @@ public sealed partial class MainWindow
     }
     void FrpcPage()
     {
-        Header(Ui("frpc client"), Ui("INI / TOML configuration"));
+        Header(Ui("frpc"), Ui("INI / TOML configuration"));
         var settings = store.Config.Settings;
         var versions = frpc.Installed();
         if (!versions.Contains(settings.FrpcVersion)) settings.FrpcVersion = versions.FirstOrDefault() ?? "";
