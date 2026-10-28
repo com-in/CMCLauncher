@@ -1,7 +1,7 @@
 name: Optimization request
 description: Suggest improvements to performance, usability, or an existing workflow.
-title: "[Optimization] "
-labels: ["- OPT", "New issue"]
+title: '[Optimization] '
+labels: ['- OPT', 'New issue']
 body:
   - type: markdown
     attributes:

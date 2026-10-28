@@ -1,142 +1,564 @@
 <Window
-    x:Class="CMCLauncher.WinUI.MainWindow"
-    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    mc:Ignorable="d">
-    <Grid x:Name="ModpackDropRoot" RowDefinitions="40,*" Background="Transparent" AllowDrop="True">
-      <!-- 隐藏控件绑定系统主题画刷，ThemeCustomization.cs 从这些对象读取当前主题颜色。 -->
-      <Grid Visibility="Collapsed">
-        <Border x:Name="NativeBackground" Background="{ThemeResource ApplicationPageBackgroundThemeBrush}"/>
-        <Border x:Name="NativeSurface" Background="{ThemeResource LayerFillColorDefaultBrush}"/>
-        <Border x:Name="NativeText" Background="{ThemeResource TextFillColorPrimaryBrush}"/>
-        <Border x:Name="NativeMuted" Background="{ThemeResource TextFillColorSecondaryBrush}"/>
-        <Border x:Name="NativeAccent" Background="{ThemeResource AccentFillColorDefaultBrush}"/>
-        <Border x:Name="NativeAccentText" Background="{ThemeResource TextOnAccentFillColorPrimaryBrush}"/>
-        <Border x:Name="NativeHover" Background="{ThemeResource AccentFillColorSecondaryBrush}"/>
-        <Border x:Name="NativePressed" Background="{ThemeResource AccentFillColorTertiaryBrush}"/>
-        <Border x:Name="NativeSelection" Background="{ThemeResource SubtleFillColorSecondaryBrush}"/>
-        <Border x:Name="NativeSubtlePressed" Background="{ThemeResource SubtleFillColorTertiaryBrush}"/>
-        <Border x:Name="NativeDisabledText" Background="{ThemeResource TextFillColorDisabledBrush}"/>
-        <Border x:Name="NativeStroke" Background="{ThemeResource ControlStrokeColorDefaultBrush}"/>
-      </Grid>
-      <!-- 自绘标题区留出系统按钮位置，实际预留宽度由 UpdateTitleBarInset 更新。 -->
-      <Grid x:Name="CustomTitleBar" Height="40" ColumnDefinitions="204,*,Auto">
-        <Border x:Name="TitleBrandBackground"/>
-        <StackPanel Orientation="Horizontal" Spacing="9" Margin="18,0,0,0" VerticalAlignment="Center">
-          <Image x:Name="TitleIcon" Width="18" Height="18" Stretch="Uniform" VerticalAlignment="Center"/>
-          <TextBlock x:Name="TitleLabel" Text="CMCLauncher" FontSize="12" VerticalAlignment="Center"/>
-        </StackPanel>
-        <Border x:Name="CaptionButtonInset" Grid.Column="2" Width="138"/>
-      </Grid>
-    <SplitView Grid.Row="1" x:Name="CommunityFilterDrawer" PanePlacement="Right" DisplayMode="Overlay" OpenPaneLength="540" IsPaneOpen="False" PaneClosed="CommunityFilterDrawer_Closed">
+  x:Class="CMCLauncher.WinUI.MainWindow"
+  xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  mc:Ignorable="d"
+>
+  <Grid
+    x:Name="ModpackDropRoot"
+    RowDefinitions="40,*"
+    Background="Transparent"
+    AllowDrop="True"
+  >
+    <!-- 隐藏控件绑定系统主题画刷，ThemeCustomization.cs 从这些对象读取当前主题颜色。 -->
+    <Grid Visibility="Collapsed">
+      <Border
+        x:Name="NativeBackground"
+        Background="{ThemeResource ApplicationPageBackgroundThemeBrush}"
+      />
+      <Border
+        x:Name="NativeSurface"
+        Background="{ThemeResource LayerFillColorDefaultBrush}"
+      />
+      <Border
+        x:Name="NativeText"
+        Background="{ThemeResource TextFillColorPrimaryBrush}"
+      />
+      <Border
+        x:Name="NativeMuted"
+        Background="{ThemeResource TextFillColorSecondaryBrush}"
+      />
+      <Border
+        x:Name="NativeAccent"
+        Background="{ThemeResource AccentFillColorDefaultBrush}"
+      />
+      <Border
+        x:Name="NativeAccentText"
+        Background="{ThemeResource TextOnAccentFillColorPrimaryBrush}"
+      />
+      <Border
+        x:Name="NativeHover"
+        Background="{ThemeResource AccentFillColorSecondaryBrush}"
+      />
+      <Border
+        x:Name="NativePressed"
+        Background="{ThemeResource AccentFillColorTertiaryBrush}"
+      />
+      <Border
+        x:Name="NativeSelection"
+        Background="{ThemeResource SubtleFillColorSecondaryBrush}"
+      />
+      <Border
+        x:Name="NativeSubtlePressed"
+        Background="{ThemeResource SubtleFillColorTertiaryBrush}"
+      />
+      <Border
+        x:Name="NativeDisabledText"
+        Background="{ThemeResource TextFillColorDisabledBrush}"
+      />
+      <Border
+        x:Name="NativeStroke"
+        Background="{ThemeResource ControlStrokeColorDefaultBrush}"
+      />
+    </Grid>
+    <!-- 自绘标题区留出系统按钮位置，实际预留宽度由 UpdateTitleBarInset 更新。 -->
+    <Grid
+      x:Name="CustomTitleBar"
+      Height="40"
+      ColumnDefinitions="204,*,Auto"
+    >
+      <Border x:Name="TitleBrandBackground" />
+      <StackPanel
+        Orientation="Horizontal"
+        Spacing="9"
+        Margin="18,0,0,0"
+        VerticalAlignment="Center"
+      >
+        <Image
+          x:Name="TitleIcon"
+          Width="18"
+          Height="18"
+          Stretch="Uniform"
+          VerticalAlignment="Center"
+        />
+        <TextBlock
+          x:Name="TitleLabel"
+          Text="CMCLauncher"
+          FontSize="12"
+          VerticalAlignment="Center"
+        />
+      </StackPanel>
+      <Border
+        x:Name="CaptionButtonInset"
+        Grid.Column="2"
+        Width="138"
+      />
+    </Grid>
+    <SplitView
+      Grid.Row="1"
+      x:Name="CommunityFilterDrawer"
+      PanePlacement="Right"
+      DisplayMode="Overlay"
+      OpenPaneLength="540"
+      IsPaneOpen="False"
+      PaneClosed="CommunityFilterDrawer_Closed"
+    >
       <SplitView.Pane>
-        <Grid Padding="20" RowDefinitions="Auto,*,Auto" RowSpacing="16">
-          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+        <Grid
+          Padding="20"
+          RowDefinitions="Auto,*,Auto"
+          RowSpacing="16"
+        >
+          <Grid
+            ColumnDefinitions="*,Auto"
+            ColumnSpacing="12"
+          >
             <StackPanel Spacing="4">
-              <TextBlock x:Name="CommunityFilterDrawerTitle" Text="更多筛选" FontSize="20" FontWeight="SemiBold"/>
-              <TextBlock x:Name="CommunityFilterDrawerHint" Text="组合条件，缩小资源范围。" TextWrapping="Wrap" FontSize="12"/>
+              <TextBlock
+                x:Name="CommunityFilterDrawerTitle"
+                Text="更多筛选"
+                FontSize="20"
+                FontWeight="SemiBold"
+              />
+              <TextBlock
+                x:Name="CommunityFilterDrawerHint"
+                Text="组合条件，缩小资源范围。"
+                TextWrapping="Wrap"
+                FontSize="12"
+              />
             </StackPanel>
-            <Button x:Name="CommunityFilterCloseButton" Grid.Column="1" Content="&#xE8BB;" FontFamily="Segoe Fluent Icons" Width="32" Height="32" Padding="0" VerticalAlignment="Top" Click="CommunityFilterClose_Click"/>
+            <Button
+              x:Name="CommunityFilterCloseButton"
+              Grid.Column="1"
+              Content="&#xE8BB;"
+              FontFamily="Segoe Fluent Icons"
+              Width="32"
+              Height="32"
+              Padding="0"
+              VerticalAlignment="Top"
+              Click="CommunityFilterClose_Click"
+            />
           </Grid>
-          <ScrollViewer x:Name="CommunityFilterDrawerScroll" Grid.Row="1" VerticalScrollBarVisibility="Hidden" HorizontalScrollBarVisibility="Disabled" HorizontalScrollMode="Disabled" HorizontalContentAlignment="Stretch">
-            <ContentControl x:Name="CommunityFilterDrawerBody" HorizontalContentAlignment="Stretch" IsTabStop="False"/>
+          <ScrollViewer
+            x:Name="CommunityFilterDrawerScroll"
+            Grid.Row="1"
+            VerticalScrollBarVisibility="Hidden"
+            HorizontalScrollBarVisibility="Disabled"
+            HorizontalScrollMode="Disabled"
+            HorizontalContentAlignment="Stretch"
+          >
+            <ContentControl
+              x:Name="CommunityFilterDrawerBody"
+              HorizontalContentAlignment="Stretch"
+              IsTabStop="False"
+            />
           </ScrollViewer>
-          <Border x:Name="CommunityFilterDrawerFooter" Grid.Row="2" BorderThickness="0,1,0,0" Padding="0,16,0,0">
-            <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
-              <Button x:Name="CommunityFilterResetButton" Tag="community-advanced-reset" Content="重置" HorizontalAlignment="Stretch" Click="CommunityFilterReset_Click"/>
-              <Button x:Name="CommunityFilterApplyButton" Tag="community-advanced-apply" Grid.Column="1" Content="应用筛选" HorizontalAlignment="Stretch" Click="CommunityFilterApply_Click"/>
+          <Border
+            x:Name="CommunityFilterDrawerFooter"
+            Grid.Row="2"
+            BorderThickness="0,1,0,0"
+            Padding="0,16,0,0"
+          >
+            <Grid
+              ColumnDefinitions="*,*"
+              ColumnSpacing="12"
+            >
+              <Button
+                x:Name="CommunityFilterResetButton"
+                Tag="community-advanced-reset"
+                Content="重置"
+                HorizontalAlignment="Stretch"
+                Click="CommunityFilterReset_Click"
+              />
+              <Button
+                x:Name="CommunityFilterApplyButton"
+                Tag="community-advanced-apply"
+                Grid.Column="1"
+                Content="应用筛选"
+                HorizontalAlignment="Stretch"
+                Click="CommunityFilterApply_Click"
+              />
             </Grid>
           </Border>
         </Grid>
       </SplitView.Pane>
       <Grid>
-    <SplitView x:Name="TaskDrawer" PanePlacement="Right" DisplayMode="Overlay" OpenPaneLength="440" IsPaneOpen="False" PaneOpened="TaskDrawer_StateChanged" PaneClosed="TaskDrawer_StateChanged">
-      <SplitView.Pane>
-        <Grid Padding="20" RowDefinitions="Auto,*" RowSpacing="18">
-          <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
-            <Button x:Name="TaskDrawerBackButton" Content="&#xE72B;" FontFamily="Segoe Fluent Icons" Width="32" Height="32" Padding="0" ToolTipService.ToolTip="返回" AutomationProperties.Name="返回" Click="TaskDrawer_Close"/>
-          <TextBlock x:Name="TaskDrawerTitle" Grid.Column="1" Text="进行中的任务" FontSize="20" FontWeight="SemiBold" VerticalAlignment="Center"/>
-          </Grid>
-          <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Hidden" HorizontalScrollBarVisibility="Disabled" HorizontalScrollMode="Disabled" HorizontalContentAlignment="Stretch"><StackPanel x:Name="TaskDrawerBody" Spacing="12"/></ScrollViewer>
-        </Grid>
-      </SplitView.Pane>
-    <Grid>
-        <Grid.Background><SolidColorBrush x:Name="WindowBackground" Color="#FAFAFD"/></Grid.Background>
-        <Grid.ColumnDefinitions><ColumnDefinition Width="204"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-        <Border x:Name="Sidebar" Grid.Column="0" Background="#F4F4FA" Padding="10,16,10,14" BorderBrush="#E6E8F0" BorderThickness="0,0,1,0">
-            <Grid RowDefinitions="0,*,Auto">
-                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Hidden" HorizontalScrollBarVisibility="Hidden">
-                    <StackPanel x:Name="NavigationMenu" Spacing="3"/>
+        <SplitView
+          x:Name="TaskDrawer"
+          PanePlacement="Right"
+          DisplayMode="Overlay"
+          OpenPaneLength="440"
+          IsPaneOpen="False"
+          PaneOpened="TaskDrawer_StateChanged"
+          PaneClosed="TaskDrawer_StateChanged"
+        >
+          <SplitView.Pane>
+            <Grid
+              Padding="20"
+              RowDefinitions="Auto,*"
+              RowSpacing="18"
+            >
+              <Grid
+                ColumnDefinitions="Auto,*"
+                ColumnSpacing="10"
+              >
+                <Button
+                  x:Name="TaskDrawerBackButton"
+                  Content="&#xE72B;"
+                  FontFamily="Segoe Fluent Icons"
+                  Width="32"
+                  Height="32"
+                  Padding="0"
+                  ToolTipService.ToolTip="返回"
+                  AutomationProperties.Name="返回"
+                  Click="TaskDrawer_Close"
+                />
+                <TextBlock
+                  x:Name="TaskDrawerTitle"
+                  Grid.Column="1"
+                  Text="进行中的任务"
+                  FontSize="20"
+                  FontWeight="SemiBold"
+                  VerticalAlignment="Center"
+                />
+              </Grid>
+              <ScrollViewer
+                Grid.Row="1"
+                VerticalScrollBarVisibility="Hidden"
+                HorizontalScrollBarVisibility="Disabled"
+                HorizontalScrollMode="Disabled"
+                HorizontalContentAlignment="Stretch"
+              >
+                <StackPanel
+                  x:Name="TaskDrawerBody"
+                  Spacing="12"
+                />
+              </ScrollViewer>
+            </Grid>
+          </SplitView.Pane>
+          <Grid>
+            <Grid.Background>
+              <SolidColorBrush
+                x:Name="WindowBackground"
+                Color="#FAFAFD"
+              />
+            </Grid.Background>
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="204" />
+              <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <Border
+              x:Name="Sidebar"
+              Grid.Column="0"
+              Background="#F4F4FA"
+              Padding="10,16,10,14"
+              BorderBrush="#E6E8F0"
+              BorderThickness="0,0,1,0"
+            >
+              <Grid RowDefinitions="0,*,Auto">
+                <ScrollViewer
+                  Grid.Row="1"
+                  VerticalScrollBarVisibility="Hidden"
+                  HorizontalScrollBarVisibility="Hidden"
+                >
+                  <StackPanel
+                    x:Name="NavigationMenu"
+                    Spacing="3"
+                  />
                 </ScrollViewer>
-                <StackPanel Grid.Row="2" Spacing="7" Margin="5,14,5,0">
-                    <Button x:Name="TaskManagerButton" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Padding="10,8" CornerRadius="5" Click="TaskManager_Click">
-                        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10" HorizontalAlignment="Stretch">
-                            <FontIcon Glyph="&#xE9D9;" FontSize="16"/>
-                            <TextBlock x:Name="TaskManagerLabel" Grid.Column="1" Text="任务" FontSize="14" VerticalAlignment="Center"/>
-                            <Border x:Name="TaskCountBadge" Grid.Column="2" MinWidth="22" Height="22" Padding="5,0" CornerRadius="11" Visibility="Collapsed" VerticalAlignment="Center">
-                                <TextBlock x:Name="TaskCountText" FontFamily="Segoe UI" FontSize="12" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                            </Border>
-                        </Grid>
-                    </Button>
-                    <TextBlock x:Name="SidebarNote" Visibility="Collapsed"/>
-                    <Button x:Name="ProfileButton" Visibility="Collapsed" Content="还未添加账号" HorizontalContentAlignment="Left" Click="Profile_Click"/>
+                <StackPanel
+                  Grid.Row="2"
+                  Spacing="7"
+                  Margin="5,14,5,0"
+                >
+                  <Button
+                    x:Name="TaskManagerButton"
+                    HorizontalAlignment="Stretch"
+                    HorizontalContentAlignment="Stretch"
+                    Padding="10,8"
+                    CornerRadius="5"
+                    Click="TaskManager_Click"
+                  >
+                    <Grid
+                      ColumnDefinitions="Auto,*,Auto"
+                      ColumnSpacing="10"
+                      HorizontalAlignment="Stretch"
+                    >
+                      <FontIcon
+                        Glyph="&#xE9D9;"
+                        FontSize="16"
+                      />
+                      <TextBlock
+                        x:Name="TaskManagerLabel"
+                        Grid.Column="1"
+                        Text="任务"
+                        FontSize="14"
+                        VerticalAlignment="Center"
+                      />
+                      <Border
+                        x:Name="TaskCountBadge"
+                        Grid.Column="2"
+                        MinWidth="22"
+                        Height="22"
+                        Padding="5,0"
+                        CornerRadius="11"
+                        Visibility="Collapsed"
+                        VerticalAlignment="Center"
+                      >
+                        <TextBlock
+                          x:Name="TaskCountText"
+                          FontFamily="Segoe UI"
+                          FontSize="12"
+                          FontWeight="SemiBold"
+                          HorizontalAlignment="Center"
+                          VerticalAlignment="Center"
+                        />
+                      </Border>
+                    </Grid>
+                  </Button>
+                  <TextBlock
+                    x:Name="SidebarNote"
+                    Visibility="Collapsed"
+                  />
+                  <Button
+                    x:Name="ProfileButton"
+                    Visibility="Collapsed"
+                    Content="还未添加账号"
+                    HorizontalContentAlignment="Left"
+                    Click="Profile_Click"
+                  />
                 </StackPanel>
-            </Grid>
-        </Border>
-        <Grid Grid.Column="1" Padding="34,16,34,20" RowDefinitions="Auto,* ,Auto">
-            <Grid x:Name="PageHeader" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
-                <Button x:Name="PageBackButton" Grid.Column="0" Content="&#xE72B;" FontFamily="Segoe Fluent Icons" FontSize="16" Width="36" Height="36" Padding="0" VerticalAlignment="Top" Visibility="Collapsed" ToolTipService.ToolTip="返回" Click="PageBack_Click"/>
-                <StackPanel Grid.Column="1" Spacing="6">
-                    <TextBlock x:Name="Eyebrow" Visibility="Collapsed"/>
-                    <TextBlock x:Name="PageTitle" Text="原版游戏" FontSize="23" FontWeight="SemiBold" TextWrapping="Wrap" Foreground="#303145"/>
-                    <TextBlock x:Name="PageSubtitle" FontSize="13" Foreground="#77798C"/>
-                </StackPanel>
-                <Button x:Name="HomeCustomizeButton" Grid.Column="2" Content="&#xE713;" FontFamily="Segoe Fluent Icons" FontSize="15" Width="32" Height="32" Padding="0" VerticalAlignment="Top" Visibility="Collapsed" ToolTipService.ToolTip="自定义主页" AutomationProperties.Name="自定义主页" Click="HomeCustomize_Click"/>
-            </Grid>
-            <!-- 滚动容器跨页面复用，导航后由代码重置滚动位置并约束正文测量宽度。 -->
-            <ScrollViewer x:Name="PageViewport" Grid.Row="1" Margin="0,18,0,14" VerticalScrollBarVisibility="Hidden" HorizontalScrollBarVisibility="Disabled" HorizontalScrollMode="Disabled" HorizontalContentAlignment="Stretch" SizeChanged="PageViewport_SizeChanged">
-                <Frame x:Name="PageFrame" IsTabStop="False" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch">
-                    <Frame.ContentTransitions>
-                        <TransitionCollection>
-                            <NavigationThemeTransition>
-                                <NavigationThemeTransition.DefaultNavigationTransitionInfo><EntranceNavigationTransitionInfo/></NavigationThemeTransition.DefaultNavigationTransitionInfo>
-                            </NavigationThemeTransition>
-                        </TransitionCollection>
-                    </Frame.ContentTransitions>
-                </Frame>
-            </ScrollViewer>
-            <StackPanel x:Name="FooterStatusPanel" Grid.Row="2" Spacing="8" Visibility="Collapsed">
-                <ProgressBar x:Name="LaunchProgressBar" Minimum="0" Maximum="100" Height="5" Visibility="Collapsed"/>
-                <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="12"><TextBlock x:Name="StatusText" Text="就绪" Foreground="#60735B" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/><ProgressRing x:Name="TaskProgressRing" Grid.Column="1" Width="18" Height="18" IsActive="False" Visibility="Collapsed" AutomationProperties.Name="任务进行中"/><ProgressBar x:Name="DownloadProgressBar" Grid.Column="2" Width="160" Height="5" Minimum="0" Maximum="100" VerticalAlignment="Center" Visibility="Collapsed"/><Button x:Name="CancelButton" Grid.Column="3" Content="取消" Visibility="Collapsed" IsEnabled="False" Click="Cancel_Click"/></Grid>
-            </StackPanel>
-        </Grid>
-        <Border x:Name="TaskDrawerScrim" Grid.ColumnSpan="2" Background="#99000000" Opacity="0.42" Visibility="Collapsed" Tapped="TaskDrawerScrim_Tapped" AutomationProperties.Name="关闭任务面板"/>
-    </Grid>
-    </SplitView>
-        <Border x:Name="CommunityFilterScrim" Background="#66000000" Visibility="Collapsed" Tapped="CommunityFilterScrim_Tapped" AutomationProperties.Name="Close filters"/>
-      </Grid>
-    </SplitView>
-      <InfoBar x:Name="TaskToast" Grid.RowSpan="2" IsOpen="False" IsClosable="False" Severity="Success" RequestedTheme="Dark" Background="#171719" Foreground="White" BorderBrush="#38383B" CornerRadius="18" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="24,0,24,24" MaxWidth="440">
-        <InfoBar.Template>
-          <ControlTemplate TargetType="InfoBar">
-            <Border x:Name="ContentRoot" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1" CornerRadius="18" Padding="12,8" MinHeight="36">
-              <VisualStateManager.VisualStateGroups>
-                <VisualStateGroup x:Name="InfoBarVisibility">
-                  <VisualState x:Name="InfoBarVisible"/>
-                  <VisualState x:Name="InfoBarCollapsed">
-                    <VisualState.Setters><Setter Target="ContentRoot.Visibility" Value="Collapsed"/></VisualState.Setters>
-                  </VisualState>
-                </VisualStateGroup>
-              </VisualStateManager.VisualStateGroups>
-              <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
-                <FontIcon Glyph="{TemplateBinding Tag}" FontSize="14" Foreground="{TemplateBinding Foreground}" VerticalAlignment="Center"/>
-                <TextBlock Grid.Column="1" Text="{TemplateBinding Message}" FontSize="12" Foreground="{TemplateBinding Foreground}" VerticalAlignment="Center" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"/>
               </Grid>
             </Border>
-          </ControlTemplate>
-        </InfoBar.Template>
-      </InfoBar>
-    </Grid>
+            <Grid
+              Grid.Column="1"
+              Padding="34,16,34,20"
+              RowDefinitions="Auto,* ,Auto"
+            >
+              <Grid
+                x:Name="PageHeader"
+                ColumnDefinitions="Auto,*,Auto"
+                ColumnSpacing="10"
+              >
+                <Button
+                  x:Name="PageBackButton"
+                  Grid.Column="0"
+                  Content="&#xE72B;"
+                  FontFamily="Segoe Fluent Icons"
+                  FontSize="16"
+                  Width="36"
+                  Height="36"
+                  Padding="0"
+                  VerticalAlignment="Top"
+                  Visibility="Collapsed"
+                  ToolTipService.ToolTip="返回"
+                  Click="PageBack_Click"
+                />
+                <StackPanel
+                  Grid.Column="1"
+                  Spacing="6"
+                >
+                  <TextBlock
+                    x:Name="Eyebrow"
+                    Visibility="Collapsed"
+                  />
+                  <TextBlock
+                    x:Name="PageTitle"
+                    Text="原版游戏"
+                    FontSize="23"
+                    FontWeight="SemiBold"
+                    TextWrapping="Wrap"
+                    Foreground="#303145"
+                  />
+                  <TextBlock
+                    x:Name="PageSubtitle"
+                    FontSize="13"
+                    Foreground="#77798C"
+                  />
+                </StackPanel>
+                <Button
+                  x:Name="HomeCustomizeButton"
+                  Grid.Column="2"
+                  Content="&#xE713;"
+                  FontFamily="Segoe Fluent Icons"
+                  FontSize="15"
+                  Width="32"
+                  Height="32"
+                  Padding="0"
+                  VerticalAlignment="Top"
+                  Visibility="Collapsed"
+                  ToolTipService.ToolTip="自定义主页"
+                  AutomationProperties.Name="自定义主页"
+                  Click="HomeCustomize_Click"
+                />
+              </Grid>
+              <!-- 滚动容器跨页面复用，导航后由代码重置滚动位置并约束正文测量宽度。 -->
+              <ScrollViewer
+                x:Name="PageViewport"
+                Grid.Row="1"
+                Margin="0,18,0,14"
+                VerticalScrollBarVisibility="Hidden"
+                HorizontalScrollBarVisibility="Disabled"
+                HorizontalScrollMode="Disabled"
+                HorizontalContentAlignment="Stretch"
+                SizeChanged="PageViewport_SizeChanged"
+              >
+                <Frame
+                  x:Name="PageFrame"
+                  IsTabStop="False"
+                  HorizontalContentAlignment="Stretch"
+                  VerticalContentAlignment="Stretch"
+                >
+                  <Frame.ContentTransitions>
+                    <TransitionCollection>
+                      <NavigationThemeTransition>
+                        <NavigationThemeTransition.DefaultNavigationTransitionInfo>
+                          <EntranceNavigationTransitionInfo />
+                        </NavigationThemeTransition.DefaultNavigationTransitionInfo>
+                      </NavigationThemeTransition>
+                    </TransitionCollection>
+                  </Frame.ContentTransitions>
+                </Frame>
+              </ScrollViewer>
+              <StackPanel
+                x:Name="FooterStatusPanel"
+                Grid.Row="2"
+                Spacing="8"
+                Visibility="Collapsed"
+              >
+                <ProgressBar
+                  x:Name="LaunchProgressBar"
+                  Minimum="0"
+                  Maximum="100"
+                  Height="5"
+                  Visibility="Collapsed"
+                />
+                <Grid
+                  ColumnDefinitions="*,Auto,Auto,Auto"
+                  ColumnSpacing="12"
+                >
+                  <TextBlock
+                    x:Name="StatusText"
+                    Text="就绪"
+                    Foreground="#60735B"
+                    TextTrimming="CharacterEllipsis"
+                    VerticalAlignment="Center"
+                  />
+                  <ProgressRing
+                    x:Name="TaskProgressRing"
+                    Grid.Column="1"
+                    Width="18"
+                    Height="18"
+                    IsActive="False"
+                    Visibility="Collapsed"
+                    AutomationProperties.Name="任务进行中"
+                  />
+                  <ProgressBar
+                    x:Name="DownloadProgressBar"
+                    Grid.Column="2"
+                    Width="160"
+                    Height="5"
+                    Minimum="0"
+                    Maximum="100"
+                    VerticalAlignment="Center"
+                    Visibility="Collapsed"
+                  />
+                  <Button
+                    x:Name="CancelButton"
+                    Grid.Column="3"
+                    Content="取消"
+                    Visibility="Collapsed"
+                    IsEnabled="False"
+                    Click="Cancel_Click"
+                  />
+                </Grid>
+              </StackPanel>
+            </Grid>
+            <Border
+              x:Name="TaskDrawerScrim"
+              Grid.ColumnSpan="2"
+              Background="#99000000"
+              Opacity="0.42"
+              Visibility="Collapsed"
+              Tapped="TaskDrawerScrim_Tapped"
+              AutomationProperties.Name="关闭任务面板"
+            />
+          </Grid>
+        </SplitView>
+        <Border
+          x:Name="CommunityFilterScrim"
+          Background="#66000000"
+          Visibility="Collapsed"
+          Tapped="CommunityFilterScrim_Tapped"
+          AutomationProperties.Name="Close filters"
+        />
+      </Grid>
+    </SplitView>
+    <InfoBar
+      x:Name="TaskToast"
+      Grid.RowSpan="2"
+      IsOpen="False"
+      IsClosable="False"
+      Severity="Success"
+      RequestedTheme="Dark"
+      Background="#171719"
+      Foreground="White"
+      BorderBrush="#38383B"
+      CornerRadius="18"
+      HorizontalAlignment="Center"
+      VerticalAlignment="Bottom"
+      Margin="24,0,24,24"
+      MaxWidth="440"
+    >
+      <InfoBar.Template>
+        <ControlTemplate TargetType="InfoBar">
+          <Border
+            x:Name="ContentRoot"
+            Background="{TemplateBinding Background}"
+            BorderBrush="{TemplateBinding BorderBrush}"
+            BorderThickness="1"
+            CornerRadius="18"
+            Padding="12,8"
+            MinHeight="36"
+          >
+            <VisualStateManager.VisualStateGroups>
+              <VisualStateGroup x:Name="InfoBarVisibility">
+                <VisualState x:Name="InfoBarVisible" />
+                <VisualState x:Name="InfoBarCollapsed">
+                  <VisualState.Setters>
+                    <Setter
+                      Target="ContentRoot.Visibility"
+                      Value="Collapsed"
+                    />
+                  </VisualState.Setters>
+                </VisualState>
+              </VisualStateGroup>
+            </VisualStateManager.VisualStateGroups>
+            <Grid
+              ColumnDefinitions="Auto,*"
+              ColumnSpacing="8"
+            >
+              <FontIcon
+                Glyph="{TemplateBinding Tag}"
+                FontSize="14"
+                Foreground="{TemplateBinding Foreground}"
+                VerticalAlignment="Center"
+              />
+              <TextBlock
+                Grid.Column="1"
+                Text="{TemplateBinding Message}"
+                FontSize="12"
+                Foreground="{TemplateBinding Foreground}"
+                VerticalAlignment="Center"
+                TextWrapping="NoWrap"
+                TextTrimming="CharacterEllipsis"
+              />
+            </Grid>
+          </Border>
+        </ControlTemplate>
+      </InfoBar.Template>
+    </InfoBar>
+  </Grid>
 </Window>

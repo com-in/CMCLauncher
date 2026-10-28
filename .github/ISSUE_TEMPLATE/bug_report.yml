@@ -1,7 +1,7 @@
 name: Bug report
 description: Report a crash, error, or unexpected behavior in CMCLauncher.
-title: "[Bug] "
-labels: ["- BUG", "New issue"]
+title: '[Bug] '
+labels: ['- BUG', 'New issue']
 body:
   - type: markdown
     attributes:

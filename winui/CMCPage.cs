@@ -25,22 +25,37 @@ public abstract class CMCPage
     protected int RenderVersion => Window.RenderVersion;
 
     // 任务管理
-    protected async Task Run(Func<CancellationToken, Task> work, string? name = null)
-        => await Window.Run(work, name);
+    protected async Task Run(Func<CancellationToken, Task> work, string? name = null) =>
+        await Window.Run(work, name);
+
     protected void Render() => Window.Render();
 
     // UI 构建
     protected string Ui(string key) => Window.Ui(key);
+
     protected string UiFormat(string key, params object?[] values) => Window.UiFormat(key, values);
-    protected TextBlock Text(string text, double size = 14, bool bold = false)
-        => Window.Text(text, size, bold);
-    protected Button Action(string label, Action<object, RoutedEventArgs> click, bool primary = false)
-        => Window.Action(label, click, primary);
-    protected Button Action(string label, Func<object, RoutedEventArgs, Task> click, bool primary = false)
-        => Window.Action(label, click, primary);
+
+    protected TextBlock Text(string text, double size = 14, bool bold = false) =>
+        Window.Text(text, size, bold);
+
+    protected Button Action(
+        string label,
+        Action<object, RoutedEventArgs> click,
+        bool primary = false
+    ) => Window.Action(label, click, primary);
+
+    protected Button Action(
+        string label,
+        Func<object, RoutedEventArgs, Task> click,
+        bool primary = false
+    ) => Window.Action(label, click, primary);
+
     protected Border Card(UIElement content) => Window.Card(content);
+
     protected Border CompactCard(UIElement content) => Window.CompactCard(content);
+
     protected StackPanel Buttons(params Button[] buttons) => Window.Buttons(buttons);
+
     protected ComboBox InstanceSelector() => Window.InstanceSelector();
 
     // 页面标题
@@ -51,12 +66,15 @@ public abstract class CMCPage
 
     // 反馈
     protected void Report(string message) => Window.Report(message);
+
     protected async Task Error(Exception ex) => await Window.Error(ex);
+
     protected void AddLog(string line) => Window.AddLog(line);
 
     // 主题
     protected bool LightTheme => Window.lightTheme;
     protected string PrimaryColor => Window.PrimaryColor;
+
     protected SolidColorBrush Brush(string hex) => Window.Brush(hex);
 
     // 语言切换
@@ -64,11 +82,23 @@ public abstract class CMCPage
 
     // 日志
     protected Queue<string> Logs => Window.logs;
-    protected TextBox? LogView { get => Window.logView; set => Window.logView = value; }
+    protected TextBox? LogView
+    {
+        get => Window.logView;
+        set => Window.logView = value;
+    }
 
     // 导航状态
-    protected string Page { get => Window.CurrentPage; set { Window.CurrentPage = value; } }
-    protected string ExpandedNavigation { get => Window.ExpandedNavigation; set => Window.ExpandedNavigation = value; }
+    protected string Page
+    {
+        get => Window.CurrentPage;
+        set { Window.CurrentPage = value; }
+    }
+    protected string ExpandedNavigation
+    {
+        get => Window.ExpandedNavigation;
+        set => Window.ExpandedNavigation = value;
+    }
 
     // 每个页面实现自己的 UI 构建逻辑
     public abstract void Build();

@@ -1,7 +1,7 @@
 name: Feature request
 description: Suggest a new feature or an improvement to existing functionality.
-title: "[Feature] "
-labels: ["- FEAT", "New issue"]
+title: '[Feature] '
+labels: ['- FEAT', 'New issue']
 body:
   - type: markdown
     attributes:

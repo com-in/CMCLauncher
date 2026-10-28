@@ -1,0 +1,11 @@
+.artifacts/
+.vs/
+dist/
+state/
+**/bin/
+**/obj/
+winui/artifacts/
+winui/CompanionData.g.cs
+**/*.csproj
+**/*.xaml
+**/*.manifest

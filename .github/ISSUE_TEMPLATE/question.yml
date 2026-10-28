@@ -1,7 +1,7 @@
 name: Help and questions
 description: Ask about installation, configuration, launching games, or general usage.
-title: "[Question] "
-labels: ["New issue"]
+title: '[Question] '
+labels: ['New issue']
 body:
   - type: markdown
     attributes:

@@ -1,0 +1,17 @@
+{
+  "printWidth": 100,
+  "tabWidth": 2,
+  "useTabs": false,
+  "singleQuote": true,
+  "endOfLine": "crlf",
+  "overrides": [
+    {
+      "files": ["*.xaml", "*.csproj", "*.manifest"],
+      "options": {
+        "parser": "xml",
+        "singleAttributePerLine": true,
+        "xmlWhitespaceSensitivity": "preserve"
+      }
+    }
+  ]
+}

@@ -24,14 +24,23 @@ public static class CertificatePolicy
     // 按公钥匹配，证书重新签发或交叉签名后仍能识别同一把密钥。
     public static string? BlockedAuthority(X509Certificate2 certificate)
     {
-        var fingerprint = Convert.ToHexString(SHA256.HashData(certificate.PublicKey.ExportSubjectPublicKeyInfo()));
+        var fingerprint = Convert.ToHexString(
+            SHA256.HashData(certificate.PublicKey.ExportSubjectPublicKeyInfo())
+        );
         return DeniedKeys.GetValueOrDefault(fingerprint);
     }
 
-    public static bool Validate(X509Certificate? certificate, X509Chain? chain, SslPolicyErrors errors, bool ignoreSslErrors, Action<string>? blocked = null)
+    public static bool Validate(
+        X509Certificate? certificate,
+        X509Chain? chain,
+        SslPolicyErrors errors,
+        bool ignoreSslErrors,
+        Action<string>? blocked = null
+    )
     {
         // An absent chain cannot be inspected, even when the user ignores ordinary TLS errors.
-        if (certificate == null || chain == null || chain.ChainElements.Count == 0) return false;
+        if (certificate == null || chain == null || chain.ChainElements.Count == 0)
+            return false;
         try
         {
             using var leaf = new X509Certificate2(certificate);
@@ -46,6 +55,9 @@ public static class CertificatePolicy
             }
             return ignoreSslErrors || errors == SslPolicyErrors.None;
         }
-        catch (CryptographicException) { return false; }
+        catch (CryptographicException)
+        {
+            return false;
+        }
     }
 }

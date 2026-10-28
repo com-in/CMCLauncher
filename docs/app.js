@@ -10,7 +10,7 @@ menuButton.addEventListener('click', () => {
 });
 
 // 选中锚点后收起菜单，避免菜单继续挡住跳转后的正文。
-nav.addEventListener('click', event => {
+nav.addEventListener('click', (event) => {
   if (event.target.closest('a')) {
     menuButton.setAttribute('aria-expanded', 'false');
     menuButton.setAttribute('aria-label', 'Open menu');

@@ -1,9 +1,11 @@
-param([switch]$NoLaunch)
+﻿param([switch]$NoLaunch)
 
 $ErrorActionPreference = 'Stop'
 
-try {
-    if (-not (Get-Command dotnet -ErrorAction SilentlyContinue)) {
+try
+{
+    if (-not (Get-Command dotnet -ErrorAction SilentlyContinue))
+    {
         throw 'Install the .NET 8 SDK and Windows SDK / WinUI build tools first.'
     }
 
@@ -13,27 +15,37 @@ try {
     $project = Join-Path $PSScriptRoot 'winui/CMCLauncher.WinUI.csproj'
 
     Push-Location $PSScriptRoot
-    try {
+    try
+    {
         Write-Host 'Building CMCLauncher for local testing...'
         & dotnet publish $project -c Release -p:Platform=x64 -r win-x64 --self-contained true -o $outputDirectory --nologo
-        if ($LASTEXITCODE -ne 0) { throw "Build failed (exit code $LASTEXITCODE)." }
+        if ($LASTEXITCODE -ne 0)
+        {
+            throw "Build failed (exit code $LASTEXITCODE)."
+        }
     }
-    finally { Pop-Location }
+    finally
+    {
+        Pop-Location
+    }
 
     $executable = Join-Path $outputDirectory 'CMCLauncher.exe'
-    if (-not (Test-Path -LiteralPath $executable -PathType Leaf)) {
+    if (-not (Test-Path -LiteralPath $executable -PathType Leaf))
+    {
         throw "Build output is missing: $executable"
     }
 
     Write-Host "Build output: $outputDirectory"
-    if (-not $NoLaunch) {
+    if (-not $NoLaunch)
+    {
         # Start from the new output directory so runtime logs stay with this build.
         Start-Process -FilePath $executable -WorkingDirectory $outputDirectory
         Write-Host 'CMCLauncher started. Test the interface in the application window.'
     }
     exit 0
 }
-catch {
+catch
+{
     Write-Host $_.Exception.Message -ForegroundColor Red
     exit 1
 }

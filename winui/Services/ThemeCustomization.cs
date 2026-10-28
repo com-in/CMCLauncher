@@ -16,37 +16,70 @@ namespace CMCLauncher.WinUI;
 static class ThemeTokens
 {
     // 背景色 — 窗口主内容区域底色
-    public const string LightBg = "#F6F8F4", DarkBg = "#181922", DarkBgAlt = "#171820";
+    public const string LightBg = "#F6F8F4",
+        DarkBg = "#181922",
+        DarkBgAlt = "#171820";
+
     // 侧边栏
-    public const string LightSidebar = "#EAF0E4", DarkSidebar = "#20212D";
+    public const string LightSidebar = "#EAF0E4",
+        DarkSidebar = "#20212D";
+
     // 表面色 — 卡片/浮层背景；White 在 craft/lakecyan 中保留白色，
     // 在 native/custom 中映射为 surface，随当前浅/深模式取色
-    public const string White = "#FFFFFF", DarkSurface = "#242530", LightSurface = "#F1F2F5";
-    public const string LightSurfaceAlt = "#EEEAF7", DarkSurfaceAlt = "#343044";
+    public const string White = "#FFFFFF",
+        DarkSurface = "#242530",
+        LightSurface = "#F1F2F5";
+    public const string LightSurfaceAlt = "#EEEAF7",
+        DarkSurfaceAlt = "#343044";
+
     // 正文颜色
-    public const string LightText = "#303145", DarkText = "#F0F0FA";
-    public const string LightTextCaption = "#41424D", DarkTextCaption = "#E5E5EE";
-    public const string LightTextSub = "#4A4B58", DarkTextSub = "#D1D1DC";
+    public const string LightText = "#303145",
+        DarkText = "#F0F0FA";
+    public const string LightTextCaption = "#41424D",
+        DarkTextCaption = "#E5E5EE";
+    public const string LightTextSub = "#4A4B58",
+        DarkTextSub = "#D1D1DC";
+
     // 次要文字 (muted)
-    public const string LightMuted = "#69745F", DarkMuted = "#ACADBD";
-    public const string LightMutedAlt = "#73786F", DarkMutedAlt = "#AAAAB7";
+    public const string LightMuted = "#69745F",
+        DarkMuted = "#ACADBD";
+    public const string LightMutedAlt = "#73786F",
+        DarkMutedAlt = "#AAAAB7";
+
     // 强调色 — 链接、选中态、高亮
-    public const string LightAccent = "#416D37", DarkAccent = "#536DBD";
-    public const string LightAccentText = "#91A9F0", DarkAccentText = "#30592B";
+    public const string LightAccent = "#416D37",
+        DarkAccent = "#536DBD";
+    public const string LightAccentText = "#91A9F0",
+        DarkAccentText = "#30592B";
+
     // 选中态背景
-    public const string LightSelection = "#DDE8D6", DarkSelection = "#2C3550";
+    public const string LightSelection = "#DDE8D6",
+        DarkSelection = "#2C3550";
+
     // 悬停态
-    public const string LightHover = "#507F44", DarkHover = "#637DCD";
+    public const string LightHover = "#507F44",
+        DarkHover = "#637DCD";
+
     // 按下态
-    public const string LightPressed = "#355B2D", DarkPressed = "#465DA5";
+    public const string LightPressed = "#355B2D",
+        DarkPressed = "#465DA5";
+
     // 边框
-    public const string LightBorder = "#E4E3ED", DarkBorder = "#3A3B4B", DarkBorderAlt = "#30313E";
+    public const string LightBorder = "#E4E3ED",
+        DarkBorder = "#3A3B4B",
+        DarkBorderAlt = "#30313E";
+
     // 标题栏按钮悬停/按下
-    public const string LightTitlebarHover = "#E4E8E0", DarkTitlebarHover = "#303240";
-    public const string LightTitlebarPressed = "#D5DCD0", DarkTitlebarPressed = "#404354";
+    public const string LightTitlebarHover = "#E4E8E0",
+        DarkTitlebarHover = "#303240";
+    public const string LightTitlebarPressed = "#D5DCD0",
+        DarkTitlebarPressed = "#404354";
+
     // WinUI 原生主题取色失败时的兜底色
-    public const string NativeFallbackLight = "#F3F3F3", NativeFallbackDark = "#202020";
+    public const string NativeFallbackLight = "#F3F3F3",
+        NativeFallbackDark = "#202020";
 }
+
 public sealed partial class MainWindow
 {
     // 共享画刷只更新颜色，已经展开的弹层和已生成的选项也会立即刷新。
@@ -65,13 +98,20 @@ public sealed partial class MainWindow
 
     void RefreshComboPalette()
     {
-        static Color Mix(Color background, Color foreground, double amount) => ColorHelper.FromArgb(255,
-            (byte)Math.Round(background.R * (1 - amount) + foreground.R * amount),
-            (byte)Math.Round(background.G * (1 - amount) + foreground.G * amount),
-            (byte)Math.Round(background.B * (1 - amount) + foreground.B * amount));
+        static Color Mix(Color background, Color foreground, double amount) =>
+            ColorHelper.FromArgb(
+                255,
+                (byte)Math.Round(background.R * (1 - amount) + foreground.R * amount),
+                (byte)Math.Round(background.G * (1 - amount) + foreground.G * amount),
+                (byte)Math.Round(background.B * (1 - amount) + foreground.B * amount)
+            );
         var surface = SoftSurfaceColor();
-        var accent = PaletteColor(lightTheme ? ThemeTokens.LightAccent : ThemeTokens.LightAccentText);
-        var selected = PaletteColor(lightTheme ? ThemeTokens.LightSelection : ThemeTokens.DarkSelection);
+        var accent = PaletteColor(
+            lightTheme ? ThemeTokens.LightAccent : ThemeTokens.LightAccentText
+        );
+        var selected = PaletteColor(
+            lightTheme ? ThemeTokens.LightSelection : ThemeTokens.DarkSelection
+        );
         var text = PaletteColor(lightTheme ? ThemeTokens.LightText : ThemeTokens.DarkText);
         ComboSurfaceBrush.Color = surface;
         ComboHoverBrush.Color = Mix(surface, accent, lightTheme ? .10 : .14);
@@ -80,16 +120,21 @@ public sealed partial class MainWindow
         ComboSelectedHoverBrush.Color = Mix(selected, accent, .12);
         ComboSelectedPressedBrush.Color = Mix(selected, accent, .20);
         ComboSelectedDisabledBrush.Color = Mix(surface, selected, .5);
-        ComboBorderBrush.Color = PaletteColor(lightTheme ? ThemeTokens.LightBorder : ThemeTokens.DarkBorder);
+        ComboBorderBrush.Color = PaletteColor(
+            lightTheme ? ThemeTokens.LightBorder : ThemeTokens.DarkBorder
+        );
         ComboTextBrush.Color = text;
-        ComboMutedBrush.Color = PaletteColor(lightTheme ? ThemeTokens.LightMuted : ThemeTokens.DarkMuted);
+        ComboMutedBrush.Color = PaletteColor(
+            lightTheme ? ThemeTokens.LightMuted : ThemeTokens.DarkMuted
+        );
         ComboDisabledTextBrush.Color = Mix(surface, text, .4);
         ComboAccentBrush.Color = accent;
         if (store.Config.Settings.ColorPreset == "native")
         {
             Color Overlay(Border source, Color fallback)
             {
-                if (source.Background is not SolidColorBrush brush) return fallback;
+                if (source.Background is not SolidColorBrush brush)
+                    return fallback;
                 return Mix(surface, brush.Color, brush.Color.A / 255d);
             }
             // 原生列表项使用系统的中性 SubtleFill；强调色只用于焦点和选中标记。
@@ -99,12 +144,15 @@ public sealed partial class MainWindow
             ComboSelectedHoverBrush.Color = ComboPressedBrush.Color;
             ComboSelectedPressedBrush.Color = ComboHoverBrush.Color;
             ComboSelectedDisabledBrush.Color = ComboHoverBrush.Color;
-            if (NativeDisabledText.Background is SolidColorBrush disabled) ComboDisabledTextBrush.Color = disabled.Color;
+            if (NativeDisabledText.Background is SolidColorBrush disabled)
+                ComboDisabledTextBrush.Color = disabled.Color;
         }
     }
+
     // 页面切走后，旧控件和画刷应能正常回收；这里只留弱引用，避免刷新列表一直持有它们。
     // 同时记住原始 hex，换预设时才能重新查色，而不是拿上一次转换后的颜色再查一遍。
     readonly List<(WeakReference<SolidColorBrush> Brush, string Source)> paletteBrushes = [];
+
     // 七个可编辑角色在浅/深模式下的默认色值；缺失或非法的自定义值回退到这里
     static readonly Dictionary<string, (string Light, string Dark)> PaletteDefaults = new()
     {
@@ -114,41 +162,78 @@ public sealed partial class MainWindow
         ["text"] = (ThemeTokens.LightText, ThemeTokens.DarkText),
         ["muted"] = (ThemeTokens.LightMuted, ThemeTokens.DarkMuted),
         ["border"] = (ThemeTokens.LightBorder, ThemeTokens.DarkBorder),
-        ["accent"] = (ThemeTokens.LightAccent, ThemeTokens.DarkAccent)
+        ["accent"] = (ThemeTokens.LightAccent, ThemeTokens.DarkAccent),
     };
+
     // 清新绿的深色模式使用森林绿底色和叶绿色高亮，浅色模式沿用原配色。
-    static readonly Dictionary<string, string> FreshGreenDark = new(StringComparer.OrdinalIgnoreCase)
+    static readonly Dictionary<string, string> FreshGreenDark = new(
+        StringComparer.OrdinalIgnoreCase
+    )
     {
-        [ThemeTokens.DarkBg] = "#121E16", [ThemeTokens.DarkBgAlt] = "#101B14",
-        [ThemeTokens.DarkSidebar] = "#182A1E", [ThemeTokens.DarkSurface] = "#203728",
-        [ThemeTokens.DarkSurfaceAlt] = "#2A4431", [ThemeTokens.DarkText] = "#E7F1E4",
-        [ThemeTokens.DarkTextCaption] = "#DDEAD8", [ThemeTokens.DarkTextSub] = "#CBDCC5",
-        [ThemeTokens.DarkMuted] = "#A4B99C", [ThemeTokens.DarkMutedAlt] = "#98AF90",
-        [ThemeTokens.DarkAccent] = "#3F7042", [ThemeTokens.LightAccentText] = "#A2D58A",
-        [ThemeTokens.DarkAccentText] = "#A2D58A", [ThemeTokens.DarkSelection] = "#2C4B33",
-        [ThemeTokens.DarkHover] = "#467B47", [ThemeTokens.DarkPressed] = "#315A35",
-        [ThemeTokens.DarkBorder] = "#3B5741", [ThemeTokens.DarkBorderAlt] = "#2C4232",
-        [ThemeTokens.DarkTitlebarHover] = "#2B4232", [ThemeTokens.DarkTitlebarPressed] = "#37533D",
+        [ThemeTokens.DarkBg] = "#121E16",
+        [ThemeTokens.DarkBgAlt] = "#101B14",
+        [ThemeTokens.DarkSidebar] = "#182A1E",
+        [ThemeTokens.DarkSurface] = "#203728",
+        [ThemeTokens.DarkSurfaceAlt] = "#2A4431",
+        [ThemeTokens.DarkText] = "#E7F1E4",
+        [ThemeTokens.DarkTextCaption] = "#DDEAD8",
+        [ThemeTokens.DarkTextSub] = "#CBDCC5",
+        [ThemeTokens.DarkMuted] = "#A4B99C",
+        [ThemeTokens.DarkMutedAlt] = "#98AF90",
+        [ThemeTokens.DarkAccent] = "#3F7042",
+        [ThemeTokens.LightAccentText] = "#A2D58A",
+        [ThemeTokens.DarkAccentText] = "#A2D58A",
+        [ThemeTokens.DarkSelection] = "#2C4B33",
+        [ThemeTokens.DarkHover] = "#467B47",
+        [ThemeTokens.DarkPressed] = "#315A35",
+        [ThemeTokens.DarkBorder] = "#3B5741",
+        [ThemeTokens.DarkBorderAlt] = "#2C4232",
+        [ThemeTokens.DarkTitlebarHover] = "#2B4232",
+        [ThemeTokens.DarkTitlebarPressed] = "#37533D",
     };
+
     // 用清新绿的色值作键，这样现有控件不用为浅湖青另写一套取色代码。
     static readonly Dictionary<string, string> LakeCyan = new(StringComparer.OrdinalIgnoreCase)
     {
-        [ThemeTokens.LightBg] = "#EDF4F6", [ThemeTokens.DarkBg] = "#172427", [ThemeTokens.DarkBgAlt] = "#172427",
-        [ThemeTokens.LightSidebar] = "#E6EFF1", [ThemeTokens.DarkSidebar] = "#1D2426",
-        [ThemeTokens.White] = "#FFFFFF", [ThemeTokens.DarkSurface] = "#232A2C", [ThemeTokens.LightSurface] = "#EDF4F6",
-        [ThemeTokens.LightText] = "#2B3537", [ThemeTokens.DarkText] = "#E1EBED", [ThemeTokens.LightTextCaption] = "#2B3537",
-        [ThemeTokens.DarkTextCaption] = "#E1EBED", [ThemeTokens.LightTextSub] = "#2B3537", [ThemeTokens.DarkTextSub] = "#D8E2E4",
-        [ThemeTokens.LightMuted] = "#697779", [ThemeTokens.DarkMuted] = "#849294", [ThemeTokens.LightMutedAlt] = "#697779",
-        [ThemeTokens.DarkMutedAlt] = "#849294", [ThemeTokens.LightAccent] = "#7DB6BF", [ThemeTokens.DarkAccent] = "#7DB6BF",
-        [ThemeTokens.LightAccentText] = "#7DB6BF", [ThemeTokens.DarkAccentText] = "#7DB6BF",
-        [ThemeTokens.LightSelection] = "#D0E3E6", [ThemeTokens.DarkSelection] = "#232E30",
-        [ThemeTokens.LightHover] = "#8DBFC7", [ThemeTokens.DarkHover] = "#6D9EA6",
-        [ThemeTokens.LightPressed] = "#6A9EA6", [ThemeTokens.DarkPressed] = "#59868E",
-        [ThemeTokens.LightSurfaceAlt] = "#FFFFFF", [ThemeTokens.DarkSurfaceAlt] = "#232A2C",
-        [ThemeTokens.LightBorder] = "#D8E2E4", [ThemeTokens.DarkBorder] = "#343E40", [ThemeTokens.DarkBorderAlt] = "#343E40",
-        [ThemeTokens.LightTitlebarHover] = "#E0EBED", [ThemeTokens.DarkTitlebarHover] = "#242D30",
-        [ThemeTokens.LightTitlebarPressed] = "#D4E2E5", [ThemeTokens.DarkTitlebarPressed] = "#2F3A3D",
+        [ThemeTokens.LightBg] = "#EDF4F6",
+        [ThemeTokens.DarkBg] = "#172427",
+        [ThemeTokens.DarkBgAlt] = "#172427",
+        [ThemeTokens.LightSidebar] = "#E6EFF1",
+        [ThemeTokens.DarkSidebar] = "#1D2426",
+        [ThemeTokens.White] = "#FFFFFF",
+        [ThemeTokens.DarkSurface] = "#232A2C",
+        [ThemeTokens.LightSurface] = "#EDF4F6",
+        [ThemeTokens.LightText] = "#2B3537",
+        [ThemeTokens.DarkText] = "#E1EBED",
+        [ThemeTokens.LightTextCaption] = "#2B3537",
+        [ThemeTokens.DarkTextCaption] = "#E1EBED",
+        [ThemeTokens.LightTextSub] = "#2B3537",
+        [ThemeTokens.DarkTextSub] = "#D8E2E4",
+        [ThemeTokens.LightMuted] = "#697779",
+        [ThemeTokens.DarkMuted] = "#849294",
+        [ThemeTokens.LightMutedAlt] = "#697779",
+        [ThemeTokens.DarkMutedAlt] = "#849294",
+        [ThemeTokens.LightAccent] = "#7DB6BF",
+        [ThemeTokens.DarkAccent] = "#7DB6BF",
+        [ThemeTokens.LightAccentText] = "#7DB6BF",
+        [ThemeTokens.DarkAccentText] = "#7DB6BF",
+        [ThemeTokens.LightSelection] = "#D0E3E6",
+        [ThemeTokens.DarkSelection] = "#232E30",
+        [ThemeTokens.LightHover] = "#8DBFC7",
+        [ThemeTokens.DarkHover] = "#6D9EA6",
+        [ThemeTokens.LightPressed] = "#6A9EA6",
+        [ThemeTokens.DarkPressed] = "#59868E",
+        [ThemeTokens.LightSurfaceAlt] = "#FFFFFF",
+        [ThemeTokens.DarkSurfaceAlt] = "#232A2C",
+        [ThemeTokens.LightBorder] = "#D8E2E4",
+        [ThemeTokens.DarkBorder] = "#343E40",
+        [ThemeTokens.DarkBorderAlt] = "#343E40",
+        [ThemeTokens.LightTitlebarHover] = "#E0EBED",
+        [ThemeTokens.DarkTitlebarHover] = "#242D30",
+        [ThemeTokens.LightTitlebarPressed] = "#D4E2E5",
+        [ThemeTokens.DarkTitlebarPressed] = "#2F3A3D",
     };
+
     // 配色
     static readonly Dictionary<string, string> Sakura = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -197,18 +282,25 @@ public sealed partial class MainWindow
         [ThemeTokens.DarkBorder] = "#554353",
         [ThemeTokens.DarkBorderAlt] = "#554353",
         [ThemeTokens.DarkTitlebarHover] = "#403241",
-        [ThemeTokens.DarkTitlebarPressed] = "#503C50"
+        [ThemeTokens.DarkTitlebarPressed] = "#503C50",
     };
-    Color RawColor(string hex) => ColorHelper.FromArgb(255, Convert.ToByte(hex[1..3], 16), Convert.ToByte(hex[3..5], 16), Convert.ToByte(hex[5..7], 16));
+
+    Color RawColor(string hex) =>
+        ColorHelper.FromArgb(
+            255,
+            Convert.ToByte(hex[1..3], 16),
+            Convert.ToByte(hex[3..5], 16),
+            Convert.ToByte(hex[5..7], 16)
+        );
+
     Color SoftSurfaceColor()
     {
         // 原生预设直接使用系统表面色，不把强调色混入卡片和下拉框底色。
-        if (store.Config.Settings.ColorPreset == "native") return PaletteColor(ThemeTokens.White);
-        var background = PaletteColor(
-            lightTheme ? ThemeTokens.LightBg : ThemeTokens.DarkBg);
+        if (store.Config.Settings.ColorPreset == "native")
+            return PaletteColor(ThemeTokens.White);
+        var background = PaletteColor(lightTheme ? ThemeTokens.LightBg : ThemeTokens.DarkBg);
 
-        var accent = PaletteColor(
-            lightTheme ? ThemeTokens.LightAccent : ThemeTokens.DarkAccent);
+        var accent = PaletteColor(lightTheme ? ThemeTokens.LightAccent : ThemeTokens.DarkAccent);
 
         // 浅色模式混入 8% 强调色，深色模式混入 12%
         double amount = lightTheme ? 0.08 : 0.12;
@@ -220,22 +312,23 @@ public sealed partial class MainWindow
             (byte)(background.B * (1 - amount) + accent.B * amount)
         );
     }
+
     // hex 可以来自 ThemeTokens，也可以是已有 UI 传入的同值字符串。
     Color PaletteColor(string hex)
     {
-    if (store.Config.Settings.ColorPreset is "craft" or "lakecyan" or "sakura")
-    {
-        if (store.Config.Settings.ColorPreset == "craft" && !lightTheme)
-            hex = FreshGreenDark.GetValueOrDefault(hex, hex);
+        if (store.Config.Settings.ColorPreset is "craft" or "lakecyan" or "sakura")
+        {
+            if (store.Config.Settings.ColorPreset == "craft" && !lightTheme)
+                hex = FreshGreenDark.GetValueOrDefault(hex, hex);
 
-        if (store.Config.Settings.ColorPreset == "lakecyan")
-            hex = LakeCyan.GetValueOrDefault(hex, hex);
+            if (store.Config.Settings.ColorPreset == "lakecyan")
+                hex = LakeCyan.GetValueOrDefault(hex, hex);
 
-        if (store.Config.Settings.ColorPreset == "sakura")
-            hex = Sakura.GetValueOrDefault(hex, hex);
+            if (store.Config.Settings.ColorPreset == "sakura")
+                hex = Sakura.GetValueOrDefault(hex, hex);
 
-        return RawColor(hex);
-    }
+            return RawColor(hex);
+        }
         // 原生和自定义配色只区分颜色用途，不保留基础配色中同类颜色的细微差别。
         // 新增基础色时要检查这里；没匹配到的颜色会落到 border。
         var role = hex.ToUpperInvariant() switch
@@ -243,49 +336,90 @@ public sealed partial class MainWindow
             ThemeTokens.LightBg or ThemeTokens.DarkBg or ThemeTokens.DarkBgAlt => "background",
             ThemeTokens.LightSidebar or ThemeTokens.DarkSidebar => "sidebar",
             ThemeTokens.White => "white",
-            ThemeTokens.DarkSurface or ThemeTokens.LightSurface or ThemeTokens.LightSurfaceAlt or ThemeTokens.DarkSurfaceAlt => "surface",
-            ThemeTokens.LightText or ThemeTokens.DarkText or ThemeTokens.LightTextCaption or ThemeTokens.DarkTextCaption or ThemeTokens.LightTextSub or ThemeTokens.DarkTextSub => "text",
-            ThemeTokens.LightMuted or ThemeTokens.DarkMuted or ThemeTokens.LightMutedAlt or ThemeTokens.DarkMutedAlt => "muted",
-            ThemeTokens.LightAccent or ThemeTokens.DarkAccent or ThemeTokens.LightAccentText or ThemeTokens.DarkAccentText => "accent",
+            ThemeTokens.DarkSurface
+            or ThemeTokens.LightSurface
+            or ThemeTokens.LightSurfaceAlt
+            or ThemeTokens.DarkSurfaceAlt => "surface",
+            ThemeTokens.LightText
+            or ThemeTokens.DarkText
+            or ThemeTokens.LightTextCaption
+            or ThemeTokens.DarkTextCaption
+            or ThemeTokens.LightTextSub
+            or ThemeTokens.DarkTextSub => "text",
+            ThemeTokens.LightMuted
+            or ThemeTokens.DarkMuted
+            or ThemeTokens.LightMutedAlt
+            or ThemeTokens.DarkMutedAlt => "muted",
+            ThemeTokens.LightAccent
+            or ThemeTokens.DarkAccent
+            or ThemeTokens.LightAccentText
+            or ThemeTokens.DarkAccentText => "accent",
             ThemeTokens.LightSelection or ThemeTokens.DarkSelection => "selection",
             ThemeTokens.LightHover or ThemeTokens.DarkHover => "hover",
             ThemeTokens.LightPressed or ThemeTokens.DarkPressed => "pressed",
-            _ => "border"
+            _ => "border",
         };
-        if (role == "white") role = "surface";
+        if (role == "white")
+            role = "surface";
         // Native* 是 XAML 中绑定了 ThemeResource 的隐藏 Border，随 RequestedTheme 换色。
         // surface/selection 的半透明色在这里叠到背景上；hover/pressed 仍保留系统给出的 alpha。
         if (store.Config.Settings.ColorPreset == "native")
         {
             Color From(Border border)
             {
-                if (border.Background is SolidColorBrush brush) return brush.Color;
-                return RawColor(lightTheme ? ThemeTokens.NativeFallbackLight : ThemeTokens.NativeFallbackDark);
+                if (border.Background is SolidColorBrush brush)
+                    return brush.Color;
+                return RawColor(
+                    lightTheme ? ThemeTokens.NativeFallbackLight : ThemeTokens.NativeFallbackDark
+                );
             }
             return role switch
             {
-                "background" or "sidebar" => From(NativeBackground), "surface" => Composite(From(NativeSurface), From(NativeBackground)),
-                "text" => From(NativeText), "muted" => From(NativeMuted), "onAccent" => From(NativeAccentText),
-                "accent" => From(NativeAccent), "hover" => From(NativeHover), "pressed" => From(NativePressed),
-                "selection" => Composite(From(NativeSelection), From(NativeBackground)), _ => From(NativeStroke)
+                "background" or "sidebar" => From(NativeBackground),
+                "surface" => Composite(From(NativeSurface), From(NativeBackground)),
+                "text" => From(NativeText),
+                "muted" => From(NativeMuted),
+                "onAccent" => From(NativeAccentText),
+                "accent" => From(NativeAccent),
+                "hover" => From(NativeHover),
+                "pressed" => From(NativePressed),
+                "selection" => Composite(From(NativeSelection), From(NativeBackground)),
+                _ => From(NativeStroke),
             };
         }
         // 配置可能来自旧文件或手工编辑。缺项、格式不对时用默认色，避免 RawColor 解析失败。
-        var colors = lightTheme ? store.Config.Settings.CustomLightColors : store.Config.Settings.CustomDarkColors;
+        var colors = lightTheme
+            ? store.Config.Settings.CustomLightColors
+            : store.Config.Settings.CustomDarkColors;
         Color Get(string name)
         {
-            var defaults = PaletteDefaults[name]; var fallback = lightTheme ? defaults.Light : defaults.Dark;
+            var defaults = PaletteDefaults[name];
+            var fallback = lightTheme ? defaults.Light : defaults.Dark;
             var value = colors.GetValueOrDefault(name, fallback);
-            return RawColor(System.Text.RegularExpressions.Regex.IsMatch(value ?? "", "^#[0-9A-Fa-f]{6}$") ? value! : fallback);
+            return RawColor(
+                System.Text.RegularExpressions.Regex.IsMatch(value ?? "", "^#[0-9A-Fa-f]{6}$")
+                    ? value!
+                    : fallback
+            );
         }
-        if (role == "onAccent") return RawColor(ThemeTokens.White);
+        if (role == "onAccent")
+            return RawColor(ThemeTokens.White);
         // 选中背景只混入少量强调色，免得盖过文字；悬停和按下的按钮则保留较多强调色。
         // selection 的底色取 sidebar，hover/pressed 的底色取 background。
         if (role is "selection" or "hover" or "pressed")
         {
-            var accent = Get("accent"); var target = Get(role == "selection" ? "sidebar" : "background");
-            var amount = role == "selection" ? .2 : role == "hover" ? .85 : .65;
-            return ColorHelper.FromArgb(255, (byte)(accent.R * amount + target.R * (1 - amount)), (byte)(accent.G * amount + target.G * (1 - amount)), (byte)(accent.B * amount + target.B * (1 - amount)));
+            var accent = Get("accent");
+            var target = Get(role == "selection" ? "sidebar" : "background");
+            var amount =
+                role == "selection" ? .2
+                : role == "hover" ? .85
+                : .65;
+            return ColorHelper.FromArgb(
+                255,
+                (byte)(accent.R * amount + target.R * (1 - amount)),
+                (byte)(accent.G * amount + target.G * (1 - amount)),
+                (byte)(accent.B * amount + target.B * (1 - amount))
+            );
         }
         return Get(role);
 
@@ -293,66 +427,157 @@ public sealed partial class MainWindow
         static Color Composite(Color foreground, Color background)
         {
             var alpha = foreground.A / 255d;
-            return ColorHelper.FromArgb(255, (byte)(foreground.R * alpha + background.R * (1 - alpha)), (byte)(foreground.G * alpha + background.G * (1 - alpha)), (byte)(foreground.B * alpha + background.B * (1 - alpha)));
+            return ColorHelper.FromArgb(
+                255,
+                (byte)(foreground.R * alpha + background.R * (1 - alpha)),
+                (byte)(foreground.G * alpha + background.G * (1 - alpha)),
+                (byte)(foreground.B * alpha + background.B * (1 - alpha))
+            );
         }
     }
+
     // 按创建时记录的源 hex 刷新存活画刷，并清理失效弱引用。
     // 此处不替换浅/深模式的源 hex；ApplyTheme 另行重设窗口和卡片等元素的画刷。
     void RefreshPaletteBrushes()
     {
         paletteBrushes.RemoveAll(entry => !entry.Brush.TryGetTarget(out _));
-        foreach (var entry in paletteBrushes) if (entry.Brush.TryGetTarget(out var brush)) brush.Color = PaletteColor(entry.Source);
+        foreach (var entry in paletteBrushes)
+            if (entry.Brush.TryGetTarget(out var brush))
+                brush.Color = PaletteColor(entry.Source);
     }
+
     // 预设的内部标识，和下拉框选项顺序对应；新增预设时要改这里。
-    static readonly string[] ColorPresetIds =
-    [
-        "native",
-        "craft",
-        "lakecyan",
-        "sakura",
-        "custom"
-    ];
+    static readonly string[] ColorPresetIds = ["native", "craft", "lakecyan", "sakura", "custom"];
     bool syncingAppearanceControls;
+
     static int ColorPresetIndex(string id) => Math.Max(0, Array.IndexOf(ColorPresetIds, id));
 
     // 浅色和深色各存一套自定义颜色，编辑哪套由 mode 决定，不必切换整个窗口的主题。
     UIElement ThemeEditor(System.Action? defaultsChanged = null)
     {
         var panel = new StackPanel { Spacing = 12 };
-        var preset = new BelowComboBox { Header = Ui("Preset"), ItemsSource = new[] { Ui("WinUI3 native"), Ui("Fresh green"), Ui("Lake Cyan"), Ui("Sakura"), Ui("Custom") }, SelectedIndex = ColorPresetIndex(store.Config.Settings.ColorPreset), HorizontalAlignment = HorizontalAlignment.Stretch };
-        var editor = new StackPanel { Spacing = 10, Visibility = preset.SelectedIndex == ColorPresetIndex("custom") ? Visibility.Visible : Visibility.Collapsed };
-        var mode = new BelowComboBox { Header = Ui("Edit colors"), ItemsSource = new[] { Ui("Light"), Ui("Dark") }, SelectedIndex = lightTheme ? 0 : 1 };
+        var preset = new BelowComboBox
+        {
+            Header = Ui("Preset"),
+            ItemsSource = new[]
+            {
+                Ui("WinUI3 native"),
+                Ui("Fresh green"),
+                Ui("Lake Cyan"),
+                Ui("Sakura"),
+                Ui("Custom"),
+            },
+            SelectedIndex = ColorPresetIndex(store.Config.Settings.ColorPreset),
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+        };
+        var editor = new StackPanel
+        {
+            Spacing = 10,
+            Visibility =
+                preset.SelectedIndex == ColorPresetIndex("custom")
+                    ? Visibility.Visible
+                    : Visibility.Collapsed,
+        };
+        var mode = new BelowComboBox
+        {
+            Header = Ui("Edit colors"),
+            ItemsSource = new[] { Ui("Light"), Ui("Dark") },
+            SelectedIndex = lightTheme ? 0 : 1,
+        };
         var swatches = new StackPanel { Spacing = 8 };
         void BuildSwatches()
         {
             // 切换编辑模式时重建色板，让每个 ColorChanged 回调写入对应的那套字典。
             swatches.Children.Clear();
-            var colors = mode.SelectedIndex == 0 ? store.Config.Settings.CustomLightColors : store.Config.Settings.CustomDarkColors;
-            foreach (var (role, label) in new[] { ("background", Ui("Background")), ("sidebar", Ui("Sidebar")), ("surface", Ui("Surface")), ("text", Ui("Text")), ("muted", Ui("Secondary text")), ("border", Ui("Border")), ("accent", Ui("Accent")) })
+            var colors =
+                mode.SelectedIndex == 0
+                    ? store.Config.Settings.CustomLightColors
+                    : store.Config.Settings.CustomDarkColors;
+            foreach (
+                var (role, label) in new[]
+                {
+                    ("background", Ui("Background")),
+                    ("sidebar", Ui("Sidebar")),
+                    ("surface", Ui("Surface")),
+                    ("text", Ui("Text")),
+                    ("muted", Ui("Secondary text")),
+                    ("border", Ui("Border")),
+                    ("accent", Ui("Accent")),
+                }
+            )
             {
-                var defaults = PaletteDefaults[role]; var fallback = mode.SelectedIndex == 0 ? defaults.Light : defaults.Dark;
+                var defaults = PaletteDefaults[role];
+                var fallback = mode.SelectedIndex == 0 ? defaults.Light : defaults.Dark;
                 var value = colors.GetValueOrDefault(role, fallback);
-                if (!System.Text.RegularExpressions.Regex.IsMatch(value ?? "", "^#[0-9A-Fa-f]{6}$")) value = fallback;
+                if (!System.Text.RegularExpressions.Regex.IsMatch(value ?? "", "^#[0-9A-Fa-f]{6}$"))
+                    value = fallback;
                 // 色板展示的是配置原值，不能走 Brush，否则当前预设会再次转换颜色。
                 var swatch = new SolidColorBrush(RawColor(value!));
-                var picker = new ColorPicker { Color = swatch.Color, IsAlphaEnabled = false, IsMoreButtonVisible = false, IsColorChannelTextInputVisible = true, IsHexInputVisible = true, IsColorPreviewVisible = true };
-                var button = new Button { Width = 44, Height = 28, Padding = new Thickness(3), Content = new Border { Background = swatch, Width = 32, Height = 18, CornerRadius = new CornerRadius(2) }, Flyout = new Flyout { Content = picker } };
-                ToolTipService.SetToolTip(button, label); Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(button, label);
+                var picker = new ColorPicker
+                {
+                    Color = swatch.Color,
+                    IsAlphaEnabled = false,
+                    IsMoreButtonVisible = false,
+                    IsColorChannelTextInputVisible = true,
+                    IsHexInputVisible = true,
+                    IsColorPreviewVisible = true,
+                };
+                var button = new Button
+                {
+                    Width = 44,
+                    Height = 28,
+                    Padding = new Thickness(3),
+                    Content = new Border
+                    {
+                        Background = swatch,
+                        Width = 32,
+                        Height = 18,
+                        CornerRadius = new CornerRadius(2),
+                    },
+                    Flyout = new Flyout { Content = picker },
+                };
+                ToolTipService.SetToolTip(button, label);
+                Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(button, label);
                 picker.ColorChanged += async (_, e) =>
                 {
-                    swatch.Color = e.NewColor; colors[role] = $"#{e.NewColor.R:X2}{e.NewColor.G:X2}{e.NewColor.B:X2}";
+                    swatch.Color = e.NewColor;
+                    colors[role] = $"#{e.NewColor.R:X2}{e.NewColor.G:X2}{e.NewColor.B:X2}";
                     ApplyTheme();
-                    try { await store.Save(); } catch (Exception ex) { await Error(ex); }
+                    try
+                    {
+                        await store.Save();
+                    }
+                    catch (Exception ex)
+                    {
+                        await Error(ex);
+                    }
                 };
-                var row = new Grid { ColumnDefinitions = { new ColumnDefinition(), new ColumnDefinition { Width = GridLength.Auto } } };
-                row.Children.Add(Text(label)); Grid.SetColumn(button, 1); row.Children.Add(button); swatches.Children.Add(row);
+                var row = new Grid
+                {
+                    ColumnDefinitions =
+                    {
+                        new ColumnDefinition(),
+                        new ColumnDefinition { Width = GridLength.Auto },
+                    },
+                };
+                row.Children.Add(Text(label));
+                Grid.SetColumn(button, 1);
+                row.Children.Add(button);
+                swatches.Children.Add(row);
             }
         }
-        mode.SelectionChanged += (_, _) => BuildSwatches(); BuildSwatches(); editor.Children.Add(mode); editor.Children.Add(swatches);
+        mode.SelectionChanged += (_, _) => BuildSwatches();
+        BuildSwatches();
+        editor.Children.Add(mode);
+        editor.Children.Add(swatches);
         preset.SelectionChanged += async (_, _) =>
         {
-            editor.Visibility = preset.SelectedIndex == ColorPresetIndex("custom") ? Visibility.Visible : Visibility.Collapsed;
-            if (syncingAppearanceControls || preset.SelectedIndex < 0) return;
+            editor.Visibility =
+                preset.SelectedIndex == ColorPresetIndex("custom")
+                    ? Visibility.Visible
+                    : Visibility.Collapsed;
+            if (syncingAppearanceControls || preset.SelectedIndex < 0)
+                return;
             store.Config.Settings.ColorPreset = ColorPresetIds[preset.SelectedIndex];
             if (preset.SelectedIndex is 0 or 1 or 2)
             {
@@ -364,10 +589,23 @@ public sealed partial class MainWindow
                 store.Config.Settings.UiFontSize = 14;
                 defaultsChanged?.Invoke();
             }
-            editor.Visibility = preset.SelectedIndex == ColorPresetIndex("custom") ? Visibility.Visible : Visibility.Collapsed;
-            ApplyTheme(); ApplyPersonalization();
-            try { await store.Save(); } catch (Exception ex) { await Error(ex); }
+            editor.Visibility =
+                preset.SelectedIndex == ColorPresetIndex("custom")
+                    ? Visibility.Visible
+                    : Visibility.Collapsed;
+            ApplyTheme();
+            ApplyPersonalization();
+            try
+            {
+                await store.Save();
+            }
+            catch (Exception ex)
+            {
+                await Error(ex);
+            }
         };
-        panel.Children.Add(preset); panel.Children.Add(editor); return panel;
+        panel.Children.Add(preset);
+        panel.Children.Add(editor);
+        return panel;
     }
 }

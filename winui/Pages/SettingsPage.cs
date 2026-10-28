@@ -6,7 +6,8 @@ namespace CMCLauncher.WinUI;
 
 public sealed class SettingsPage : CMCPage
 {
-    public SettingsPage(MainWindow window) : base(window) { }
+    public SettingsPage(MainWindow window)
+        : base(window) { }
 
     public override void Build()
     {
@@ -17,38 +18,63 @@ public sealed class SettingsPage : CMCPage
         {
             Header = Ui("Launcher language"),
             ItemsSource = Window.InterfaceLanguages,
-            SelectedItem = Window.InterfaceLanguages.FirstOrDefault(language => language.Code == settings.LauncherLanguage) ?? Window.InterfaceLanguages.FirstOrDefault(),
-            HorizontalAlignment = HorizontalAlignment.Stretch
+            SelectedItem =
+                Window.InterfaceLanguages.FirstOrDefault(language =>
+                    language.Code == settings.LauncherLanguage
+                ) ?? Window.InterfaceLanguages.FirstOrDefault(),
+            HorizontalAlignment = HorizontalAlignment.Stretch,
         };
         launcherLanguage.SelectionChanged += async (_, _) =>
         {
-            if (launcherLanguage.SelectedItem is not InterfaceLanguage language || language.Code == settings.LauncherLanguage) return;
+            if (
+                launcherLanguage.SelectedItem is not InterfaceLanguage language
+                || language.Code == settings.LauncherLanguage
+            )
+                return;
             await SwitchLanguage(language.Code);
         };
 
         var language = new BelowComboBox
         {
             Header = Ui("Game language"),
-            ItemsSource = new[] { Ui("context.settingspage.system_default"), Ui("Simplified Chinese"), Ui("Traditional Chinese"), "English", Ui("Japanese"), Ui("context.settingspage.keep_current") },
-            SelectedIndex = settings.GameLanguage switch { "zh_cn" => 1, "zh_tw" => 2, "en_us" => 3, "ja_jp" => 4, "preserve" => 5, _ => 0 },
-            HorizontalAlignment = HorizontalAlignment.Stretch
+            ItemsSource = new[]
+            {
+                Ui("context.settingspage.system_default"),
+                Ui("Simplified Chinese"),
+                Ui("Traditional Chinese"),
+                "English",
+                Ui("Japanese"),
+                Ui("context.settingspage.keep_current"),
+            },
+            SelectedIndex = settings.GameLanguage switch
+            {
+                "zh_cn" => 1,
+                "zh_tw" => 2,
+                "en_us" => 3,
+                "ja_jp" => 4,
+                "preserve" => 5,
+                _ => 0,
+            },
+            HorizontalAlignment = HorizontalAlignment.Stretch,
         };
 
         var memory = new NumberBox
         {
             Header = Ui("Maximum memory / MB"),
             Value = settings.MemoryMb,
-            Minimum = 512, Maximum = 65536,
+            Minimum = 512,
+            Maximum = 65536,
             SmallChange = 512,
-            SpinButtonPlacementMode = NumberBoxSpinButtonPlacementMode.Compact
+            SpinButtonPlacementMode = NumberBoxSpinButtonPlacementMode.Compact,
         };
         var downloadThreads = new NumberBox
         {
             Header = Ui("Download threads"),
             Value = LauncherCore.DownloadConcurrency(settings),
-            Minimum = 1, Maximum = 256,
+            Minimum = 1,
+            Maximum = 256,
             SmallChange = 1,
-            SpinButtonPlacementMode = NumberBoxSpinButtonPlacementMode.Compact
+            SpinButtonPlacementMode = NumberBoxSpinButtonPlacementMode.Compact,
         };
 
         var automaticMemory = new ToggleSwitch
@@ -56,14 +82,19 @@ public sealed class SettingsPage : CMCPage
             Header = Ui("Game memory"),
             OnContent = Ui("Automatic [context 467]"),
             OffContent = Ui("Manual"),
-            IsOn = settings.AutoMemory
+            IsOn = settings.AutoMemory,
         };
         var memoryHint = Text("", 12);
         void RefreshMemory()
         {
             memory.IsEnabled = !automaticMemory.IsOn;
             memoryHint.Text = automaticMemory.IsOn
-                ? (UiFormat("Recommended: {0:N0} MB. Recalculated at each launch based on physical and available memory.", GameMemory.Resolve(new Settings())))
+                ? (
+                    UiFormat(
+                        "Recommended: {0:N0} MB. Recalculated at each launch based on physical and available memory.",
+                        GameMemory.Resolve(new Settings())
+                    )
+                )
                 : Ui("Set the maximum Java heap size manually.");
         }
         automaticMemory.Toggled += (_, _) => RefreshMemory();
@@ -73,25 +104,30 @@ public sealed class SettingsPage : CMCPage
         {
             Header = Ui("Download proxy (blank uses system proxy)"),
             PlaceholderText = "http://127.0.0.1:7890",
-            Text = settings.Proxy
+            Text = settings.Proxy,
         };
         var ignoreSslErrors = new ToggleSwitch
         {
             Header = Ui("Ignore SSL certificate errors"),
             IsOn = settings.IgnoreSslErrors,
-            OnContent = Ui("context.settingspage.on"), OffContent = Ui("Off")
+            OnContent = Ui("context.settingspage.on"),
+            OffContent = Ui("Off"),
         };
-        var sslWarning = Text(Ui("Skipping certificate validation reduces connection security."), 12);
+        var sslWarning = Text(
+            Ui("Skipping certificate validation reduces connection security."),
+            12
+        );
 
         var windowMode = new BelowComboBox
         {
             Header = Ui("Default window mode"),
             ItemsSource = new[] { Ui("Windowed"), Ui("Maximized") },
-            SelectedIndex = settings.StartMaximized ? 1 : 0
+            SelectedIndex = settings.StartMaximized ? 1 : 0,
         };
         windowMode.SelectionChanged += async (_, _) =>
         {
-            if (windowMode.SelectedIndex < 0) return;
+            if (windowMode.SelectedIndex < 0)
+                return;
             settings.StartMaximized = windowMode.SelectedIndex == 1;
             await PersistSettings();
         };
@@ -100,7 +136,8 @@ public sealed class SettingsPage : CMCPage
         {
             Header = Ui("Expand project descriptions by default [context 568]"),
             IsOn = settings.ExpandProjectIntroduction,
-            OnContent = Ui("Expand"), OffContent = Ui("Collapse")
+            OnContent = Ui("Expand"),
+            OffContent = Ui("Collapse"),
         };
 
         var localizedWindow = new BelowComboBox
@@ -108,7 +145,7 @@ public sealed class SettingsPage : CMCPage
             Header = Ui("Default window mode"),
             ItemsSource = new[] { Ui("Windowed"), Ui("Maximized") },
             SelectedIndex = windowMode.SelectedIndex,
-            HorizontalAlignment = HorizontalAlignment.Stretch
+            HorizontalAlignment = HorizontalAlignment.Stretch,
         };
         localizedWindow.SelectionChanged += async (_, _) =>
         {
@@ -123,59 +160,132 @@ public sealed class SettingsPage : CMCPage
         var localizedGameLanguage = new BelowComboBox
         {
             Header = Ui("Game language"),
-            ItemsSource = new[] { Ui("context.settingspage.system_default"), Ui("Simplified Chinese"), Ui("Traditional Chinese"), "English", Ui("Japanese"), Ui("context.settingspage.keep_current") },
+            ItemsSource = new[]
+            {
+                Ui("context.settingspage.system_default"),
+                Ui("Simplified Chinese"),
+                Ui("Traditional Chinese"),
+                "English",
+                Ui("Japanese"),
+                Ui("context.settingspage.keep_current"),
+            },
             SelectedIndex = language.SelectedIndex,
-            HorizontalAlignment = HorizontalAlignment.Stretch
+            HorizontalAlignment = HorizontalAlignment.Stretch,
         };
         localizedGameLanguage.SelectionChanged += async (_, _) =>
         {
             if (localizedGameLanguage.SelectedIndex >= 0)
             {
                 language.SelectedIndex = localizedGameLanguage.SelectedIndex;
-                settings.GameLanguage = language.SelectedIndex switch { 1 => "zh_cn", 2 => "zh_tw", 3 => "en_us", 4 => "ja_jp", 5 => "preserve", _ => "auto" };
+                settings.GameLanguage = language.SelectedIndex switch
+                {
+                    1 => "zh_cn",
+                    2 => "zh_tw",
+                    3 => "en_us",
+                    4 => "ja_jp",
+                    5 => "preserve",
+                    _ => "auto",
+                };
                 await PersistSettings();
             }
         };
 
-        foreach (var control in new UIElement[] { launcherLanguage, localizedWindow, projectIntro, localizedGameLanguage, automaticMemory, memory, memoryHint, downloadThreads, proxy, ignoreSslErrors, sslWarning })
+        foreach (
+            var control in new UIElement[]
+            {
+                launcherLanguage,
+                localizedWindow,
+                projectIntro,
+                localizedGameLanguage,
+                automaticMemory,
+                memory,
+                memoryHint,
+                downloadThreads,
+                proxy,
+                ignoreSslErrors,
+                sslWarning,
+            }
+        )
             PageBody.Children.Add(control);
 
         async Task PersistSettings()
         {
-            try { await Store.Save(); } catch (Exception ex) { await Error(ex); }
+            try
+            {
+                await Store.Save();
+            }
+            catch (Exception ex)
+            {
+                await Error(ex);
+            }
         }
 
         language.SelectionChanged += async (_, _) =>
         {
-            if (language.SelectedIndex < 0) return;
-            settings.GameLanguage = language.SelectedIndex switch { 1 => "zh_cn", 2 => "zh_tw", 3 => "en_us", 4 => "ja_jp", 5 => "preserve", _ => "auto" };
+            if (language.SelectedIndex < 0)
+                return;
+            settings.GameLanguage = language.SelectedIndex switch
+            {
+                1 => "zh_cn",
+                2 => "zh_tw",
+                3 => "en_us",
+                4 => "ja_jp",
+                5 => "preserve",
+                _ => "auto",
+            };
             await PersistSettings();
         };
-        projectIntro.Toggled += async (_, _) => { settings.ExpandProjectIntroduction = projectIntro.IsOn; await PersistSettings(); };
-        automaticMemory.Toggled += async (_, _) => { settings.AutoMemory = automaticMemory.IsOn; await PersistSettings(); };
+        projectIntro.Toggled += async (_, _) =>
+        {
+            settings.ExpandProjectIntroduction = projectIntro.IsOn;
+            await PersistSettings();
+        };
+        automaticMemory.Toggled += async (_, _) =>
+        {
+            settings.AutoMemory = automaticMemory.IsOn;
+            await PersistSettings();
+        };
         memory.ValueChanged += async (_, _) =>
         {
-            if (double.IsNaN(memory.Value) || memory.Value < 512 || memory.Value > 65536) return;
-            settings.MemoryMb = (int)memory.Value; await PersistSettings();
+            if (double.IsNaN(memory.Value) || memory.Value < 512 || memory.Value > 65536)
+                return;
+            settings.MemoryMb = (int)memory.Value;
+            await PersistSettings();
         };
         downloadThreads.ValueChanged += async (_, _) =>
         {
-            if (double.IsNaN(downloadThreads.Value)) return;
+            if (double.IsNaN(downloadThreads.Value))
+                return;
             var value = Math.Clamp((int)Math.Round(downloadThreads.Value), 1, 256);
-            if (downloadThreads.Value != value) downloadThreads.Value = value;
+            if (downloadThreads.Value != value)
+                downloadThreads.Value = value;
             settings.DownloadThreads = value;
             await PersistSettings();
         };
 
-        var proxyHint = Text("", 12); PageBody.Children.Add(proxyHint);
+        var proxyHint = Text("", 12);
+        PageBody.Children.Add(proxyHint);
         proxy.TextChanged += async (_, _) =>
         {
             var value = proxy.Text.Trim();
-            if (value.Length > 0 && (!Uri.TryCreate(value, UriKind.Absolute, out var uri) || uri.Scheme is not ("http" or "https" or "socks5") || string.IsNullOrWhiteSpace(uri.Host)))
+            if (
+                value.Length > 0
+                && (
+                    !Uri.TryCreate(value, UriKind.Absolute, out var uri)
+                    || uri.Scheme is not ("http" or "https" or "socks5")
+                    || string.IsNullOrWhiteSpace(uri.Host)
+                )
+            )
             {
-                proxyHint.Text = Ui("Enter a valid HTTP, HTTPS, or SOCKS5 proxy address. The last valid setting remains active."); return;
+                proxyHint.Text = Ui(
+                    "Enter a valid HTTP, HTTPS, or SOCKS5 proxy address. The last valid setting remains active."
+                );
+                return;
             }
-            proxyHint.Text = ""; settings.Proxy = value; Core.ConfigureNetwork(); await PersistSettings();
+            proxyHint.Text = "";
+            settings.Proxy = value;
+            Core.ConfigureNetwork();
+            await PersistSettings();
         };
         ignoreSslErrors.Toggled += async (_, _) =>
         {

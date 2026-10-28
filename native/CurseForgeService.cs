@@ -15,23 +15,24 @@ public sealed class CurseForgeService(LauncherCore core)
 
     // 将 CurseForge manifest.json 转换为内部统一格式（与 Modrinth index.json 一致）
     // 返回值与 ReadPack 相同，可直接传给 InstallPack
-    public static (JsonNode Manifest, string[] ContentPrefixes) ParseManifest(JsonNode source, string fallbackName)
+    public static (JsonNode Manifest, string[] ContentPrefixes) ParseManifest(
+        JsonNode source,
+        string fallbackName
+    )
     {
         if (source.S("manifestType") != "minecraftModpack")
             throw new Exception("不支持的 CurseForge 整合包类型");
         if (source.Int("manifestVersion") != 1)
             throw new Exception("不支持的 CurseForge 整合包清单版本");
 
-        var dependencies = new JsonObject
-        {
-            ["minecraft"] = source["minecraft"]!.S("version")
-        };
+        var dependencies = new JsonObject { ["minecraft"] = source["minecraft"]!.S("version") };
 
         // modLoaders: [{id: "fabric-0.14.22", primary: true}, ...]
         // 取 primary=true 的加载器，没有则取第一个
         var modLoaders = source["minecraft"]!["modLoaders"]!.Items().ToList();
-        var primary = modLoaders.FirstOrDefault(l => l["primary"]?.GetValue<bool>() == true)
-                      ?? modLoaders.FirstOrDefault();
+        var primary =
+            modLoaders.FirstOrDefault(l => l["primary"]?.GetValue<bool>() == true)
+            ?? modLoaders.FirstOrDefault();
 
         if (primary != null)
         {
@@ -43,9 +44,15 @@ public sealed class CurseForgeService(LauncherCore core)
                 var version = id[(dash + 1)..];
                 switch (loader)
                 {
-                    case "fabric": dependencies["fabric-loader"] = version; break;
-                    case "forge": dependencies["forge"] = version; break;
-                    case "neoforge": dependencies["neoforge"] = version; break;
+                    case "fabric":
+                        dependencies["fabric-loader"] = version;
+                        break;
+                    case "forge":
+                        dependencies["forge"] = version;
+                        break;
+                    case "neoforge":
+                        dependencies["neoforge"] = version;
+                        break;
                 }
             }
         }
@@ -55,38 +62,48 @@ public sealed class CurseForgeService(LauncherCore core)
         var files = new JsonArray();
         foreach (var f in source["files"]!.Items())
         {
-            files.Add(new JsonObject
-            {
-                ["projectID"] = f["projectID"]?.GetValue<int>(),
-                ["fileID"] = f["fileID"]?.GetValue<int>(),
-                ["required"] = f["required"]?.GetValue<bool>() ?? true
-            });
+            files.Add(
+                new JsonObject
+                {
+                    ["projectID"] = f["projectID"]?.GetValue<int>(),
+                    ["fileID"] = f["fileID"]?.GetValue<int>(),
+                    ["required"] = f["required"]?.GetValue<bool>() ?? true,
+                }
+            );
         }
 
         var overrides = source.S("overrides", "overrides");
 
-        return (new JsonObject
-        {
-            ["formatVersion"] = 1,
-            ["game"] = "minecraft",
-            ["name"] = source.S("name", fallbackName),
-            ["dependencies"] = dependencies,
-            ["files"] = files,
-            ["_source"] = "curseforge"
-        }, new[] { overrides + "/" });
+        return (
+            new JsonObject
+            {
+                ["formatVersion"] = 1,
+                ["game"] = "minecraft",
+                ["name"] = source.S("name", fallbackName),
+                ["dependencies"] = dependencies,
+                ["files"] = files,
+                ["_source"] = "curseforge",
+            },
+            new[] { overrides + "/" }
+        );
     }
 
     // 批量解析 CurseForge 文件的下载链接和文件名，填充到 files 数组中
     // 每个文件补充 path / downloads / hashes / fileSize 字段
     public async Task ResolveFiles(JsonArray files, CancellationToken ct)
     {
-        var pending = files.Items()
-            .Where(f => f["projectID"] != null && f["fileID"] != null
-                        && f.S("path").Length == 0
-                        && (f["downloads"] == null || f["downloads"]!.AsArray().Count == 0))
+        var pending = files
+            .Items()
+            .Where(f =>
+                f["projectID"] != null
+                && f["fileID"] != null
+                && f.S("path").Length == 0
+                && (f["downloads"] == null || f["downloads"]!.AsArray().Count == 0)
+            )
             .ToList();
 
-        if (pending.Count == 0) return;
+        if (pending.Count == 0)
+            return;
 
         // 逐个解析：CurseForge API 无批量接口，按文件逐一请求
         foreach (var f in pending)
@@ -104,26 +121,36 @@ public sealed class CurseForgeService(LauncherCore core)
             {
                 try
                 {
-                    var dl = await Request($"{BaseUrl}mods/{projectId}/files/{fileId}/download-url", ct);
+                    var dl = await Request(
+                        $"{BaseUrl}mods/{projectId}/files/{fileId}/download-url",
+                        ct
+                    );
                     url = dl.S("data");
                 }
                 catch { }
             }
 
             if (url.Length == 0)
-                throw new Exception($"无法获取 CurseForge 文件下载链接: project={projectId}, file={fileId}");
+                throw new Exception(
+                    $"无法获取 CurseForge 文件下载链接: project={projectId}, file={fileId}"
+                );
 
             var fileName = fileInfo.S("fileName");
             if (fileName.Length == 0)
-                throw new Exception($"CurseForge 文件缺少文件名: project={projectId}, file={fileId}");
+                throw new Exception(
+                    $"CurseForge 文件缺少文件名: project={projectId}, file={fileId}"
+                );
 
             f["path"] = $"mods/{fileName}";
             f["downloads"] = new JsonArray(url);
             f["hashes"] = new JsonObject
             {
-                ["sha1"] = fileInfo["hashes"]?.AsArray()
-                    .FirstOrDefault(h => h!.S("algo") == "1")?.S("value") ?? "",
-                ["sha512"] = ""
+                ["sha1"] =
+                    fileInfo["hashes"]
+                        ?.AsArray()
+                        .FirstOrDefault(h => h!.S("algo") == "1")
+                        ?.S("value") ?? "",
+                ["sha512"] = "",
             };
             f["fileSize"] = fileInfo["fileLength"]?.GetValue<long>();
         }
@@ -137,6 +164,6 @@ public sealed class CurseForgeService(LauncherCore core)
         using var response = await core.Http.SendAsync(request, ct);
         response.EnsureSuccessStatusCode();
         return JsonNode.Parse(await response.Content.ReadAsStringAsync(ct))
-               ?? throw new Exception("CurseForge API 返回空数据");
+            ?? throw new Exception("CurseForge API 返回空数据");
     }
 }

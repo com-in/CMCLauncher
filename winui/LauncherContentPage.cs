@@ -7,7 +7,11 @@ namespace CMCLauncher.WinUI;
 // Each navigation creates a new Page so WinUI can run its navigation transition.
 public sealed partial class LauncherContentPage : Page
 {
-    public LauncherContentPage() { InitializeComponent(); }
+    public LauncherContentPage()
+    {
+        InitializeComponent();
+    }
+
     protected override void OnNavigatedTo(NavigationEventArgs args)
     {
         base.OnNavigatedTo(args);

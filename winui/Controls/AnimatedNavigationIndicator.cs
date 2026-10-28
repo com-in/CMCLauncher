@@ -26,17 +26,30 @@ internal sealed class AnimatedNavigationIndicator
     {
         if (selected == value)
         {
-            if (!animate && animation != null) { animation.Stop(); animation = null; Finish(); }
+            if (!animate && animation != null)
+            {
+                animation.Stop();
+                animation = null;
+                Finish();
+            }
             return;
         }
         selected = value;
         var opacity = indicator.Opacity;
         var scale = transform.ScaleY;
         var offset = transform.TranslateY;
-        animation?.Stop(); animation = null;
-        indicator.Opacity = opacity; transform.ScaleY = scale; transform.TranslateY = offset;
-        if (!animate) { Finish(); return; }
-        if (value && opacity < .01) transform.TranslateY = enteringOffset;
+        animation?.Stop();
+        animation = null;
+        indicator.Opacity = opacity;
+        transform.ScaleY = scale;
+        transform.TranslateY = offset;
+        if (!animate)
+        {
+            Finish();
+            return;
+        }
+        if (value && opacity < .01)
+            transform.TranslateY = enteringOffset;
 
         var storyboard = new Storyboard();
         Add(indicator, "Opacity", indicator.Opacity, value ? 1 : 0);
@@ -46,8 +59,11 @@ internal sealed class AnimatedNavigationIndicator
         storyboard.Completed += (_, _) =>
         {
             // 被新切换替代的动画不能在完成时把蓝条改回旧状态。
-            if (!ReferenceEquals(animation, storyboard)) return;
-            storyboard.Stop(); animation = null; Finish();
+            if (!ReferenceEquals(animation, storyboard))
+                return;
+            storyboard.Stop();
+            animation = null;
+            Finish();
         };
         storyboard.Begin();
 
@@ -55,10 +71,14 @@ internal sealed class AnimatedNavigationIndicator
         {
             var tween = new DoubleAnimation
             {
-                From = from, To = to, Duration = new Duration(TimeSpan.FromMilliseconds(180)),
-                EnableDependentAnimation = true, EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+                From = from,
+                To = to,
+                Duration = new Duration(TimeSpan.FromMilliseconds(180)),
+                EnableDependentAnimation = true,
+                EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut },
             };
-            Storyboard.SetTarget(tween, target); Storyboard.SetTargetProperty(tween, property);
+            Storyboard.SetTarget(tween, target);
+            Storyboard.SetTargetProperty(tween, property);
             storyboard.Children.Add(tween);
         }
     }

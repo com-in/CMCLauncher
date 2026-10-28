@@ -15,10 +15,19 @@ public sealed partial class MainWindow
         Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(TaskDrawerBackButton, Ui("Back"));
         ToolTipService.SetToolTip(PageBackButton, Ui("Back"));
         ToolTipService.SetToolTip(HomeCustomizeButton, Ui("Customize home"));
-        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(HomeCustomizeButton, Ui("Customize home"));
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(
+            HomeCustomizeButton,
+            Ui("Customize home")
+        );
         ToolTipService.SetToolTip(TaskDrawerScrim, Ui("Close task panel"));
-        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(TaskDrawerScrim, Ui("Close task panel"));
-        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(TaskProgressRing, Ui("Task in progress"));
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(
+            TaskDrawerScrim,
+            Ui("Close task panel")
+        );
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(
+            TaskProgressRing,
+            Ui("Task in progress")
+        );
         CancelButton.Content = Ui("Cancel");
     }
 }
