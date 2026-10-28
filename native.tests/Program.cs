@@ -197,6 +197,10 @@ internal static class Program
             "the current directory takes precedence when both exist"
         );
         Pass("renamed data directory preserves existing installations");
+        await VersionDeletionTests.Run(Path.Combine(root, "version-deletion"));
+        Pass(
+            "imported version deletion distinguishes shared runtime roots, sibling profiles and real dependencies"
+        );
         await InstallationCleanupTests.Run(Path.Combine(root, "installation-cleanup"));
         Pass(
             "new game installation cancellation rollback, loader failure and existing directory protection"

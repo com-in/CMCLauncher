@@ -247,6 +247,139 @@ public sealed class Store
             );
     }
 
+    // Protect shared profile files while allowing individual imported version folders to be recycled.
+    public string? DeletableInstanceDirectory(Instance instance)
+    {
+        var storage = Path.GetFullPath(StorageDirectory(instance))
+            .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        // Imported versions can share a runtime root while owning distinct versions/<id> folders.
+        string VersionDirectory(Instance candidate)
+        {
+            if (
+                candidate.ImportRoot != null
+                && candidate.VersionId != null
+                && (
+                    candidate.Directory == null
+                    || string.Equals(
+                        Path.GetFullPath(candidate.Directory),
+                        Path.GetFullPath(candidate.ImportRoot),
+                        StringComparison.OrdinalIgnoreCase
+                    )
+                )
+            )
+                return SafePath(candidate.ImportRoot, "versions/" + candidate.VersionId);
+            return Path.GetFullPath(GameDirectory(candidate));
+        }
+        var target = VersionDirectory(instance);
+        target = target.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        var parent = Path.GetDirectoryName(target);
+        if (
+            !string.Equals(
+                parent,
+                Path.Combine(storage, "versions"),
+                StringComparison.OrdinalIgnoreCase
+            )
+            && !string.Equals(
+                parent,
+                Path.Combine(storage, "instances"),
+                StringComparison.OrdinalIgnoreCase
+            )
+        )
+            return null;
+        try
+        {
+            target = SafePath(storage, Path.GetRelativePath(storage, target));
+        }
+        catch
+        {
+            return null;
+        }
+        static bool Overlaps(string left, string right) =>
+            string.Equals(left, right, StringComparison.OrdinalIgnoreCase)
+            || left.StartsWith(
+                right + Path.DirectorySeparatorChar,
+                StringComparison.OrdinalIgnoreCase
+            )
+            || right.StartsWith(
+                left + Path.DirectorySeparatorChar,
+                StringComparison.OrdinalIgnoreCase
+            );
+        var shared = Config.Instances.Any(other =>
+            other.Id != instance.Id
+            && (
+                Overlaps(
+                    Path.GetFullPath(VersionDirectory(other))
+                        .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar),
+                    target
+                )
+                || instance.ImportRoot != null
+                    && instance.VersionId != null
+                    && string.Equals(
+                        Path.GetFullPath(StorageDirectory(other)),
+                        storage,
+                        StringComparison.OrdinalIgnoreCase
+                    )
+                    && (
+                        string.Equals(
+                            other.VersionId,
+                            instance.VersionId,
+                            StringComparison.OrdinalIgnoreCase
+                        )
+                        || string.Equals(
+                            other.GameVersion,
+                            instance.VersionId,
+                            StringComparison.OrdinalIgnoreCase
+                        )
+                    )
+            )
+        );
+        if (shared)
+            return null;
+        // Also protect parents used by profiles which have not been imported into this launcher.
+        if (
+            string.Equals(
+                parent,
+                Path.Combine(storage, "versions"),
+                StringComparison.OrdinalIgnoreCase
+            ) && System.IO.Directory.Exists(parent)
+        )
+        {
+            var id = Path.GetFileName(target);
+            try
+            {
+                foreach (var folder in System.IO.Directory.EnumerateDirectories(parent))
+                {
+                    if (
+                        string.Equals(
+                            Path.GetFullPath(folder),
+                            target,
+                            StringComparison.OrdinalIgnoreCase
+                        )
+                    )
+                        continue;
+                    var profileId = Path.GetFileName(folder);
+                    var profilePath = SafePath(storage, $"versions/{profileId}/{profileId}.json");
+                    if (!File.Exists(profilePath))
+                        continue;
+                    var profile = JsonNode.Parse(File.ReadAllText(profilePath));
+                    if (
+                        string.Equals(
+                            profile.S("inheritsFrom"),
+                            id,
+                            StringComparison.OrdinalIgnoreCase
+                        ) || string.Equals(profile.S("jar"), id, StringComparison.OrdinalIgnoreCase)
+                    )
+                        return null;
+                }
+            }
+            catch
+            {
+                return null;
+            }
+        }
+        return target;
+    }
+
     public void PrepareIsolatedInstance(Instance instance)
     {
         if (instance.Directory != null || instance.ImportRoot != null)
