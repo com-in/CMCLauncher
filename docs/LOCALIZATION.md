@@ -4,8 +4,6 @@ The launcher reads UTF-8 JSON files from `locales/` beside `CMCLauncher.exe`. Th
 
 New installations default to English. Explicitly saved language preferences are preserved. The `strings` keys are English; Chinese text lives in the Chinese pack values. The English pack's `aliases` map supports legacy source messages.
 
-FRP-specific interface strings intentionally use the English fallback and are omitted from the Chinese pack. Shared actions retain their existing translations. New development uses English resource keys and English default text.
-
 ## Editing translations
 
 Edit `locales/en_us.json` or `locales/zh_cn.json`. Restart the launcher, or switch interface languages, to reload the files. No compilation is required for external translation edits.
