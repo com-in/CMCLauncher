@@ -15,6 +15,26 @@ namespace CMCLauncher.WinUI;
 
 public sealed partial class MainWindow
 {
+    sealed class NavigationButtonPalette
+    {
+        internal readonly SolidColorBrush Background = new(Colors.Transparent);
+        internal bool Selected,
+            Hovered;
+    }
+
+    readonly Dictionary<string, NavigationButtonPalette> navigationButtonPalettes = new();
+
+    void RefreshNavigationButtonPalette(NavigationButtonPalette palette)
+    {
+        palette.Background.Color =
+            palette.Selected
+                ? PaletteColor(lightTheme ? ThemeTokens.LightSelection : ThemeTokens.DarkSelection)
+            : palette.Hovered ? SoftSurfaceColor()
+            : Colors.Transparent;
+    }
+
+    Storyboard? pageNavigationAnimation;
+    string? displayedPageRoute;
     bool pageFrameReady;
     StackPanel? pendingPageBody;
     readonly Dictionary<string, Button> navigationButtons = new();
@@ -200,6 +220,22 @@ public sealed partial class MainWindow
         };
         button.Click += (_, _) => click();
         var navigationKey = key.StartsWith("root:") ? key : "page:" + key;
+        var palette = new NavigationButtonPalette();
+        navigationButtonPalettes[navigationKey] = palette;
+        // Native pointer-state transitions must not swap the selection brush or replay its color.
+        button.Background = palette.Background;
+        foreach (var state in new[] { "", "PointerOver", "Pressed", "Disabled" })
+            button.Resources["ButtonBackground" + state] = palette.Background;
+        button.PointerEntered += (_, _) =>
+        {
+            palette.Hovered = true;
+            RefreshNavigationButtonPalette(palette);
+        };
+        button.PointerExited += (_, _) =>
+        {
+            palette.Hovered = false;
+            RefreshNavigationButtonPalette(palette);
+        };
         navigationButtons[navigationKey] = button;
         navigationIndicators[navigationKey] = indicator;
         animatedNavigationIndicators[navigationKey] = new AnimatedNavigationIndicator(indicator);
@@ -243,9 +279,9 @@ public sealed partial class MainWindow
         foreach (var (key, button) in navigationButtons)
         {
             var selected = key == pageKey || key == rootKey;
-            button.Background = selected
-                ? Brush(lightTheme ? "#DDE8D6" : "#2C3550")
-                : new SolidColorBrush(Colors.Transparent);
+            var palette = navigationButtonPalettes[key];
+            palette.Selected = selected;
+            RefreshNavigationButtonPalette(palette);
             if (navigationIndicators.TryGetValue(key, out var indicator))
             {
                 indicator.Background = Brush(lightTheme ? "#416D37" : "#536DBD");
@@ -444,18 +480,63 @@ public sealed partial class MainWindow
         }
     }
 
-    // 用新 Page 触发 WinUI 导航过渡；应用自己的返回逻辑不依赖 Frame 回退栈。
+    // Frame 只替换内容；标题和正文由外层容器统一淡入，避免默认的上移入场。
+    string CurrentPageRoute() =>
+        page == "version-settings" ? $"{page}:{kind}:{selected?.Id}" : page;
+
+    void AnimatePageSurface()
+    {
+        var route = CurrentPageRoute();
+        if (displayedPageRoute == route)
+        {
+            if (pageNavigationAnimation == null)
+                PageSurface.Opacity = 1;
+            return;
+        }
+        var animate = displayedPageRoute != null && systemUi.AnimationsEnabled;
+        displayedPageRoute = route;
+        // Keep navigation immediate; only the newly mounted surface fades in.
+        var from = pageNavigationAnimation != null ? PageSurface.Opacity : .86;
+        pageNavigationAnimation?.Stop();
+        pageNavigationAnimation = null;
+        PageSurface.Opacity = 1;
+        if (!animate)
+            return;
+        var storyboard = new Storyboard();
+        var fade = new DoubleAnimation
+        {
+            From = Math.Clamp(from, .86, 1),
+            To = 1,
+            Duration = new Duration(TimeSpan.FromMilliseconds(280)),
+            EasingFunction = new SineEase { EasingMode = EasingMode.EaseOut },
+        };
+        Storyboard.SetTarget(fade, PageSurface);
+        Storyboard.SetTargetProperty(fade, "Opacity");
+        storyboard.Children.Add(fade);
+        pageNavigationAnimation = storyboard;
+        storyboard.Completed += (_, _) =>
+        {
+            if (!ReferenceEquals(pageNavigationAnimation, storyboard))
+                return;
+            storyboard.Stop();
+            pageNavigationAnimation = null;
+            PageSurface.Opacity = 1;
+        };
+        storyboard.Begin();
+    }
+
     void NavigatePage(StackPanel body)
     {
         if (
             !PageFrame.Navigate(
                 typeof(LauncherContentPage),
                 body,
-                new EntranceNavigationTransitionInfo()
+                new SuppressNavigationTransitionInfo()
             )
         )
             throw new InvalidOperationException("无法打开页面");
         PageFrame.BackStack.Clear();
+        AnimatePageSurface();
         // The outer ScrollViewer survives navigation and otherwise retains the list's offset.
         PageViewport.UpdateLayout();
         PageViewport.ChangeView(0, 0, null, true);

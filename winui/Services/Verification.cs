@@ -117,6 +117,16 @@ public sealed partial class MainWindow
                 1
             );
         };
+        async Task WaitForPageNavigation()
+        {
+            await Task.Delay(20);
+            for (
+                var attempt = 0;
+                attempt < 80 && displayedPageRoute != CurrentPageRoute();
+                attempt++
+            )
+                await Task.Delay(20);
+        }
         void Check(bool value, string message)
         {
             if (!value)
@@ -134,6 +144,8 @@ public sealed partial class MainWindow
         await VerifyFrpcPage(Check, directory);
         await VerifyJsonLocalization(Check);
         await VerifyJsonThemes(Check);
+        await VerifyVersionOverview(Check, directory);
+        await VerifyDeletionReasons(Check, directory);
         await VerifyCommunityFilterDrawer(Check, directory);
         Check(
             IsModpackFile("Pack.MRPACK") && IsModpackFile("Pack.ZIP") && !IsModpackFile("mod.jar"),
@@ -238,6 +250,7 @@ public sealed partial class MainWindow
                 && animatedSubmenus["downloads"].View.Visibility == Visibility.Collapsed,
             "collapsed submenu releases sidebar space after animation"
         );
+        var oldHomeBrush = navigationButtons["root:home"].Background;
         page = "downloads";
         SyncNavigation();
         Check(
@@ -246,6 +259,21 @@ public sealed partial class MainWindow
             "selected navigation blue indicator animates when Windows animations are enabled"
         );
         SyncNavigation();
+        Check(
+            ReferenceEquals(oldHomeBrush, navigationButtons["root:home"].Background),
+            "navigation reuses the old selection brush during page changes"
+        );
+        var oldHome = navigationButtons["root:home"];
+        foreach (var state in new[] { "PointerOver", "Pressed", "Normal" })
+        {
+            VisualStateManager.GoToState(oldHome, state, false);
+            SyncNavigation();
+            Check(
+                ReferenceEquals(oldHome.Background, oldHomeBrush)
+                    && ReferenceEquals(oldHome.Resources["ButtonBackgroundPressed"], oldHomeBrush),
+                "old navigation item cannot restore its previous selection in native state " + state
+            );
+        }
         page = "settings";
         SyncNavigation();
         page = "home";
@@ -454,13 +482,41 @@ public sealed partial class MainWindow
             "navigation creates distinct native pages and content containers"
         );
         Check(
-            PageFrame
-                .ContentTransitions.OfType<Microsoft.UI.Xaml.Media.Animation.NavigationThemeTransition>()
-                .Single()
-                .DefaultNavigationTransitionInfo
-                is Microsoft.UI.Xaml.Media.Animation.EntranceNavigationTransitionInfo
+            (PageFrame.ContentTransitions == null || PageFrame.ContentTransitions.Count == 0)
                 && PageFrame.BackStack.Count == 0,
-            "native Frame entrance transition configured without retaining page history"
+            "native Frame suppresses vertical entrance transitions and does not retain page history"
+        );
+        Check(
+            ReferenceEquals(PageHeader.Parent, PageSurface)
+                && ReferenceEquals(PageViewport.Parent, PageSurface),
+            "page heading and body share one stationary transition surface"
+        );
+        var currentFade = pageNavigationAnimation;
+        await RenderAsync();
+        Check(
+            pageNavigationAnimation == null
+                || ReferenceEquals(pageNavigationAnimation, currentFade),
+            "same-page content refresh does not restart the page fade"
+        );
+        await Task.Delay(360);
+        Check(
+            PageSurface.Opacity == 1 && pageNavigationAnimation == null,
+            "page fade settles at full opacity without moving the content"
+        );
+        var fadeRoute = page;
+        page = "settings";
+        var immediateNavigation = RenderAsync();
+        Check(
+            displayedPageRoute == "settings" && immediateNavigation.IsCompleted,
+            "navigation mounts the new page immediately without waiting for an exit animation"
+        );
+        await immediateNavigation;
+        page = fadeRoute;
+        await RenderAsync();
+        await Task.Delay(360);
+        Check(
+            PageSurface.Opacity == 1 && pageNavigationAnimation == null,
+            "rapid return settles at full opacity without a stale transition"
         );
         await File.WriteAllTextAsync(
             Path.Combine(directory, "motion-state.txt"),
@@ -566,7 +622,7 @@ public sealed partial class MainWindow
         ).Invoke();
         await Task.Delay(150);
         await ConfigureInstance();
-        await Task.Delay(60);
+        await WaitForPageNavigation();
         Check(
             page == "version-settings"
                 && expandedNavigation == "home"
@@ -609,7 +665,7 @@ public sealed partial class MainWindow
             );
         }
         PageBack_Click(this, new RoutedEventArgs());
-        await Task.Delay(60);
+        await WaitForPageNavigation();
         Check(
             page == "home" && PageBackButton.Visibility == Visibility.Collapsed,
             "header back arrow returns home and hides"
@@ -669,8 +725,11 @@ public sealed partial class MainWindow
         page = "version-settings";
         kind = "mod";
         var oldRender = RenderAsync();
+        await WaitForPageNavigation();
         Check(
-            oldRender.IsCompleted && PageFrame.Content is LauncherContentPage,
+            oldRender.IsCompleted
+                && !pendingList.Task.IsCompleted
+                && PageFrame.Content is LauncherContentPage,
             "content page opens before delayed file identification completes"
         );
         var oldLoad = contentLoad;
@@ -695,6 +754,7 @@ public sealed partial class MainWindow
         selectedProject = new SearchResult("delayed", "旧详情", "", "mod", "");
         page = "resource-detail";
         var oldDetails = RenderAsync();
+        await WaitForPageNavigation();
         Check(
             PageFrame.Content is LauncherContentPage
                 && Descendants(PageBody).OfType<ProgressRing>().Any(),
@@ -734,6 +794,7 @@ public sealed partial class MainWindow
         page = "version-settings";
         kind = "mod";
         var failedSettings = RenderAsync();
+        await WaitForPageNavigation();
         var failedLoad = contentLoad;
         page = "home";
         await RenderAsync();
@@ -897,6 +958,7 @@ public sealed partial class MainWindow
             (IInvokeProvider)
                 new ButtonAutomationPeer(detailsButton).GetPattern(PatternInterface.Invoke)
         ).Invoke();
+        await WaitForPageNavigation();
         await Task.Delay(100);
         ((FrameworkElement)Content).UpdateLayout();
         Check(
@@ -1030,6 +1092,7 @@ public sealed partial class MainWindow
             "community detail uses the shared header back arrow"
         );
         PageBack_Click(this, new RoutedEventArgs());
+        await WaitForPageNavigation();
         await Task.Delay(100);
         Check(
             page == "download-shader"
@@ -1998,6 +2061,7 @@ public sealed partial class MainWindow
                     PatternInterface.Invoke
                 )
         ).Invoke();
+        await WaitForPageNavigation();
         await Task.Delay(100);
         Check(
             ReferenceEquals(selectedPresetPageBody, PageBody)
@@ -2479,7 +2543,7 @@ public sealed partial class MainWindow
         );
         instance.Description = "生存建造 · 自定义版本描述";
         await ChooseInstance();
-        await Task.Delay(60);
+        await WaitForPageNavigation();
         ((FrameworkElement)Content).UpdateLayout();
         Check(
             page == "instances"
@@ -2503,6 +2567,7 @@ public sealed partial class MainWindow
             (IInvokeProvider)
                 new ButtonAutomationPeer(selectInstance).GetPattern(PatternInterface.Invoke)
         ).Invoke();
+        await WaitForPageNavigation();
         await Task.Delay(60);
         Check(
             page == "home"
@@ -2524,6 +2589,9 @@ public sealed partial class MainWindow
         page = "instances";
         instanceFilter = "全部实例";
         await RenderAsync();
+        // Let the page transition and native layout settle before opening the test modal.
+        await Task.Delay(360);
+        ((FrameworkElement)Content).UpdateLayout();
         var disposableCard = Descendants(PageBody)
             .OfType<Border>()
             .Single(b =>
@@ -2532,7 +2600,30 @@ public sealed partial class MainWindow
             );
         // 记录回收站调用参数来验证删除流程，不在验证期间触碰系统回收站。
         var recycledDirectory = "";
-        popconfirmOverride = _ => Task.FromResult(true);
+        showVersionDeletionDialog = async dialog =>
+        {
+            Check(
+                dialog.DefaultButton == ContentDialogButton.Close
+                    && dialog.PrimaryButtonText == Ui("Delete version"),
+                "version deletion uses a modal with cancel as the safe default"
+            );
+            var panel = (StackPanel)((ScrollViewer)dialog.Content).Content;
+            Check(
+                panel.Children.OfType<CheckBox>().Single().IsChecked == true
+                    && panel.Children.OfType<TextBlock>().Any(t => t.Text == deleteDirectory),
+                "version deletion modal shows the exact folder and keeps file deletion optional"
+            );
+            var shown = dialog.ShowAsync();
+            await Task.Delay(150);
+            Check(
+                dialog.IsLoaded && dialog.ActualWidth > 0 && dialogOpen,
+                "version deletion modal is displayed before confirmation"
+            );
+            await Capture(Path.Combine(directory, "delete-version-modal.png"), dialog);
+            dialog.Hide();
+            await shown;
+            return ContentDialogResult.Primary;
+        };
         recycleInstanceDirectory = path =>
         {
             recycledDirectory = path;
@@ -2547,14 +2638,23 @@ public sealed partial class MainWindow
             (IInvokeProvider)
                 new ButtonAutomationPeer(deleteButton).GetPattern(PatternInterface.Invoke)
         ).Invoke();
-        await Task.Delay(350);
+        for (
+            var attempt = 0;
+            attempt < 60
+                && (
+                    store.Config.Instances.Any(i => i.Id == disposable.Id)
+                    || Directory.Exists(deleteDirectory)
+                );
+            attempt++
+        )
+            await Task.Delay(50);
         Check(
             !Directory.Exists(deleteDirectory)
                 && recycledDirectory == deleteDirectory
                 && !new Store(store.Root).Config.Instances.Any(i => i.Id == disposable.Id),
             "deleting a version persists removal and recycles its isolated directory"
         );
-        popconfirmOverride = null;
+        showVersionDeletionDialog = async dialog => await dialog.ShowAsync();
         var sharedDirectory = store.GameDirectory(store.Config.Instances[0]);
         var sharedReference = new Instance
         {

@@ -147,6 +147,10 @@ dotnet publish winui/CMCLauncher.WinUI.csproj -c Release -p:Platform=x64 -r win-
 
 The packaging script excludes local configuration, credential, and key files, then checks that the archive contains the launcher executable.
 
+Portable releases include the .NET runtime and the required Windows App SDK components, so users do not need to install these runtimes separately. The project references the WinUI and DWrite component packages instead of the full Windows App SDK bundle to avoid shipping unused AI, machine learning, and Widgets dependencies. Keep their versions aligned with the dependencies of the same Windows App SDK release when updating them. Publish into a fresh directory: publishing over an older output does not remove obsolete dependency files.
+
+Release builds also use partial .NET trimming. The launcher assembly and Windows/WinUI projections remain fully rooted to preserve reflection-based JSON models, XAML controls, and WinRT collection conversions; built-in COM and JSON reflection stay enabled. Trim analysis warnings remain visible. Debug builds are not trimmed. To compare against an untrimmed release, add `-p:PublishTrimmed=false` to the publish command.
+
 ### Tests
 
 Run the native regression tests:

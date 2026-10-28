@@ -17,6 +17,9 @@ public sealed partial class MainWindow
             Microsoft.VisualBasic.FileIO.RecycleOption.SendToRecycleBin
         );
 
+    Func<ContentDialog, Task<ContentDialogResult>> showVersionDeletionDialog = async dialog =>
+        await dialog.ShowAsync();
+
     // 列表和平铺共用筛选结果，收藏优先，再按加载器分组展示。
     void Instances()
     {
@@ -246,6 +249,7 @@ public sealed partial class MainWindow
                     MinWidth = 30,
                     IsEnabled = task == null,
                 };
+                VersionDeleteButton(remove);
                 ToolTipService.SetToolTip(remove, Ui("Delete version"));
                 Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(
                     remove,
@@ -345,7 +349,8 @@ public sealed partial class MainWindow
                     "context.instancelibrary.wait_for_the_current_task_to_finish_or_cancel_it_before_deleting"
                 )
             );
-        var directory = DeletableInstanceDirectory(instance);
+        var inspection = store.InspectVersionDeletion(instance);
+        var directory = inspection.DeletableDirectory;
         var deleteFiles = new CheckBox
         {
             Content = Ui("Also delete version files (move to Recycle Bin)"),
@@ -356,21 +361,94 @@ public sealed partial class MainWindow
         content.Children.Add(Text(UiFormat("Remove “{0}” from the launcher.", instance.Name), 14));
         content.Children.Add(deleteFiles);
         if (directory == null)
-            content.Children.Add(
-                Text(
-                    Ui(
-                        "context.instancelibrary.files_will_be_kept_because_this_is_a_shared_directory_or_is_outs"
-                    ),
-                    12
-                )
-            );
+        {
+            var related = string.Join(", ", inspection.RelatedVersions);
+            var reason = inspection.Reason switch
+            {
+                VersionDeletionBlockReason.Dependency => UiFormat(
+                    "Version files are kept because these versions reference this profile or client JAR: {0}. Remove or migrate those versions first.",
+                    related
+                ),
+                VersionDeletionBlockReason.SharedDirectory => UiFormat(
+                    "This version directory overlaps with: {0}. Only the launcher entry will be removed.",
+                    related
+                ),
+                VersionDeletionBlockReason.UnreadableProfile => UiFormat(
+                    "Cannot verify version references because a profile could not be read: {0}. Version files will be kept.",
+                    related
+                ),
+                VersionDeletionBlockReason.UnsafePath => Ui(
+                    "The version path could not be verified safely. Version files will be kept."
+                ),
+                _ => Ui(
+                    "This path is not an individual version folder. Shared Minecraft files will be kept."
+                ),
+            };
+            content.Children.Add(Text(reason, 12));
+            if (inspection.Directory != null)
+                content.Children.Add(Text(inspection.Directory, 12));
+        }
         else
         {
             var path = Text(directory, 12);
             path.Opacity = .7;
             content.Children.Add(path);
         }
-        if (!await ConfirmPop(anchor, Ui("Delete version?"), content))
+        if (dialogOpen)
+            return;
+        var dialog = new ContentDialog
+        {
+            XamlRoot = Content.XamlRoot,
+            RequestedTheme = lightTheme ? ElementTheme.Light : ElementTheme.Dark,
+            Title = Ui("Delete version?"),
+            Content = new ScrollViewer
+            {
+                Content = content,
+                MaxHeight = Math.Clamp(((FrameworkElement)Content).ActualHeight - 240, 120, 480),
+                HorizontalScrollMode = ScrollMode.Disabled,
+                HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
+            },
+            PrimaryButtonText = Ui("Delete version"),
+            CloseButtonText = Ui("Cancel"),
+            DefaultButton = ContentDialogButton.Close,
+        };
+        dialog.PrimaryButtonStyle = new Style(typeof(Button))
+        {
+            BasedOn = (Style)Application.Current.Resources["DefaultButtonStyle"],
+            Setters =
+            {
+                new Setter(Control.ForegroundProperty, versionDeleteText),
+                new Setter(Control.BackgroundProperty, versionDeleteBackground),
+                new Setter(Control.BorderBrushProperty, versionDeleteText),
+                new Setter(Control.CornerRadiusProperty, new CornerRadius(5)),
+            },
+        };
+        dialog.Opened += (_, _) =>
+        {
+            var primary = Descendants(dialog)
+                .OfType<Button>()
+                .FirstOrDefault(button => button.Name == "PrimaryButton");
+            if (primary != null)
+                VersionDeleteButton(primary);
+        };
+        if (store.Config.Settings.ColorPreset != "native")
+        {
+            dialog.Background = ComboSurfaceBrush;
+            dialog.Foreground = ComboTextBrush;
+            dialog.Resources["ContentDialogBackground"] = ComboSurfaceBrush;
+            dialog.Resources["ContentDialogForeground"] = ComboTextBrush;
+        }
+        dialogOpen = true;
+        ContentDialogResult result;
+        try
+        {
+            result = await showVersionDeletionDialog(dialog);
+        }
+        finally
+        {
+            dialogOpen = false;
+        }
+        if (result != ContentDialogResult.Primary)
             return;
         if (task != null)
             throw new InvalidOperationException(
@@ -605,10 +683,20 @@ public sealed partial class MainWindow
     }
 
     // 名称修改只影响展示；新图标复制到配置目录，避免依赖用户原图片的位置。
-    async Task EditInstance()
+    Func<ContentDialog, Task<ContentDialogResult>> showInstanceEditDialog = async dialog =>
+        await dialog.ShowAsync();
+
+    async Task EditInstance(string field)
     {
-        if (selected is not { } instance)
+        if (selected is not { } instance || dialogOpen)
             return;
+        var title = field switch
+        {
+            "name" => "Edit name",
+            "description" => "Edit description",
+            "icon" => "Edit icon",
+            _ => throw new ArgumentOutOfRangeException(nameof(field)),
+        };
         var name = new TextBox
         {
             Header = Ui("Version name"),
@@ -644,25 +732,46 @@ public sealed partial class MainWindow
             iconPath = null;
             iconLabel.Text = Ui("Use default icon");
         };
-        var panel = new StackPanel
+        var panel = new StackPanel { Spacing = 10 };
+        if (field == "name")
+            panel.Children.Add(name);
+        else if (field == "description")
+            panel.Children.Add(description);
+        else
         {
-            Spacing = 10,
-            Children = { name, description, iconLabel, chooseIcon, reset },
-        };
+            panel.Children.Add(iconLabel);
+            panel.Children.Add(Buttons(chooseIcon, reset));
+        }
         var dialog = new ContentDialog
         {
             XamlRoot = Content.XamlRoot,
             RequestedTheme = lightTheme ? ElementTheme.Light : ElementTheme.Dark,
-            Title = Ui("Version details"),
+            Title = Ui(title),
             Content = panel,
             PrimaryButtonText = Ui("Save"),
             CloseButtonText = Ui("Cancel"),
         };
-        if (await dialog.ShowAsync() != ContentDialogResult.Primary)
+        if (field == "name")
+        {
+            dialog.IsPrimaryButtonEnabled = !string.IsNullOrWhiteSpace(name.Text);
+            name.TextChanged += (_, _) =>
+                dialog.IsPrimaryButtonEnabled = !string.IsNullOrWhiteSpace(name.Text);
+        }
+        dialogOpen = true;
+        ContentDialogResult result;
+        try
+        {
+            result = await showInstanceEditDialog(dialog);
+        }
+        finally
+        {
+            dialogOpen = false;
+        }
+        if (result != ContentDialogResult.Primary)
             return;
-        if (string.IsNullOrWhiteSpace(name.Text))
+        if (field == "name" && string.IsNullOrWhiteSpace(name.Text))
             throw new Exception("版本名称不能为空");
-        if (iconPath != null && iconPath != instance.IconPath)
+        if (field == "icon" && iconPath != null && iconPath != instance.IconPath)
         {
             if (new FileInfo(iconPath).Length > 8 * 1024 * 1024)
                 throw new Exception("图标请使用 8 MB 以内的图片");
@@ -678,9 +787,12 @@ public sealed partial class MainWindow
             File.Copy(iconPath, destination);
             iconPath = destination;
         }
-        instance.Name = name.Text.Trim();
-        instance.Description = description.Text.Trim();
-        instance.IconPath = iconPath;
+        if (field == "name")
+            instance.Name = name.Text.Trim();
+        else if (field == "description")
+            instance.Description = description.Text.Trim();
+        else
+            instance.IconPath = iconPath;
         await store.Save();
         Render();
     }

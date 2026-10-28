@@ -640,31 +640,7 @@ public sealed partial class MainWindow
             await Manage(kind);
             return;
         }
-        PageBody.Children.Add(Text(instance.Name, 18, true));
-        PageBody.Children.Add(
-            Text($"Minecraft {instance.GameVersion} · {LoaderCategory(instance.Loader)}", 14, true)
-        );
-        if (instance.Description.Length > 0)
-            PageBody.Children.Add(Text(instance.Description, 13));
-        PageBody.Children.Add(
-            Buttons(
-                Action("编辑名称、描述与图标", async (_, _) => await EditInstance()),
-                Action("打开目录", (_, _) => OpenFolder(store.GameDirectory(instance))),
-                Action(
-                    "全部版本",
-                    (_, _) =>
-                    {
-                        page = "instances";
-                        Render();
-                    }
-                ),
-                Action(
-                    Ui("Delete version"),
-                    async (sender, _) =>
-                        await ConfirmDeleteInstance(instance, (FrameworkElement)sender)
-                )
-            )
-        );
+        InstanceOverview(instance);
         InstanceFiles(instance, false);
 
         async Task DiscoverSchematics()

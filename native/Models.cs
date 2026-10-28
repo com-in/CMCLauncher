@@ -1,10 +1,30 @@
-﻿using System.IO;
+using System.IO;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
 namespace CMCLauncher;
+
+public enum VersionDeletionBlockReason
+{
+    None,
+    OutsideVersionDirectory,
+    UnsafePath,
+    SharedDirectory,
+    Dependency,
+    UnreadableProfile,
+}
+
+public sealed record VersionDeletionInspection(
+    string? Directory,
+    VersionDeletionBlockReason Reason,
+    IReadOnlyList<string> RelatedVersions
+)
+{
+    public string? DeletableDirectory =>
+        Reason == VersionDeletionBlockReason.None ? Directory : null;
+}
 
 // settings.json 中的全局偏好；实例和账号另存在 Configuration 的列表里。
 public sealed class Settings
@@ -248,7 +268,10 @@ public sealed class Store
     }
 
     // Protect shared profile files while allowing individual imported version folders to be recycled.
-    public string? DeletableInstanceDirectory(Instance instance)
+    public string? DeletableInstanceDirectory(Instance instance) =>
+        InspectVersionDeletion(instance).DeletableDirectory;
+
+    public VersionDeletionInspection InspectVersionDeletion(Instance instance)
     {
         var storage = Path.GetFullPath(StorageDirectory(instance))
             .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
@@ -285,14 +308,14 @@ public sealed class Store
                 StringComparison.OrdinalIgnoreCase
             )
         )
-            return null;
+            return new(target, VersionDeletionBlockReason.OutsideVersionDirectory, []);
         try
         {
             target = SafePath(storage, Path.GetRelativePath(storage, target));
         }
         catch
         {
-            return null;
+            return new(target, VersionDeletionBlockReason.UnsafePath, []);
         }
         static bool Overlaps(string left, string right) =>
             string.Equals(left, right, StringComparison.OrdinalIgnoreCase)
@@ -304,38 +327,22 @@ public sealed class Store
                 left + Path.DirectorySeparatorChar,
                 StringComparison.OrdinalIgnoreCase
             );
-        var shared = Config.Instances.Any(other =>
-            other.Id != instance.Id
-            && (
-                Overlaps(
+        var shared = Config
+            .Instances.Where(other =>
+                other.Id != instance.Id
+                && Overlaps(
                     Path.GetFullPath(VersionDirectory(other))
                         .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar),
                     target
                 )
-                || instance.ImportRoot != null
-                    && instance.VersionId != null
-                    && string.Equals(
-                        Path.GetFullPath(StorageDirectory(other)),
-                        storage,
-                        StringComparison.OrdinalIgnoreCase
-                    )
-                    && (
-                        string.Equals(
-                            other.VersionId,
-                            instance.VersionId,
-                            StringComparison.OrdinalIgnoreCase
-                        )
-                        || string.Equals(
-                            other.GameVersion,
-                            instance.VersionId,
-                            StringComparison.OrdinalIgnoreCase
-                        )
-                    )
             )
-        );
-        if (shared)
-            return null;
-        // Also protect parents used by profiles which have not been imported into this launcher.
+            .Select(other => other.Name)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+        if (shared.Length > 0)
+            return new(target, VersionDeletionBlockReason.SharedDirectory, shared);
+
+        // The base game version alone is not evidence of a dependency: inspect actual profile references.
         if (
             string.Equals(
                 parent,
@@ -345,6 +352,8 @@ public sealed class Store
         )
         {
             var id = Path.GetFileName(target);
+            var references = new List<string>();
+            string? reading = null;
             try
             {
                 foreach (var folder in System.IO.Directory.EnumerateDirectories(parent))
@@ -358,10 +367,13 @@ public sealed class Store
                     )
                         continue;
                     var profileId = Path.GetFileName(folder);
+                    reading = profileId;
                     var profilePath = SafePath(storage, $"versions/{profileId}/{profileId}.json");
                     if (!File.Exists(profilePath))
                         continue;
                     var profile = JsonNode.Parse(File.ReadAllText(profilePath));
+                    if (profile is not JsonObject)
+                        throw new InvalidDataException("Invalid version profile.");
                     if (
                         string.Equals(
                             profile.S("inheritsFrom"),
@@ -369,15 +381,25 @@ public sealed class Store
                             StringComparison.OrdinalIgnoreCase
                         ) || string.Equals(profile.S("jar"), id, StringComparison.OrdinalIgnoreCase)
                     )
-                        return null;
+                        references.Add(profileId);
                 }
             }
             catch
             {
-                return null;
+                return new(
+                    target,
+                    VersionDeletionBlockReason.UnreadableProfile,
+                    reading == null ? [] : [reading]
+                );
             }
+            if (references.Count > 0)
+                return new(
+                    target,
+                    VersionDeletionBlockReason.Dependency,
+                    references.Distinct(StringComparer.OrdinalIgnoreCase).ToArray()
+                );
         }
-        return target;
+        return new(target, VersionDeletionBlockReason.None, []);
     }
 
     public void PrepareIsolatedInstance(Instance instance)

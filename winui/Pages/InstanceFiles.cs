@@ -51,7 +51,11 @@ public sealed partial class MainWindow
                         VerticalAlignment = VerticalAlignment.Center,
                         Spacing = 3,
                     };
-                    info.Children.Add(Text(Path.GetFileName(file), 13, true));
+                    var filename = Text(Path.GetFileName(file), 13, true);
+                    filename.TextWrapping = TextWrapping.NoWrap;
+                    filename.TextTrimming = TextTrimming.CharacterEllipsis;
+                    ToolTipService.SetToolTip(filename, Path.GetFileName(file));
+                    info.Children.Add(filename);
                     info.Children.Add(
                         Text(File.GetLastWriteTime(file).ToString("yyyy-MM-dd HH:mm"), 11)
                     );
@@ -66,7 +70,9 @@ public sealed partial class MainWindow
                     row.Children.Add(open);
                     shotSection.Children.Add(CompactCard(row));
                 }
-            PageBody.Children.Add(shotSection);
+            var screenshotsCard = Card(shotSection);
+            screenshotsCard.Tag = "instance-screenshots";
+            PageBody.Children.Add(screenshotsCard);
             return;
         }
         var worlds = ContentManager.Worlds(root);

@@ -231,7 +231,12 @@ public sealed partial class MainWindow : Window
         await store.Save();
         LocalizeStaticChrome();
         NavigationMenu.Children.Clear();
+        pageNavigationAnimation?.Stop();
+        pageNavigationAnimation = null;
+        displayedPageRoute = null;
+        PageSurface.Opacity = 1;
         navigationButtons.Clear();
+        navigationButtonPalettes.Clear();
         navigationIndicators.Clear();
         navigationSubmenus.Clear();
         animatedSubmenus.Clear();

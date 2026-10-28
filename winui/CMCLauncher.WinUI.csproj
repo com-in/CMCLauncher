@@ -34,6 +34,24 @@
       Condition="'$(PublishSingleFile)' == 'true'"
     >$(DefineConstants);SINGLE_FILE</DefineConstants>
   </PropertyGroup>
+  <!-- Partial trimming keeps the application and third-party libraries intact. -->
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <PublishTrimmed Condition="'$(PublishTrimmed)' == ''">true</PublishTrimmed>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(PublishTrimmed)' == 'true'">
+    <TrimMode>partial</TrimMode>
+    <!-- Settings, API models and shell operations still use reflection and COM. -->
+    <JsonSerializerIsReflectionEnabledByDefault>true</JsonSerializerIsReflectionEnabledByDefault>
+    <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
+  </PropertyGroup>
+  <!-- Preserve reflection metadata and WinRT projections; trim only safe framework code. -->
+  <ItemGroup Condition="'$(PublishTrimmed)' == 'true'">
+    <TrimmerRootAssembly Include="$(AssemblyName)" />
+    <TrimmerRootAssembly Include="Microsoft.Windows.SDK.NET" />
+    <TrimmerRootAssembly Include="Microsoft.WinUI" />
+    <TrimmerRootAssembly Include="WinRT.Runtime" />
+    <TrimmerRootAssembly Include="Microsoft.InteractiveExperiences.Projection" />
+  </ItemGroup>
   <ItemGroup>
     <EmbeddedResource
       Include="themes/craft.json"
@@ -91,9 +109,14 @@
       Include="Markdig"
       Version="1.4.2"
     />
+    <!-- Component packages keep unused AI, ML and Widgets runtimes out of portable releases. -->
     <PackageReference
-      Include="Microsoft.WindowsAppSDK"
-      Version="1.8.260921001"
+      Include="Microsoft.WindowsAppSDK.WinUI"
+      Version="1.8.260803003"
+    />
+    <PackageReference
+      Include="Microsoft.WindowsAppSDK.DWrite"
+      Version="1.8.25122902"
     />
     <!-- 核心源码直接编入桌面程序集，认证资源也随当前程序集一起读取。 -->
     <Compile

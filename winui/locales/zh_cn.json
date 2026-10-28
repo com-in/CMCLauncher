@@ -609,6 +609,17 @@
     "Text": "正文",
     "Secondary text": "次要文字",
     "Border": "边框",
-    "Accent": "强调色"
+    "Accent": "强调色",
+    "Game directory": "游戏目录",
+    "Version management": "版本管理",
+    "No description yet.": "尚未添加描述。",
+    "Edit name": "编辑名称",
+    "Edit description": "编辑描述",
+    "Edit icon": "编辑图标",
+    "Version files are kept because these versions reference this profile or client JAR: {0}. Remove or migrate those versions first.": "此版本被以下版本引用：{0}。请先移除或迁移这些依赖版本；本次只移除启动器记录，磁盘文件保留。",
+    "This version directory overlaps with: {0}. Only the launcher entry will be removed.": "此版本目录与以下版本共用或重叠：{0}。本次只移除启动器记录，磁盘文件保留。",
+    "Cannot verify version references because a profile could not be read: {0}. Version files will be kept.": "无法读取版本配置：{0}，因此无法确认依赖关系，磁盘文件将保留。",
+    "The version path could not be verified safely. Version files will be kept.": "无法安全确认版本目录，磁盘文件将保留。",
+    "This path is not an individual version folder. Shared Minecraft files will be kept.": "此路径不是单个版本文件夹，公共 Minecraft 文件将保留。"
   }
 }

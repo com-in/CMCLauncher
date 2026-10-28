@@ -609,7 +609,18 @@
     "Text": "Text",
     "Secondary text": "Secondary text",
     "Border": "Border",
-    "Accent": "Accent"
+    "Accent": "Accent",
+    "Game directory": "Game directory",
+    "Version management": "Version management",
+    "No description yet.": "No description yet.",
+    "Edit name": "Edit name",
+    "Edit description": "Edit description",
+    "Edit icon": "Edit icon",
+    "Version files are kept because these versions reference this profile or client JAR: {0}. Remove or migrate those versions first.": "Version files are kept because these versions reference this profile or client JAR: {0}. Remove or migrate those versions first.",
+    "This version directory overlaps with: {0}. Only the launcher entry will be removed.": "This version directory overlaps with: {0}. Only the launcher entry will be removed.",
+    "Cannot verify version references because a profile could not be read: {0}. Version files will be kept.": "Cannot verify version references because a profile could not be read: {0}. Version files will be kept.",
+    "The version path could not be verified safely. Version files will be kept.": "The version path could not be verified safely. Version files will be kept.",
+    "This path is not an individual version folder. Shared Minecraft files will be kept.": "This path is not an individual version folder. Shared Minecraft files will be kept."
   },
   "prefixes": [
     {

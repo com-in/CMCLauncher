@@ -333,6 +333,7 @@
               </Grid>
             </Border>
             <Grid
+              x:Name="PageSurface"
               Grid.Column="1"
               Padding="34,16,34,20"
               RowDefinitions="Auto,* ,Auto"
@@ -410,17 +411,7 @@
                   IsTabStop="False"
                   HorizontalContentAlignment="Stretch"
                   VerticalContentAlignment="Stretch"
-                >
-                  <Frame.ContentTransitions>
-                    <TransitionCollection>
-                      <NavigationThemeTransition>
-                        <NavigationThemeTransition.DefaultNavigationTransitionInfo>
-                          <EntranceNavigationTransitionInfo />
-                        </NavigationThemeTransition.DefaultNavigationTransitionInfo>
-                      </NavigationThemeTransition>
-                    </TransitionCollection>
-                  </Frame.ContentTransitions>
-                </Frame>
+                />
               </ScrollViewer>
               <StackPanel
                 x:Name="FooterStatusPanel"

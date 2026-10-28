@@ -1,4 +1,4 @@
-using Microsoft.UI;
+﻿using Microsoft.UI;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -40,6 +40,7 @@ public sealed partial class MainWindow
         RefreshPaletteBrushes();
         RefreshComboPalette();
         RefreshToastPalette();
+        RefreshVersionDeletePalette();
         if (page == "frpc")
             RefreshFrpcPalette();
         var bg = lightTheme ? ThemeTokens.LightBg : ThemeTokens.DarkBg;
@@ -112,6 +113,36 @@ public sealed partial class MainWindow
     {
         card.Background = new SolidColorBrush(SoftSurfaceColor());
         card.BorderBrush = Brush(lightTheme ? ThemeTokens.LightBorder : ThemeTokens.DarkBorder);
+    }
+
+    readonly SolidColorBrush versionDeleteText = new();
+    readonly SolidColorBrush versionDeleteBackground = new();
+    readonly SolidColorBrush versionDeleteHover = new();
+    readonly SolidColorBrush versionDeletePressed = new();
+
+    // Destructive actions stay red independently of the selected theme accent.
+    void RefreshVersionDeletePalette()
+    {
+        versionDeleteText.Color = RawColor(lightTheme ? "#B42318" : "#FF99A4");
+        versionDeleteBackground.Color = RawColor(lightTheme ? "#FFF1F2" : "#35191D");
+        versionDeleteHover.Color = RawColor(lightTheme ? "#FFE4E6" : "#4B2027");
+        versionDeletePressed.Color = RawColor(lightTheme ? "#FECDD3" : "#602A34");
+    }
+
+    Button VersionDeleteButton(Button button)
+    {
+        button.CornerRadius = new CornerRadius(5);
+        button.Foreground = versionDeleteText;
+        button.BorderBrush = versionDeleteText;
+        button.Background = versionDeleteBackground;
+        button.Resources["ButtonBackgroundPointerOver"] = versionDeleteHover;
+        button.Resources["ButtonBackgroundPressed"] = versionDeletePressed;
+        foreach (var state in new[] { "PointerOver", "Pressed" })
+        {
+            button.Resources["ButtonForeground" + state] = versionDeleteText;
+            button.Resources["ButtonBorderBrush" + state] = versionDeleteText;
+        }
+        return button;
     }
 
     void UpdateTitleBarInset()

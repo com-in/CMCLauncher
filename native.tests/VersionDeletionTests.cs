@@ -1,4 +1,4 @@
-using System.Text.Json.Nodes;
+﻿using System.Text.Json.Nodes;
 using CMCLauncher;
 
 static class VersionDeletionTests
@@ -72,16 +72,33 @@ static class VersionDeletionTests
             "Multiple entries referencing the same profile remain protected"
         );
         store.Config.Instances.Remove(duplicate);
+        b.GameVersion = "A";
+        Check(
+            store.DeletableInstanceDirectory(a) == aPath,
+            "Matching Minecraft versions do not imply shared profile files"
+        );
+        b.GameVersion = "B";
         await Profile("B", parent: "A");
         Check(
             store.DeletableInstanceDirectory(a) == null
                 && store.DeletableInstanceDirectory(b) == bPath,
             "Inherited base profiles remain protected, but their children can be removed"
         );
+        var dependency = store.InspectVersionDeletion(a);
+        Check(
+            dependency.Reason == VersionDeletionBlockReason.Dependency
+                && dependency.RelatedVersions.SequenceEqual(new[] { "B" }),
+            "Inherited profile protection identifies its real dependent version"
+        );
         await Profile("B", jar: "A");
         Check(
             store.DeletableInstanceDirectory(a) == null,
             "Shared client jar references remain protected"
+        );
+        await File.WriteAllTextAsync(Path.Combine(bPath, "B.json"), "{broken");
+        Check(
+            store.InspectVersionDeletion(a).Reason == VersionDeletionBlockReason.UnreadableProfile,
+            "Unreadable metadata is reported separately from shared directories"
         );
         await Profile("B");
         var shared = new Instance
