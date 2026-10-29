@@ -449,6 +449,117 @@ public sealed class LauncherCore : IDisposable
             : version;
     }
 
+    // Entry points and loader arguments outrank incidental compatibility libraries.
+    public static (string Loader, string? Version)? IdentifyLoader(JsonNode profile)
+    {
+        var main = profile.S("mainClass");
+        var libraries = profile["libraries"].Items().Select(l => l.S("name").Split(':')).ToArray();
+        var arguments = (profile["arguments"]?["game"])
+            .Items()
+            .Where(n => n is JsonValue value && value.TryGetValue<string>(out _))
+            .Select(n => n.ToString())
+            .ToArray();
+        string? Argument(string name)
+        {
+            var index = Array.IndexOf(arguments, name);
+            return index >= 0 && index + 1 < arguments.Length ? arguments[index + 1] : null;
+        }
+        string? Library(string group, string artifact) =>
+            libraries.FirstOrDefault(p => p.Length >= 3 && p[0] == group && p[1] == artifact)?[2];
+        if (main.StartsWith("org.quiltmc.loader.", StringComparison.Ordinal))
+            return ("quilt", Library("org.quiltmc", "quilt-loader"));
+        if (main.StartsWith("net.fabricmc.loader.", StringComparison.Ordinal))
+            return ("fabric", Library("net.fabricmc", "fabric-loader"));
+        var neo =
+            Argument("--fml.neoForgeVersion")
+            ?? Library("net.neoforged", "neoforge")
+            ?? Library("net.neoforged", "forge");
+        if (
+            neo != null
+            || libraries.Any(p =>
+                p.Length >= 2 && p[0] == "net.neoforged.fancymodloader" && p[1] == "loader"
+            )
+        )
+            return ("neoforge", neo);
+        var quilt = Library("org.quiltmc", "quilt-loader");
+        if (quilt != null)
+            return ("quilt", quilt);
+        var forge = Argument("--fml.forgeVersion") ?? Library("net.minecraftforge", "forge");
+        if (forge != null || main.StartsWith("net.minecraftforge.", StringComparison.Ordinal))
+            return ("forge", forge);
+        var fabric = Library("net.fabricmc", "fabric-loader");
+        if (fabric != null)
+            return ("fabric", fabric);
+        return main == "net.minecraft.client.main.Main" ? ("vanilla", null) : null;
+    }
+
+    static bool UpdateImportedMetadata(Instance instance, JsonNode profile)
+    {
+        var changed = false;
+        var game = profile.S("clientVersion");
+        if (game.Length > 0 && instance.GameVersion != game)
+        {
+            instance.GameVersion = game;
+            changed = true;
+        }
+        if (IdentifyLoader(profile) is { } detected)
+        {
+            var loaderVersion =
+                detected.Version
+                ?? (instance.Loader == detected.Loader ? instance.LoaderVersion : null);
+            if (instance.Loader != detected.Loader || instance.LoaderVersion != loaderVersion)
+            {
+                instance.Loader = detected.Loader;
+                instance.LoaderVersion = loaderVersion;
+                changed = true;
+            }
+        }
+        return changed;
+    }
+
+    // Recheck imported records locally; missing parents must never trigger network downloads at startup.
+    public async Task RefreshImportedMetadata(CancellationToken ct = default)
+    {
+        var changed = false;
+        foreach (var instance in store.Config.Instances.Where(i => i.ImportRoot != null).ToArray())
+        {
+            try
+            {
+                var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                async Task<JsonNode> Read(string id)
+                {
+                    if (!seen.Add(id) || seen.Count > 10)
+                        throw new InvalidDataException("Version inheritance cycle");
+                    var file = Store.SafePath(instance.ImportRoot!, $"versions/{id}/{id}.json");
+                    var profile =
+                        JsonNode.Parse(await File.ReadAllTextAsync(file, ct))
+                        ?? throw new InvalidDataException("Empty version profile");
+                    if (profile is not JsonObject)
+                        throw new InvalidDataException("Version profile must be an object");
+                    return profile.S("inheritsFrom") is { Length: > 0 } parent
+                        ? Merge(await Read(parent), profile)
+                        : profile;
+                }
+                changed |= UpdateImportedMetadata(instance, await Read(instance.VersionId!));
+            }
+            catch (Exception ex)
+                when (ex
+                        is IOException
+                            or InvalidDataException
+                            or UnauthorizedAccessException
+                            or System.Text.Json.JsonException
+                            or ArgumentException
+                )
+            {
+                DebugLog?.Invoke(
+                    $"Imported version metadata unavailable: {instance.Name}; {ex.Message}"
+                );
+            }
+        }
+        if (changed)
+            await store.Save();
+    }
+
     // 导入实例解析本地继承链；新建 Fabric 实例则把加载器配置叠到原版配置上。
     public async Task<JsonNode> VersionFor(Instance instance, CancellationToken ct)
     {
@@ -456,12 +567,8 @@ public sealed class LauncherCore : IDisposable
         if (instance.ImportRoot != null)
         {
             var imported = await Resolve(instance.VersionId!, instance.ImportRoot, ct);
-            var actual = imported.S("clientVersion");
-            if (actual.Length > 0 && actual != instance.GameVersion)
-            {
-                instance.GameVersion = actual;
+            if (UpdateImportedMetadata(instance, imported))
                 await store.Save();
-            }
             return imported;
         }
         if (instance.Loader is "forge" or "neoforge" && instance.VersionId is { Length: > 0 })

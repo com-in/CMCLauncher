@@ -345,6 +345,18 @@ public sealed partial class MainWindow
         await RenderAsync();
     }
 
+    async Task LoadImportedMetadata()
+    {
+        try
+        {
+            await core.RefreshImportedMetadata();
+        }
+        catch (Exception ex)
+        {
+            RuntimeLog.Write("WARN", "Imported version metadata refresh failed: " + ex.Message);
+        }
+    }
+
     // 每次渲染使用新的正文容器，旧异步请求不能把结果挂到新页面上。
     async Task RenderAsync()
     {
@@ -355,6 +367,9 @@ public sealed partial class MainWindow
         activePopconfirm?.Hide();
         ClearCommunityFilterDrawer();
         var generation = ++renderVersion;
+        await importedMetadataLoad;
+        if (generation != renderVersion)
+            return;
         var nextBody = new StackPanel { Spacing = 11 };
         PageBody = nextBody;
         resourceSearch?.Cancel();

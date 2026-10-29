@@ -67,6 +67,7 @@ public sealed partial class MainWindow : Window
         targetWorld
     ) => Task.Run(() => ContentManager.ListFiles(directory, type, targetWorld));
     Task contentLoad = Task.CompletedTask;
+    Task importedMetadataLoad = Task.CompletedTask;
     internal readonly Queue<string> logs = new();
     internal TextBox? logView;
     bool dialogOpen;
@@ -128,6 +129,7 @@ public sealed partial class MainWindow : Window
         );
         AppWindow.SetIcon(Path.Combine(AppContext.BaseDirectory, "assets", "cmc-logo.ico"));
         core = new LauncherCore(store);
+        importedMetadataLoad = LoadImportedMetadata();
         InitializeFrpc(
             args.Length == 2 && args[0] == "--verify-ui"
                 ? Path.Combine(Path.GetFullPath(args[1]), "program", "frpc", "configs")

@@ -595,6 +595,7 @@ public sealed partial class MainWindow
             Directory.CreateDirectory(root);
             var versions = Path.Combine(root, "versions");
             Directory.CreateDirectory(versions);
+            await core.RefreshImportedMetadata(ct);
             var pending = new List<Instance>();
             var failed = 0;
             foreach (var directory in Directory.EnumerateDirectories(versions))
@@ -633,13 +634,7 @@ public sealed partial class MainWindow
                         )!;
                     }
                     var version = await core.Resolve(id, root, ct);
-                    var libraries = version["libraries"]?.ToJsonString() ?? "";
-                    var loader =
-                        libraries.Contains("net.fabricmc:fabric-loader:") ? "fabric"
-                        : libraries.Contains("net.neoforged:") ? "neoforge"
-                        : libraries.Contains("net.minecraftforge:") ? "forge"
-                        : libraries.Contains("org.quiltmc:") ? "quilt"
-                        : "vanilla";
+                    var detected = LauncherCore.IdentifyLoader(version);
                     pending.Add(
                         new Instance
                         {
@@ -649,7 +644,8 @@ public sealed partial class MainWindow
                                 version["clientVersion"]?.ToString()
                                 ?? version["jar"]?.ToString()
                                 ?? baseVersion.S("id"),
-                            Loader = loader,
+                            Loader = detected?.Loader ?? "vanilla",
+                            LoaderVersion = detected?.Version,
                             ImportRoot = root,
                             Directory = root,
                         }
