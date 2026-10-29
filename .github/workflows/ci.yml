@@ -95,6 +95,8 @@ jobs:
         with:
           name: CMCLauncher-win-x64.zip
           path: release-files
+          # Preserve the already packaged ZIP instead of extracting its application files.
+          skip-decompress: true
       # Only release assets receive a version; workflow artifacts keep a stable name.
       - name: Name release archive
         id: archive
