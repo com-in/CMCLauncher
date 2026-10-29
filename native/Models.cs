@@ -179,6 +179,9 @@ public sealed class Store
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         PropertyNameCaseInsensitive = true,
         WriteIndented = true,
+        // JsonNode values created through Add<T> need a resolver even before the first settings save.
+        TypeInfoResolver =
+            new System.Text.Json.Serialization.Metadata.DefaultJsonTypeInfoResolver(),
     };
     public string Root { get; }
     public string Library => Path.Combine(Root, "library");

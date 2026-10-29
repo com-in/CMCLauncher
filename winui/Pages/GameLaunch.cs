@@ -64,21 +64,41 @@ public sealed partial class MainWindow
                         progress
                     );
                     game = launchedGame;
-                    instance.LastPlayed = DateTime.Now;
-                    await store.Save();
                     // 用户取消启动导致的退出不弹崩溃报告，其他异常退出交给报告逻辑判断。
                     var cancelledByLauncher = false;
-                    launchedGame.Exited += (_, _) =>
+                    var monitoringDone = new TaskCompletionSource(
+                        TaskCreationOptions.RunContinuationsAsynchronously
+                    );
+                    async Task ObserveExit()
                     {
-                        Report(instance.Name + "：游戏已退出");
-                        if (!cancelledByLauncher)
-                            DispatcherQueue.TryEnqueue(async () =>
-                                await HandleGameExit(instance, launchedGame, launchStarted)
-                            );
-                    };
-                    UpdateLaunchProgress(99, "等待游戏窗口出现…");
+                        try
+                        {
+                            // WaitForExitAsync also handles a process that exited before this call
+                            // and waits for the redirected output streams to finish.
+                            await launchedGame.WaitForExitAsync();
+                            await monitoringDone.Task;
+                            Report(instance.Name + "：游戏已退出");
+                            if (!cancelledByLauncher)
+                                await HandleGameExit(instance, launchedGame, launchStarted);
+                        }
+                        catch (Exception ex)
+                        {
+                            AddLog("Game exit monitoring failed: " + ex.Message);
+                        }
+                        finally
+                        {
+                            await monitoringDone.Task;
+                            if (ReferenceEquals(game, launchedGame))
+                                game = null;
+                            launchedGame.Dispose();
+                        }
+                    }
+                    _ = ObserveExit();
                     try
                     {
+                        instance.LastPlayed = DateTime.Now;
+                        await store.Save();
+                        UpdateLaunchProgress(99, "等待游戏窗口出现…");
                         while (true)
                         {
                             ct.ThrowIfCancellationRequested();
@@ -91,16 +111,25 @@ public sealed partial class MainWindow
                                 break;
                             await Task.Delay(250, ct);
                         }
+                        UpdateLaunchProgress(100, "游戏窗口已出现");
+                        await Task.Delay(350, ct);
+                        if (launchedGame.HasExited)
+                            throw new Exception(
+                                $"游戏在启动期间退出，退出码 {launchedGame.ExitCode}。请查看运行日志。"
+                            );
                     }
                     catch (OperationCanceledException)
                     {
                         cancelledByLauncher = true;
                         if (!launchedGame.HasExited)
                             launchedGame.Kill(true);
+                        await launchedGame.WaitForExitAsync();
                         throw;
                     }
-                    UpdateLaunchProgress(100, "游戏窗口已出现");
-                    await Task.Delay(350, ct);
+                    finally
+                    {
+                        monitoringDone.TrySetResult();
+                    }
                 },
                 "启动游戏 · " + instance.Name
             );

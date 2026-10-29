@@ -115,6 +115,15 @@ public sealed partial class MainWindow
                 ComboBox Filter(string tag) =>
                     Descendants(PageBody).OfType<ComboBox>().Single(c => c.Tag?.ToString() == tag);
                 var gameVersions = Filter("community-filter-version");
+                var basicFilters = (Grid)gameVersions.Parent;
+                check(
+                    basicFilters.RowDefinitions.Count == 1
+                        && basicFilters
+                            .Children.Cast<FrameworkElement>()
+                            .All(c => Grid.GetRow(c) == 0)
+                        && basicFilters.ColumnDefinitions.Count == basicFilters.Children.Count,
+                    type + " keeps every basic filter on one equally divided row"
+                );
                 if (type == "mod")
                 {
                     var snapshots = Descendants(PageBody)

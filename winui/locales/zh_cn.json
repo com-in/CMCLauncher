@@ -2,6 +2,7 @@
   "code": "zh_cn",
   "displayName": "简体中文",
   "strings": {
+    "Finalizing modpack installation": "正在完成整合包安装",
     "Source": "来源",
     "Select a source to filter by category.": "选择具体来源后可以按分类筛选。",
     "View on CurseForge": "在 CurseForge 上查看",
@@ -428,7 +429,7 @@
     "Game version": "游戏版本",
     "Game window detected": "游戏窗口已出现",
     "Game language": "游戏语言",
-    "Version 0.9.4": "版本 0.9.4",
+    "Version 1.0.0": "版本 1.0.0",
     "Download game versions": "版本下载",
     "Version details": "版本信息",
     "Version name": "版本名称",

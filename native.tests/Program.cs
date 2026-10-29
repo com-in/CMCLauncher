@@ -69,6 +69,12 @@ internal static class Program
     [STAThread]
     static int Main(string[] args)
     {
+        if (
+            args.Contains("--launch-audit-child")
+            || args.Contains("-XshowSettings:properties")
+            || args.Contains("--installClient")
+        )
+            return LaunchAuditTests.Child(args);
         if (args.Length == 2 && args[0] == "--verify-frpc")
         {
             try
@@ -179,6 +185,10 @@ internal static class Program
     // 覆盖路径、内容识别、账号、下载和整合包流程；多数网络响应由 MockHandler 提供。
     static async Task CoreTests()
     {
+        await LaunchAuditTests.Run(Path.Combine(root, "launch-audit"));
+        Pass(
+            "cold and warm process launch, native isolation, output drain, concurrent downloads and profile reimport"
+        );
         await CurseForgeCommunityTests.Run(Path.Combine(root, "curseforge-community"));
         Pass(
             "CurseForge community filters, attribution, authenticated downloads and combined page boundaries"
@@ -772,7 +782,44 @@ internal static class Program
             ) == null,
             "Forge profile from another build is not selected"
         );
-        Pass("modern and legacy Forge profile detection");
+        var neoProfile = JsonNode.Parse(
+            """{"id":"neoforge-21.1.252","inheritsFrom":"1.21.1","mainClass":"cpw.mods.bootstraplauncher.BootstrapLauncher","arguments":{"game":["--fml.neoForgeVersion","21.1.252","--fml.mcVersion","1.21.1"]},"libraries":[{"name":"net.neoforged.fancymodloader:loader:4.0.44"}]}"""
+        )!;
+        await Store.AtomicJson(
+            Store.SafePath(loaderProfileRoot, "versions/neoforge-21.1.252/neoforge-21.1.252.json"),
+            neoProfile
+        );
+        Check(
+            await LauncherCore.FindLoaderProfile(
+                loaderProfileRoot,
+                "neoforge",
+                "1.21.1",
+                CancellationToken.None,
+                "21.1.252"
+            ) == "neoforge-21.1.252",
+            "modern NeoForge argument-based profile detection"
+        );
+        Check(
+            await LauncherCore.FindLoaderProfile(
+                loaderProfileRoot,
+                "neoforge",
+                "1.21.1",
+                CancellationToken.None,
+                "21.1.253"
+            ) == null,
+            "NeoForge profile from another build is not selected"
+        );
+        Check(
+            await LauncherCore.FindLoaderProfile(
+                loaderProfileRoot,
+                "neoforge",
+                "1.21",
+                CancellationToken.None,
+                "21.1.252"
+            ) == null,
+            "NeoForge profile from another game version is not selected"
+        );
+        Pass("modern and legacy Forge and NeoForge profile detection");
         var iconJar = Path.Combine(root, "icon.jar");
         var iconBytes = Convert.FromBase64String(
             "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScLbtAAAAABJRU5ErkJggg=="
@@ -1403,6 +1450,36 @@ internal static class Program
         );
         Check(args[args.IndexOf("--gameDir") + 1].Contains("path with spaces"), "argument quoting");
         Pass("launch arguments preserve paths with spaces");
+        foreach (var profileName in new[] { "MeowPack", "neoforge-21.1.252" })
+        {
+            var neoLaunch = JsonNode.Parse(
+                """{"mainClass":"cpw.mods.bootstraplauncher.BootstrapLauncher","arguments":{"jvm":["-DignoreList=client-extra,${version_name}.jar","-cp","${classpath}"],"game":["--fml.neoForgeVersion","21.1.252","--version","${version_name}"]}}"""
+            )!;
+            neoLaunch["id"] = profileName;
+            var vanillaJar = Path.Combine(root, "versions", "1.21.1", "1.21.1.jar");
+            var neoArguments = LauncherCore.BuildArguments(
+                neoLaunch,
+                root,
+                game,
+                Path.Combine(root, "natives"),
+                [vanillaJar],
+                Account.Offline("Steve"),
+                new JsonObject(),
+                new Settings(),
+                clientJar: vanillaJar
+            );
+            Check(
+                neoArguments.Contains(
+                    "-DignoreList=client-extra," + profileName + ".jar,1.21.1.jar"
+                ),
+                "NeoForge excludes the actual client JAR after profile renaming"
+            );
+            Check(
+                neoArguments[neoArguments.IndexOf("--version") + 1] == profileName,
+                "NeoForge correction preserves the profile name"
+            );
+        }
+        Pass("NeoForge module exclusions follow the actual vanilla client JAR");
         using var core = new LauncherCore(
             settings,
             new MockHandler(_ => new HttpResponseMessage(HttpStatusCode.OK)
@@ -1663,6 +1740,66 @@ internal static class Program
                 "renaming duplicate modpack preserves original instance"
             );
             var multiZip = Path.Combine(root, "prism-export.zip");
+            using (var finalizeCancellation = new CancellationTokenSource())
+            {
+                void CancelFinalization(string stage)
+                {
+                    if (stage == "Finalizing modpack installation")
+                        finalizeCancellation.Cancel();
+                }
+                zipService.Status += CancelFinalization;
+                try
+                {
+                    await Reject(
+                        () =>
+                            zipService.InstallPack(
+                                modrinthZip,
+                                finalizeCancellation.Token,
+                                (candidate, _) =>
+                                {
+                                    candidate.Name = "Cancelled Finalization";
+                                    return Task.CompletedTask;
+                                }
+                            ),
+                        "modpack commit accepted cancellation"
+                    );
+                    Check(
+                        !Directory.Exists(
+                            Store.SafePath(packStore.Library, "versions/Cancelled Finalization")
+                        ),
+                        "cancelled finalization leaves no version directory"
+                    );
+                }
+                finally
+                {
+                    zipService.Status -= CancelFinalization;
+                }
+            }
+            var brokenProfileZip = Path.Combine(root, "broken-profile.zip");
+            Zip(
+                brokenProfileZip,
+                new()
+                {
+                    ["modrinth.index.json"] = new JsonObject
+                    {
+                        ["formatVersion"] = 1,
+                        ["game"] = "minecraft",
+                        ["name"] = "Profile Failure",
+                        ["dependencies"] = new JsonObject { ["minecraft"] = "1.21.1" },
+                        ["files"] = new JsonArray(),
+                    }.ToJsonString(),
+                    ["overrides/Profile Failure.json/block.txt"] = "blocks the profile file",
+                }
+            );
+            await Reject(
+                () => zipService.InstallPack(brokenProfileZip, default),
+                "profile write failure was ignored"
+            );
+            Check(
+                !Directory.Exists(Store.SafePath(packStore.Library, "versions/Profile Failure"))
+                    && Directory.Exists(packStore.GameDirectory(zipInstance)),
+                "failed profile commit rolls back only its own modpack directory"
+            );
             var multiManifest =
                 "{\"formatVersion\":1,\"components\":[{\"uid\":\"net.minecraft\",\"version\":\"1.21.1\"},{\"uid\":\"org.lwjgl3\",\"version\":\"3.3.3\"}]}";
             Zip(

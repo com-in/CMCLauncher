@@ -11,7 +11,7 @@ using System.Xml.Linq;
 namespace CMCLauncher;
 
 // 启动器网络与下载核心 — HTTP 客户端、代理探测、并发下载、版本解析
-public sealed class LauncherCore : IDisposable
+public sealed partial class LauncherCore : IDisposable
 {
     readonly Store store;
     HttpClient http = new();
@@ -24,6 +24,10 @@ public sealed class LauncherCore : IDisposable
     public event Action<long>? DownloadBytes;
     const int DownloadBufferSize = 256 * 1024;
     const int ProgressIntervalMs = 500;
+    static readonly SemaphoreSlim[] downloadGates = Enumerable
+        .Range(0, 128)
+        .Select(_ => new SemaphoreSlim(1, 1))
+        .ToArray();
 
     public static int DownloadConcurrency(Settings settings) =>
         Math.Clamp(settings.DownloadThreads, 1, 256);
@@ -87,7 +91,7 @@ public sealed class LauncherCore : IDisposable
         {
             Timeout = TimeSpan.FromMinutes(3),
         };
-        http.DefaultRequestHeaders.UserAgent.ParseAdd("CMCLauncher/0.9.4");
+        http.DefaultRequestHeaders.UserAgent.ParseAdd("CMCLauncher/1.0.0");
     }
 
     public HttpClient Http => http;
@@ -245,6 +249,31 @@ public sealed class LauncherCore : IDisposable
         CancellationToken ct = default
     )
     {
+        // Shared libraries/assets can be requested concurrently, including by separate core instances.
+        var index =
+            (uint)StringComparer.OrdinalIgnoreCase.GetHashCode(Path.GetFullPath(target))
+            % (uint)downloadGates.Length;
+        var gate = downloadGates[index];
+        await gate.WaitAsync(ct);
+        try
+        {
+            await DownloadUnlocked(url, target, hash, algorithm, size, ct);
+        }
+        finally
+        {
+            gate.Release();
+        }
+    }
+
+    async Task DownloadUnlocked(
+        string url,
+        string target,
+        string? hash = null,
+        string algorithm = "sha1",
+        long? size = null,
+        CancellationToken ct = default
+    )
+    {
         async Task<bool> Valid()
         {
             if (!File.Exists(target))
@@ -342,6 +371,7 @@ public sealed class LauncherCore : IDisposable
                     throw new Exception("文件哈希校验失败");
             }
             // 大小和哈希都通过后才替换目标，失败时 finally 只清理本次临时文件。
+            ct.ThrowIfCancellationRequested();
             File.Move(temp, target, true);
             DownloadProgress?.Invoke(100);
         }
@@ -400,6 +430,21 @@ public sealed class LauncherCore : IDisposable
                 merged["downloads"] ??= new JsonObject();
                 merged["downloads"]![pair.Key] = pair.Value?.DeepClone();
             }
+        var parentClient = parent["downloads"]?["client"];
+        var ownClient = child["downloads"]?["client"];
+        var overridesClient =
+            ownClient != null
+            && (
+                parentClient == null
+                || ownClient.S("sha1") != parentClient.S("sha1")
+                || ownClient.S("url") != parentClient.S("url")
+            );
+        var clientJar = child.S(
+            "jar",
+            overridesClient ? child.S("id") : parent.S("jar", parent.S("id"))
+        );
+        if (clientJar.Length > 0)
+            merged["jar"] = clientJar;
         // 同一依赖的版本冲突由子配置优先解决，classifier 和扩展名不同的包仍分别保留。
         var names = new HashSet<string>();
         var libs = new JsonArray();
@@ -419,13 +464,19 @@ public sealed class LauncherCore : IDisposable
         merged["libraries"] = libs;
         merged["arguments"] = new JsonObject();
         foreach (var kind in new[] { "game", "jvm" })
+        {
+            var inherited = (parent["arguments"]?[kind]).Items().ToArray();
+            var own = (child["arguments"]?[kind]).Items().ToArray();
+            // Older exported profiles may already contain the parent's complete argument list.
+            var includesParent =
+                own.Length >= inherited.Length
+                && inherited
+                    .Select(n => n.ToJsonString())
+                    .SequenceEqual(own.Take(inherited.Length).Select(n => n.ToJsonString()));
             merged["arguments"]![kind] = new JsonArray(
-                (parent["arguments"]?[kind])
-                    .Items()
-                    .Concat((child["arguments"]?[kind]).Items())
-                    .Select(n => n.DeepClone())
-                    .ToArray()
+                (includesParent ? own : inherited.Concat(own)).Select(n => n.DeepClone()).ToArray()
             );
+        }
         return merged;
     }
 
@@ -575,6 +626,8 @@ public sealed class LauncherCore : IDisposable
             return await Resolve(instance.VersionId, storage, ct);
         if (instance.Loader is "forge" or "neoforge")
             throw new Exception("加载器尚未安装，请先在下载游戏中完成安装。");
+        if (instance.Loader is not ("vanilla" or "fabric"))
+            throw new InvalidOperationException("This loader requires an imported local profile.");
         var version = await Vanilla(instance.GameVersion, storage, ct);
         if (instance.Loader != "fabric")
             return version;
@@ -684,6 +737,17 @@ public sealed class LauncherCore : IDisposable
             throw new Exception("安装器缺少有效 SHA-1 校验值");
         await Download(installerUrl, installer, checksum, ct: ct);
         var baseProfile = await Vanilla(instance.GameVersion, storage, ct);
+        if (baseProfile["downloads"]?["client"] is JsonNode baseClient)
+            await Download(
+                baseClient.S("url"),
+                Store.SafePath(
+                    storage,
+                    $"versions/{instance.GameVersion}/{instance.GameVersion}.jar"
+                ),
+                baseClient.S("sha1"),
+                size: baseClient.Int("size"),
+                ct: ct
+            );
         var profiles = Path.Combine(storage, "launcher_profiles.json");
         if (!File.Exists(profiles))
             await Store.AtomicJson(profiles, new JsonObject { ["profiles"] = new JsonObject() });
@@ -697,6 +761,7 @@ public sealed class LauncherCore : IDisposable
         );
         var start = new ProcessStartInfo(java)
         {
+            WorkingDirectory = storage,
             UseShellExecute = false,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
@@ -734,6 +799,12 @@ public sealed class LauncherCore : IDisposable
         {
             if (!process.HasExited)
                 process.Kill(true);
+            await process.WaitForExitAsync();
+            try
+            {
+                await Task.WhenAll(stdout, stderr);
+            }
+            catch (OperationCanceledException) { }
             throw;
         }
         await Task.WhenAll(stdout, stderr);
@@ -808,17 +879,30 @@ public sealed class LauncherCore : IDisposable
             }
             if (
                 profile.S("inheritsFrom") == gameVersion
-                && profile["libraries"]
-                    .Items()
-                    .Any(lib =>
-                        prefixes.Any(prefix =>
-                            build == null
-                                ? lib.S("name").StartsWith(prefix, StringComparison.Ordinal)
-                                : lib.S("name") == prefix + build
-                                    || lib.S("name")
-                                        .StartsWith(prefix + build + ":", StringComparison.Ordinal)
-                        )
+                && (
+                    // Modern NeoForge profiles identify the build in game arguments,
+                    // while their library list contains FancyModLoader rather than neoforge.
+                    (
+                        loader == "neoforge"
+                        && IdentifyLoader(profile)
+                            is { Loader: "neoforge", Version: { } neoVersion }
+                        && (build == null || neoVersion == build)
                     )
+                    || profile["libraries"]
+                        .Items()
+                        .Any(lib =>
+                            prefixes.Any(prefix =>
+                                build == null
+                                    ? lib.S("name").StartsWith(prefix, StringComparison.Ordinal)
+                                    : lib.S("name") == prefix + build
+                                        || lib.S("name")
+                                            .StartsWith(
+                                                prefix + build + ":",
+                                                StringComparison.Ordinal
+                                            )
+                            )
+                        )
+                )
             )
                 return Path.GetFileNameWithoutExtension(file);
         }
@@ -921,61 +1005,13 @@ public sealed class LauncherCore : IDisposable
                 size: client.Int("size"),
                 ct: ct
             );
-        var libraries = version["libraries"].Items().Where(l => Allowed(l["rules"])).ToList();
-        int done = 0;
-        var nativeFiles = new string?[libraries.Count];
-        await DownloadMany(
-            libraries.Select((lib, index) => (lib, index)),
-            async (item, token) =>
-            {
-                var (lib, index) = item;
-                var artifact = lib["downloads"]?["artifact"];
-                if (artifact != null || lib["downloads"] == null)
-                {
-                    var relative = artifact?.S("path") ?? Maven(lib.S("name"));
-                    var target = Store.SafePath(storage, "libraries/" + relative);
-                    await Download(
-                        artifact?.S("url")
-                            ?? lib.S("url", "https://libraries.minecraft.net/").TrimEnd('/')
-                                + "/"
-                                + relative,
-                        target,
-                        artifact?.S("sha1"),
-                        size: artifact?["size"]?.GetValue<long>(),
-                        ct: token
-                    );
-                }
-                var classifier = lib["natives"]
-                    ?.S("windows")
-                    .Replace("\u0024{arch}", Environment.Is64BitProcess ? "64" : "32");
-                if (
-                    classifier is { Length: > 0 }
-                    && lib["downloads"]?["classifiers"]?[classifier] is JsonNode native
-                )
-                {
-                    var target = Store.SafePath(storage, "libraries/" + native.S("path"));
-                    await Download(
-                        native.S("url"),
-                        target,
-                        native.S("sha1"),
-                        size: native.Int("size"),
-                        ct: token
-                    );
-                    nativeFiles[index] = target;
-                }
-                var completed = Interlocked.Increment(ref done);
-                Status?.Invoke($"下载游戏依赖 {completed}/{libraries.Count}");
-            },
-            ct
+        await PrepareLibraries(
+            version,
+            storage,
+            natives,
+            ct,
+            (done, total) => Status?.Invoke($"下载游戏依赖 {done}/{total}")
         );
-        foreach (var nativeFile in nativeFiles)
-        {
-            ct.ThrowIfCancellationRequested();
-            if (nativeFile == null)
-                continue;
-            using var archive = ZipFile.OpenRead(nativeFile);
-            await Extract(archive, natives, exclusions: ["META-INF/"], ct: ct);
-        }
         if (version["assetIndex"] is JsonNode asset)
         {
             var indexPath = Store.SafePath(storage, "assets/indexes/" + asset.S("id") + ".json");
@@ -1042,6 +1078,8 @@ public sealed class LauncherCore : IDisposable
         var profile = version.DeepClone();
         profile["id"] = id;
         profile["jar"] = version.S("jar", instance.GameVersion);
+        // This is a complete merged profile; retaining its parent merges arguments a second time on import.
+        profile.AsObject().Remove("inheritsFrom");
         await Store.AtomicJson(Store.SafePath(game, id + ".json"), profile);
         Directory.CreateDirectory(Store.SafePath(game, "mods"));
         Directory.CreateDirectory(Store.SafePath(game, "saves"));
@@ -1154,8 +1192,8 @@ public sealed class LauncherCore : IDisposable
         var game = store.GameDirectory(instance);
         var storage = store.StorageDirectory(instance);
         Directory.CreateDirectory(game);
-        var natives = Path.Combine(game, ".craft-natives");
-        Directory.CreateDirectory(natives);
+        using var nativeDirectory = new NativeDirectoryLease(game, message => Log?.Invoke(message));
+        var natives = nativeDirectory.Path;
         var jarId = version.S(
             "jar",
             instance.ImportRoot != null ? instance.VersionId! : instance.GameVersion
@@ -1172,72 +1210,18 @@ public sealed class LauncherCore : IDisposable
             );
         else if (!File.Exists(jar))
             throw new Exception("本地版本缺少客户端 JAR");
-        var libraries = version["libraries"].Items().Where(l => Allowed(l["rules"])).ToList();
-        int done = 0;
-        // 下载可以并发完成，但 classpath 仍按清单索引收集，避免完成顺序影响类加载。
-        var classpathParts = new string?[libraries.Count];
-        var nativeFiles = new string?[libraries.Count];
         progress?.Report((20, "校验与下载游戏依赖"));
-        await DownloadMany(
-            libraries.Select((lib, index) => (lib, index)),
-            async (item, token) =>
+        var classpath = await PrepareLibraries(
+            version,
+            storage,
+            natives,
+            ct,
+            (done, total) =>
             {
-                var (lib, index) = item;
-                var artifact = lib["downloads"]?["artifact"];
-                if (artifact != null || lib["downloads"] == null)
-                {
-                    var relative = artifact?.S("path") ?? Maven(lib.S("name"));
-                    var file = Store.SafePath(storage, "libraries/" + relative);
-                    await Download(
-                        artifact?.S("url")
-                            ?? lib.S("url", "https://libraries.minecraft.net/").TrimEnd('/')
-                                + "/"
-                                + relative,
-                        file,
-                        artifact?.S("sha1"),
-                        size: artifact?["size"]?.GetValue<long>(),
-                        ct: token
-                    );
-                    classpathParts[index] = file;
-                }
-                var classifier = lib["natives"]
-                    ?.S("windows")
-                    .Replace("${arch}", Environment.Is64BitProcess ? "64" : "32");
-                if (
-                    classifier is { Length: > 0 }
-                    && lib["downloads"]?["classifiers"]?[classifier] is JsonNode native
-                )
-                {
-                    var file = Store.SafePath(storage, "libraries/" + native.S("path"));
-                    await Download(
-                        native.S("url"),
-                        file,
-                        native.S("sha1"),
-                        size: native.Int("size"),
-                        ct: token
-                    );
-                    nativeFiles[index] = file;
-                }
-                var completed = Interlocked.Increment(ref done);
-                Status?.Invoke($"游戏依赖 {completed}/{libraries.Count} · {lib.S("name")}");
-                progress?.Report(
-                    (
-                        20 + 30.0 * completed / libraries.Count,
-                        $"游戏依赖 {completed}/{libraries.Count}"
-                    )
-                );
-            },
-            ct
+                Status?.Invoke($"游戏依赖 {done}/{total}");
+                progress?.Report((20 + 30.0 * done / total, $"游戏依赖 {done}/{total}"));
+            }
         );
-        var classpath = classpathParts.Where(file => file != null).Select(file => file!).ToList();
-        foreach (var nativeFile in nativeFiles)
-        {
-            ct.ThrowIfCancellationRequested();
-            if (nativeFile == null)
-                continue;
-            using var zip = ZipFile.OpenRead(nativeFile);
-            await Extract(zip, natives, exclusions: ["META-INF/"], ct: ct);
-        }
         classpath.Add(jar);
         progress?.Report((50, "读取游戏资源索引"));
         JsonNode? index = null;
@@ -1310,7 +1294,8 @@ public sealed class LauncherCore : IDisposable
             account,
             credentials,
             store.Config.Settings,
-            account.Type == "microsoft" ? MicrosoftAuth.ConfiguredClientId : null
+            account.Type == "microsoft" ? MicrosoftAuth.ConfiguredClientId : null,
+            clientJar: jar
         );
         var start = new ProcessStartInfo(java)
         {
@@ -1327,11 +1312,15 @@ public sealed class LauncherCore : IDisposable
             "执行游戏命令 · "
                 + java
                 + " "
-                + string.Join(" ", args.Select(RedactCommandArgument))
+                + string.Join(
+                    " ",
+                    args.Select(arg => RedactCommandArgument(arg, credentials.S("accessToken")))
+                )
                 + " · 工作目录="
                 + game
         );
         var process = new Process { StartInfo = start, EnableRaisingEvents = true };
+        nativeDirectory.Watch(process);
         void Output(object _, DataReceivedEventArgs e)
         {
             if (e.Data != null)
@@ -1347,18 +1336,41 @@ public sealed class LauncherCore : IDisposable
         process.ErrorDataReceived += Output;
         ct.ThrowIfCancellationRequested();
         progress?.Report((98, "创建游戏进程"));
-        if (!process.Start())
-            throw new Exception("游戏进程启动失败");
-        process.BeginOutputReadLine();
-        process.BeginErrorReadLine();
+        try
+        {
+            if (!process.Start())
+                throw new Exception("游戏进程启动失败");
+            nativeDirectory.Started();
+            process.BeginOutputReadLine();
+            process.BeginErrorReadLine();
+        }
+        catch
+        {
+            try
+            {
+                if (!process.HasExited)
+                    process.Kill(true);
+            }
+            catch (InvalidOperationException) { }
+            finally
+            {
+                process.Dispose();
+            }
+            throw;
+        }
         return process;
     }
 
-    static string RedactCommandArgument(string value) =>
-        value.Contains("accessToken", StringComparison.OrdinalIgnoreCase)
-        || value.Length > 40 && value.All(c => char.IsLetterOrDigit(c) || c is '-' or '_')
+    static string RedactCommandArgument(string value, string secret)
+    {
+        if (secret.Length > 8)
+            value = value.Replace(secret, "[REDACTED]", StringComparison.Ordinal);
+        return
+            value.Contains("accessToken", StringComparison.OrdinalIgnoreCase)
+            || value.Length > 40 && value.All(c => char.IsLetterOrDigit(c) || c is '-' or '_')
             ? "[REDACTED]"
             : value;
+    }
 
     // 兼容新版 arguments 和旧版 minecraftArguments；未知占位符直接报错，避免传给游戏。
     public static List<string> BuildArguments(
@@ -1370,7 +1382,8 @@ public sealed class LauncherCore : IDisposable
         Account account,
         JsonNode credentials,
         Settings settings,
-        string? clientId = null
+        string? clientId = null,
+        string? clientJar = null
     )
     {
         // Flattened profiles may repeat libraries; NeoForge's union filesystem rejects duplicate paths.
@@ -1382,7 +1395,7 @@ public sealed class LauncherCore : IDisposable
         {
             ["natives_directory"] = natives,
             ["launcher_name"] = "CMCLauncher",
-            ["launcher_version"] = "0.9.4",
+            ["launcher_version"] = "1.0.0",
             ["classpath"] = string.Join(Path.PathSeparator, classpath),
             ["classpath_separator"] = Path.PathSeparator.ToString(),
             ["library_directory"] = Path.Combine(storage, "libraries"),
@@ -1430,9 +1443,43 @@ public sealed class LauncherCore : IDisposable
                 .ToList();
         var result = new List<string> { "-Xms512M", $"-Xmx{GameMemory.Resolve(settings)}M" };
         var jvm = Flatten(version["arguments"]?["jvm"]);
-        result.AddRange(
-            jvm.Count > 0 ? jvm : ["-Djava.library.path=" + natives, "-cp", values["classpath"]]
-        );
+        for (var i = 0; i + 1 < jvm.Count; i++)
+            if (jvm[i] is "-p" or "--module-path")
+                jvm[i + 1] = string.Join(
+                    Path.PathSeparator,
+                    jvm[i + 1]
+                        .Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries)
+                        .Distinct(StringComparer.OrdinalIgnoreCase)
+                );
+        if (!jvm.Any(a => a.StartsWith("-Djava.library.path=", StringComparison.Ordinal)))
+            jvm.Add("-Djava.library.path=" + natives);
+        if (
+            !jvm.Any(a =>
+                a is "-cp" or "-classpath" or "--class-path"
+                || a.StartsWith("--class-path=", StringComparison.Ordinal)
+                || a.StartsWith("-Djava.class.path=", StringComparison.Ordinal)
+            )
+        )
+            jvm.AddRange(["-cp", values["classpath"]]);
+        // Forge's module scanner must ignore the actual vanilla JAR, even when
+        // the instance/profile has a different display name.
+        if (clientJar != null && IdentifyLoader(version)?.Loader is "forge" or "neoforge")
+        {
+            var clientFile = Path.GetFileName(clientJar);
+            for (var i = 0; i < jvm.Count; i++)
+            {
+                const string prefix = "-DignoreList=";
+                if (
+                    jvm[i].StartsWith(prefix, StringComparison.Ordinal)
+                    && !jvm[i]
+                        [prefix.Length..]
+                        .Split(',')
+                        .Contains(clientFile, StringComparer.OrdinalIgnoreCase)
+                )
+                    jvm[i] += "," + clientFile;
+            }
+        }
+        result.AddRange(jvm);
         if (version["logging"]?["client"] is JsonNode log)
             result.Add(
                 log.S("argument")
@@ -1441,7 +1488,10 @@ public sealed class LauncherCore : IDisposable
                         Store.SafePath(storage, "assets/log_configs/" + log["file"].S("id"))
                     )
             );
-        result.Add(version.S("mainClass"));
+        var mainClass = version.S("mainClass");
+        if (mainClass.Length == 0)
+            throw new InvalidDataException("The game profile is missing its main class.");
+        result.Add(mainClass);
         var gameArgs = Flatten(version["arguments"]?["game"]);
         result.AddRange(
             gameArgs.Count > 0

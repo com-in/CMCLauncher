@@ -58,7 +58,7 @@ static class RuntimeLog
     }
 
     // 过滤常见凭据字段；调用方输出游戏命令时仍需自行隐藏令牌参数。
-    static string Redact(string value)
+    internal static string Redact(string value)
     {
         try
         {

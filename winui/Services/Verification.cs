@@ -138,6 +138,50 @@ public sealed partial class MainWindow
             );
         }
         Check(new Settings().LauncherLanguage == "en_us", "new installations default to English");
+        var crashStore = new Store(Path.Combine(directory, "crash-audit"));
+        var crashInstance = new Instance
+        {
+            Directory = Path.Combine(directory, "crash-audit", "game"),
+        };
+        var crashDirectory = Path.Combine(crashStore.GameDirectory(crashInstance), "crash-reports");
+        Directory.CreateDirectory(crashDirectory);
+        var oldCrash = Path.Combine(crashDirectory, "old-crash.txt");
+        await File.WriteAllTextAsync(oldCrash, "old unrelated crash");
+        var crashStarted = DateTimeOffset.UtcNow;
+        File.SetLastWriteTimeUtc(oldCrash, crashStarted.UtcDateTime.AddHours(-1));
+        Check(
+            CrashReport.LatestCrashFile(crashStore, crashInstance, crashStarted) == null,
+            "old crash reports are excluded from the current launch"
+        );
+        var fatalLog = Path.Combine(crashStore.GameDirectory(crashInstance), "hs_err_pid123.log");
+        await File.WriteAllTextAsync(
+            fatalLog,
+            "current JVM native crash --accessToken audit.private+token.value"
+        );
+        File.SetLastWriteTimeUtc(fatalLog, crashStarted.UtcDateTime.AddSeconds(1));
+        Check(
+            CrashReport.LatestCrashFile(crashStore, crashInstance, crashStarted) == fatalLog,
+            "current JVM fatal error logs are included in crash diagnostics"
+        );
+        using (var auditProcess = System.Diagnostics.Process.GetCurrentProcess())
+        {
+            var crashReport = CrashReport.Build(
+                crashStore,
+                crashInstance,
+                auditProcess,
+                [],
+                crashStarted
+            );
+            Check(
+                !crashReport.Text.Contains("audit.private+token.value"),
+                "exported JVM crash logs redact command-line access tokens"
+            );
+            Check(
+                crashReport.Text.Contains("current JVM native crash")
+                    && !crashReport.Text.Contains("old unrelated crash"),
+                "exported crash report describes the current launch instead of a historical failure"
+            );
+        }
         await SwitchLanguage("zh_cn");
         await RenderAsync();
         await VerifyFeedbackAndSchematics(Check, directory);

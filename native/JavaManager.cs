@@ -10,6 +10,17 @@ namespace CMCLauncher;
 // 候选路径来源：PATH 环境变量 → JAVA_HOME → 注册表 → 预置扫描目录 → 用户注册列表
 public static class JavaManager
 {
+    internal static bool CompatibleArchitecture(string architecture) =>
+        System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture switch
+        {
+            System.Runtime.InteropServices.Architecture.X64 => architecture is "amd64" or "x86_64",
+            System.Runtime.InteropServices.Architecture.Arm64 => architecture
+                is "aarch64"
+                    or "arm64",
+            System.Runtime.InteropServices.Architecture.X86 => architecture is "x86" or "i386",
+            _ => false,
+        };
+
     // 根据游戏版本推断所需 Java 大版本号
     public static int RequiredMajor(string gameVersion, int declared = 0)
     {
@@ -26,13 +37,22 @@ public static class JavaManager
     // 从候选列表中匹配第一个符合版本和架构要求的 Java
     public static async Task<string> Match(Store store, int required, CancellationToken ct)
     {
-        var candidates = store
-            .Config.Settings.JavaInstallations.Select(j => j.Path)
-            .Concat(await Task.Run(() => Candidates(store, null, ct).ToList(), ct))
-            .Distinct(StringComparer.OrdinalIgnoreCase);
-        foreach (var path in candidates)
+        async IAsyncEnumerable<string> LaunchCandidates()
+        {
+            foreach (var registered in store.Config.Settings.JavaInstallations)
+                yield return registered.Path;
+            // Avoid rescanning the filesystem when a registered runtime already matches.
+            foreach (
+                var discovered in await Task.Run(() => Candidates(store, null, ct).ToList(), ct)
+            )
+                yield return discovered;
+        }
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        await foreach (var path in LaunchCandidates())
         {
             ct.ThrowIfCancellationRequested();
+            if (!seen.Add(path))
+                continue;
             if (
                 store.Config.Settings.IgnoredJavaPaths.Contains(
                     path,
@@ -43,7 +63,7 @@ public static class JavaManager
             try
             {
                 var java = await Inspect(path, ct);
-                if (java.Major == required && java.Architecture is "amd64" or "x86_64" or "aarch64")
+                if (java.Major == required && CompatibleArchitecture(java.Architecture))
                     return java.Path;
             }
             catch (OperationCanceledException) when (ct.IsCancellationRequested)

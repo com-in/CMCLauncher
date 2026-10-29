@@ -855,9 +855,33 @@ public sealed class ModrinthService(LauncherCore core, Store store)
                 await LauncherCore.Extract(zip, stage, prefix, ct: ct);
             store.PrepareIsolatedInstance(instance);
             var destination = store.GameDirectory(instance);
+            Status?.Invoke("Finalizing modpack installation");
+            var installedProfile = await core.VersionFor(instance, ct);
+            ct.ThrowIfCancellationRequested();
             Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
             Directory.Move(stage, destination);
-            await core.WriteIsolatedProfile(instance, await core.VersionFor(instance, ct));
+            try
+            {
+                await core.WriteIsolatedProfile(instance, installedProfile);
+            }
+            catch
+            {
+                // Move succeeded, so this directory belongs to this fresh installation.
+                try
+                {
+                    var owned = Store.SafePath(
+                        store.StorageDirectory(instance),
+                        Path.GetRelativePath(store.StorageDirectory(instance), destination)
+                    );
+                    Directory.Delete(owned, true);
+                }
+                catch (Exception cleanup)
+                    when (cleanup is IOException or UnauthorizedAccessException)
+                {
+                    Status?.Invoke("Could not remove incomplete modpack: " + cleanup.Message);
+                }
+                throw;
+            }
             return instance;
         }
         finally

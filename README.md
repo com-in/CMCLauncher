@@ -6,9 +6,9 @@ English · [简体中文](README_zh.md)
 
 </div>
 
-A native Windows launcher for Minecraft Java Edition, built with C#, .NET 8, and WinUI 3. Manage isolated instances, download game versions and loaders, install Modrinth content, and manage Java and accounts.
+A native Windows launcher for Minecraft Java Edition, built with C#, .NET 8, and WinUI 3. Manage isolated instances, download game versions and loaders, install Modrinth and CurseForge content, and manage Java and accounts.
 
-Current version: **0.9.4** · Platform: **Windows x64**
+Current version: **1.0.0** · Platform: **Windows x64**
 
 [Download](https://github.com/com-in/CMCLauncher/releases) · [Website](https://cmcl.ctfun.top/) · [Report an issue](https://github.com/com-in/CMCLauncher/issues)
 
@@ -16,7 +16,7 @@ Current version: **0.9.4** · Platform: **Windows x64**
 
 ## Quick start
 
-1. Download `CMCLauncher-0.9.4-win-x64.zip` from [Releases](https://github.com/com-in/CMCLauncher/releases), extract the entire archive, and run `CMCLauncher.exe`.
+1. Download `CMCLauncher-1.0.0-win-x64.zip` from [Releases](https://github.com/com-in/CMCLauncher/releases), extract the entire archive, and run `CMCLauncher.exe`.
 2. Open **Settings → Java** to scan for or import an existing Java installation, or download Temurin Java.
 3. Open **Settings → Accounts** and choose Microsoft device-code sign-in. Complete authorization in your browser, then wait for the launcher to verify your Minecraft Java profile.
 4. Download a game version, import an existing `.minecraft` folder, or import a modpack. Select a version and account on Home, then launch.
@@ -36,7 +36,7 @@ The release archive includes the .NET and Windows App SDK runtimes, so you do no
 | Games and instances | Browse releases, snapshots, and April Fools versions; create isolated instances; import local game folders |
 | Loaders | Query and install Fabric, Forge, and NeoForge; identify loaders used by imported versions |
 | Modpacks | Import Modrinth `.mrpack` files, ZIP archives with supported manifests, and MultiMC / Prism ZIP exports; drag-and-drop import |
-| Community content | Browse paginated Modrinth rankings and search results; view project versions and check game, loader, and installation-target compatibility |
+| Community content | Choose Modrinth, CurseForge, or both; browse paginated results, view project versions, and check game, loader, and installation-target compatibility |
 | Content management | Inspect Mod metadata and icons; import, disable, or remove content; manage data packs by world |
 | Schematics | Search, import, export, rename, and delete `.litematic`, `.schematic`, `.schem`, and `.nbt` files, including nested folders |
 | Java and memory | Scan, import, and download Temurin Java; match Java versions automatically; use automatic or manual heap allocation |
@@ -59,7 +59,9 @@ Community resource pages place filters above the search box. Filter by game vers
 
 ### Theme presets
 
-Color presets are loaded from `themes/*.json`. Fresh green is embedded as a fallback; Lake Cyan and Sakura are external palettes. The WinUI3 native preset continues to use Windows resources. See [Theme presets](docs/THEMES.md) for editing and adding palettes.
+Choose Modrinth, CurseForge, or All using the source selector. All alternates results from the two providers; source-specific categories and the Modrinth-only More filters drawer require selecting the corresponding provider. Basic filters stay on one row. CurseForge requires the application credential included in official release builds; see [CurseForge integration](docs/CURSEFORGE.md).
+
+Color presets are loaded from `themes/*.json`. Fresh green is embedded as a fallback; other palettes are external JSON files. The WinUI3 native preset continues to use Windows resources. See [Theme presets](docs/THEMES.md) for editing and adding palettes.
 
 ## Support and limitations
 
@@ -80,8 +82,8 @@ The client keeps running while you navigate the launcher. **Stop frpc** terminat
 ### Other limitations
 
 - Forge and NeoForge installation is available, but installation and runtime compatibility have not been fully validated across game versions.
-- ZIP is a container, not a modpack format. Archives must contain a recognized Modrinth or MultiMC / Prism manifest. CurseForge modpack import and file downloads are not supported.
-- A [reserved CurseForge API interface](docs/CURSEFORGE.md) is available for future integration. It is disabled by default and requires application approval and authorized credentials before activation.
+- ZIP is a container, not a modpack format. Archives must contain a recognized Modrinth, CurseForge, or MultiMC / Prism manifest.
+- CurseForge requires an authorized application credential. Author restrictions, unavailable files, and unsupported download endpoints stop installation; see [CurseForge integration](docs/CURSEFORGE.md).
 - Shaders require an installed and enabled Iris, Oculus, or OptiFine setup. Confirm data pack enablement in game after importing.
 - Browser authorization is followed by Xbox and Minecraft service verification. Actual sign-in and reaching an in-game menu require a valid application configuration and a real account; local tests cannot replace end-to-end verification.
 - Windows x64 is the build and validation target. ARM-native dependencies are not selected.
@@ -144,7 +146,7 @@ Publish a self-contained directory and create a ZIP archive:
 
 ```powershell
 dotnet publish winui/CMCLauncher.WinUI.csproj -c Release -p:Platform=x64 -r win-x64 --self-contained true -o dist/cmc-launcher
-./scripts/package-release.ps1 -PublishDirectory dist/cmc-launcher -ArchivePath dist/CMCLauncher-0.9.4-win-x64.zip
+./scripts/package-release.ps1 -PublishDirectory dist/cmc-launcher -ArchivePath dist/CMCLauncher-1.0.0-win-x64.zip
 ```
 
 The packaging script excludes local configuration, credential, and key files, then checks that the archive contains the launcher executable.

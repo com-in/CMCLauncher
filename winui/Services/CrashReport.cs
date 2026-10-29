@@ -15,7 +15,9 @@ public sealed partial class MainWindow
         {
             process.Refresh();
             var exitCode = process.ExitCode;
-            var crashFile = await Task.Run(() => CrashReport.LatestCrashFile(store, instance));
+            var crashFile = await Task.Run(() =>
+                CrashReport.LatestCrashFile(store, instance, launchStarted)
+            );
             if (
                 exitCode == 0
                 && (
@@ -28,7 +30,7 @@ public sealed partial class MainWindow
                 await Task.Delay(150);
             var logSnapshot = logs.ToArray();
             var report = await Task.Run(() =>
-                CrashReport.Build(store, instance, process, logSnapshot)
+                CrashReport.Build(store, instance, process, logSnapshot, launchStarted)
             );
             // Another dialog may have opened while the report was being read.
             while (dialogOpen)
@@ -99,15 +101,23 @@ public sealed partial class MainWindow
 
 public sealed record CrashReport(string FileName, string Summary, string Text)
 {
-    public static string? LatestCrashFile(Store store, Instance instance)
+    public static string? LatestCrashFile(
+        Store store,
+        Instance instance,
+        DateTimeOffset? since = null
+    )
     {
         var directory = Path.Combine(store.GameDirectory(instance), "crash-reports");
-        return Directory.Exists(directory)
-            ? Directory
-                .GetFiles(directory, "*.txt")
-                .OrderByDescending(File.GetLastWriteTimeUtc)
-                .FirstOrDefault()
-            : null;
+        var reports = Directory.Exists(directory) ? Directory.GetFiles(directory, "*.txt") : [];
+        var game = store.GameDirectory(instance);
+        var fatalLogs = Directory.Exists(game) ? Directory.GetFiles(game, "hs_err_pid*.log") : [];
+        return reports
+            .Concat(fatalLogs)
+            .Where(file =>
+                since == null || File.GetLastWriteTimeUtc(file) >= since.Value.UtcDateTime
+            )
+            .OrderByDescending(File.GetLastWriteTimeUtc)
+            .FirstOrDefault();
     }
 
     // 汇总游戏崩溃文件和日志片段，某份日志读不到也要能导出其他诊断信息。
@@ -115,11 +125,12 @@ public sealed record CrashReport(string FileName, string Summary, string Text)
         Store store,
         Instance instance,
         Process process,
-        IEnumerable<string> launcherLog
+        IEnumerable<string> launcherLog,
+        DateTimeOffset? launchStarted = null
     )
     {
         var gameDir = store.GameDirectory(instance);
-        var crash = LatestCrashFile(store, instance);
+        var crash = LatestCrashFile(store, instance, launchStarted);
         var latest = Path.Combine(gameDir, "logs", "latest.log");
         var logText = ReadTail(latest, 120_000);
         var crashText = crash == null ? "(no crash report file found)" : ReadTail(crash, 200_000);
@@ -174,7 +185,7 @@ public sealed record CrashReport(string FileName, string Summary, string Text)
         {
             if (!File.Exists(path))
                 return "(file not found)";
-            return LogTail.Read(path, max);
+            return RuntimeLog.Redact(LogTail.Read(path, max));
         }
         catch (Exception ex)
         {

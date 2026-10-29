@@ -21,7 +21,7 @@
     <Product>CMCLauncher</Product>
     <Title>CMCLauncher</Title>
     <RootNamespace>CMCLauncher.WinUI</RootNamespace>
-    <Version>0.9.4</Version>
+    <Version>1.0.0</Version>
     <CurseForgeConfigurationFile
       Condition="'$(CurseForgeConfigurationFile)' == ''"
     >$(MSBuildProjectDirectory)/curseforge.local.json</CurseForgeConfigurationFile>
@@ -146,6 +146,8 @@
       Include="../native/LauncherCore.cs"
       Link="Core/LauncherCore.cs"
     />
+    <Compile Include="../native/LauncherLibraries.cs" Link="Core/LauncherLibraries.cs" />
+    <Compile Include="../native/NativeDirectoryLease.cs" Link="Core/NativeDirectoryLease.cs" />
     <Compile
       Include="../native/CertificatePolicy.cs"
       Link="Core/CertificatePolicy.cs"

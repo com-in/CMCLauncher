@@ -8,7 +8,7 @@
 
 一款用于 Minecraft Java 版的 Windows 原生启动器，基于 C#、.NET 8 与 WinUI 3 构建。支持管理隔离实例、下载游戏版本与加载器、安装 Modrinth 内容，以及管理 Java 与账号。
 
-当前版本：**0.9.4** · 平台：**Windows x64**
+当前版本：**1.0.0** · 平台：**Windows x64**
 
 [下载](https://github.com/com-in/CMCLauncher/releases) · [官网](https://cmcl.ctfun.top/) · [反馈问题](https://github.com/com-in/CMCLauncher/issues)
 
@@ -16,7 +16,7 @@
 
 ## 快速开始
 
-1. 从 [Releases](https://github.com/com-in/CMCLauncher/releases) 下载 `CMCLauncher-0.9.4-win-x64.zip`，解压整个压缩包，并运行 `CMCLauncher.exe`。
+1. 从 [Releases](https://github.com/com-in/CMCLauncher/releases) 下载 `CMCLauncher-1.0.0-win-x64.zip`，解压整个压缩包，并运行 `CMCLauncher.exe`。
 2. 打开 **设置 → Java**，扫描或导入已有的 Java 安装，或下载 Temurin Java。
 3. 打开 **设置 → 账号**，选择 Microsoft 设备代码登录。在浏览器中完成授权，然后等待启动器验证你的 Minecraft Java 档案。
 4. 下载游戏版本、导入已有的 `.minecraft` 文件夹，或导入整合包。在主界面选择版本与账号，然后启动。
@@ -36,7 +36,7 @@
 | 游戏与实例 | 浏览正式版、快照版与愚人节版本；创建隔离实例；导入本地游戏文件夹 |
 | 加载器 | 查询并安装 Fabric、Forge 与 NeoForge；识别导入版本所使用的加载器 |
 | 整合包 | 导入 Modrinth `.mrpack` 文件、包含受支持清单的 ZIP 压缩包，以及 MultiMC / Prism 的 ZIP 导出；支持拖拽导入 |
-| 社区内容 | 浏览分页的 Modrinth 排行榜与搜索结果；查看项目版本，并核对游戏、加载器与安装目标的兼容性 |
+| 社区内容 | 选择 Modrinth、CurseForge 或全部来源；浏览分页结果、查看项目版本，并核对游戏、加载器与安装目标的兼容性 |
 | 内容管理 | 查看 Mod 元数据与图标；导入、禁用或移除内容；按世界管理数据包 |
 | 结构蓝图 | 搜索、导入、导出、重命名与删除 `.litematic`、`.schematic`、`.schem` 与 `.nbt` 文件，包括嵌套文件夹 |
 | Java 与内存 | 扫描、导入并下载 Temurin Java；自动匹配 Java 版本；采用自动或手动堆内存分配 |
@@ -57,8 +57,8 @@
 ## 支持范围与限制
 
 - Forge 与 NeoForge 的安装可用，但安装与运行时兼容性尚未在所有游戏版本上充分验证。
-- ZIP 只是一种容器格式，并非整合包格式。压缩包必须包含受支持的 Modrinth 或 MultiMC / Prism 清单。暂不支持 CurseForge 整合包的导入与文件下载。
-- 提供用于未来集成的[保留 CurseForge API 接口](docs/CURSEFORGE.md)。该接口默认禁用，需在获得应用审批与授权凭据后方可启用。
+- ZIP 只是一种容器格式，并非整合包格式。压缩包必须包含受支持的 Modrinth、CurseForge 或 MultiMC / Prism 清单。
+- CurseForge 需要授权的应用凭据。作者分发限制、不可用文件或不支持的下载地址会中止安装，详见 [CurseForge 集成说明](docs/CURSEFORGE.md)。
 - 光影需要已安装并启用的 Iris、Oculus 或 OptiFine 环境。导入后请在游戏内确认数据包已启用。
 - 浏览器授权之后还需经过 Xbox 与 Minecraft 服务验证。实际的登录与进入游戏内菜单需要有效的应用配置与真实账号；本地测试无法替代端到端验证。
 - 构建与验证目标为 Windows x64。未选用 ARM 原生依赖。
@@ -119,7 +119,7 @@ dotnet build winui/CMCLauncher.WinUI.csproj -c Release -p:Platform=x64
 
 ```powershell
 dotnet publish winui/CMCLauncher.WinUI.csproj -c Release -p:Platform=x64 -r win-x64 --self-contained true -o dist/cmc-launcher
-./scripts/package-release.ps1 -PublishDirectory dist/cmc-launcher -ArchivePath dist/CMCLauncher-0.9.4-win-x64.zip
+./scripts/package-release.ps1 -PublishDirectory dist/cmc-launcher -ArchivePath dist/CMCLauncher-1.0.0-win-x64.zip
 ```
 
 打包脚本会排除本地配置、凭据与密钥文件，然后检查压缩包中是否包含启动器可执行文件。
