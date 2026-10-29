@@ -25,5 +25,10 @@
       LogicalName="CMCLauncher.MicrosoftClient"
       Condition="Exists('../winui/clientid.local.json')"
     />
+    <EmbeddedResource
+      Include="../winui/curseforge.local.json"
+      LogicalName="CMCLauncher.CurseForgeApi"
+      Condition="Exists('../winui/curseforge.local.json')"
+    />
   </ItemGroup>
 </Project>

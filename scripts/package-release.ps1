@@ -21,7 +21,7 @@ try
     foreach ($file in $files)
     {
         $relative = [System.Uri]::UnescapeDataString($publishRootUri.MakeRelativeUri([System.Uri]::new($file.FullName)).ToString()).Replace("\", "/")
-        if ($relative -match '(^|/)(clientid\.local\.json|settings\.json|credentials?\.json|secrets?\.json)$' -or $file.Extension -match '^\.(pfx|p12|key)$')
+        if ($relative -match '(^|/)(clientid\.local\.json|curseforge\.local\.json|settings\.json|credentials?\.json|secrets?\.json)$' -or $file.Extension -match '^\.(pfx|p12|key)$')
         {
             continue
         }
@@ -66,7 +66,7 @@ $check = [System.IO.Compression.ZipFile]::OpenRead($archiveFullPath)
 try
 {
     $names = @($check.Entries | ForEach-Object FullName)
-    $sensitive = @($names | Where-Object { $_ -match '(^|/)(clientid\.local\.json|settings\.json|credentials?\.json|secrets?\.json)$|\.(pfx|p12|key)$' })
+    $sensitive = @($names | Where-Object { $_ -match '(^|/)(clientid\.local\.json|curseforge\.local\.json|settings\.json|credentials?\.json|secrets?\.json)$|\.(pfx|p12|key)$' })
     if ($sensitive.Count -gt 0)
     {
         throw "Sensitive files found in release archive: $($sensitive -join ', ')"

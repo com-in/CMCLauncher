@@ -3,6 +3,7 @@ dist/
 .artifacts/
 *.log
 winui/clientid.local.json
+winui/curseforge.local.json
 **/bin/
 **/obj/
 winui/artifacts/

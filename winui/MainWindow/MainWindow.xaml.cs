@@ -85,6 +85,9 @@ public sealed partial class MainWindow : Window
         InitializeCommunityFilterDrawer();
         InitializeFeedback();
         RuntimeLog.DebugEnabled = store.Config.Settings.DebugLogging;
+        runtimeLogTimer.Interval = TimeSpan.FromMilliseconds(150);
+        runtimeLogTimer.Tick += (_, _) => FlushRuntimeLogs();
+        runtimeLogTimer.Start();
         RuntimeLog.Written += RuntimeLogWritten;
         ModpackDropRoot.AddHandler(
             UIElement.DragEnterEvent,
@@ -164,7 +167,8 @@ public sealed partial class MainWindow : Window
                     UpdateDownloadProgress(value);
             });
         };
-        core.Log += line => DispatcherQueue.TryEnqueue(() => AddLog(line));
+        // Process output is already on a worker thread; disk logging must stay off the UI queue.
+        core.Log += AddLog;
         core.DebugLog += RuntimeLog.Debug;
         ApplyTheme();
         Render();
@@ -184,6 +188,7 @@ public sealed partial class MainWindow : Window
         Closed += (_, _) =>
         {
             RuntimeLog.Written -= RuntimeLogWritten;
+            runtimeLogTimer.Stop();
             core.DebugLog -= RuntimeLog.Debug;
             RuntimeLog.Write("INFO", "应用关闭");
             taskViewTimer.Stop();
@@ -212,18 +217,45 @@ public sealed partial class MainWindow : Window
 
     internal void AddLog(string line) => RuntimeLog.Write("INFO", line);
 
-    void RuntimeLogWritten(string line) =>
-        DispatcherQueue.TryEnqueue(() =>
+    readonly object runtimeLogGate = new();
+    readonly Queue<string> pendingRuntimeLogs = new();
+    readonly Microsoft.UI.Dispatching.DispatcherQueueTimer runtimeLogTimer = Microsoft
+        .UI.Dispatching.DispatcherQueue.GetForCurrentThread()
+        .CreateTimer();
+
+    void RuntimeLogWritten(string line)
+    {
+        lock (runtimeLogGate)
+        {
+            // The file keeps every line; only the live view drops old lines during a flood.
+            pendingRuntimeLogs.Enqueue(line.Length > 16_000 ? line[^16_000..] : line);
+            while (pendingRuntimeLogs.Count > 500)
+                pendingRuntimeLogs.Dequeue();
+        }
+    }
+
+    void FlushRuntimeLogs()
+    {
+        string[] batch;
+        lock (runtimeLogGate)
+        {
+            if (pendingRuntimeLogs.Count == 0)
+                return;
+            batch = pendingRuntimeLogs.ToArray();
+            pendingRuntimeLogs.Clear();
+        }
+        foreach (var line in batch)
         {
             logs.Enqueue(line);
             while (logs.Count > 1000)
                 logs.Dequeue();
-            if (page == "logs" && logView != null)
-            {
-                var text = logView.Text + Environment.NewLine + line;
-                logView.Text = text.Length > 250_000 ? text[^250_000..] : text;
-            }
-        });
+        }
+        if (page == "logs" && logView != null)
+        {
+            var text = logView.Text + Environment.NewLine + string.Join(Environment.NewLine, batch);
+            logView.Text = text.Length > 250_000 ? text[^250_000..] : text;
+        }
+    }
 
     // 切换界面语言后需重建导航栏和所有文本
     internal async Task SwitchLanguage(string lang)

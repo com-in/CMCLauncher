@@ -1,12 +1,22 @@
 # Reserved CurseForge integration
 
-This is a developer-facing extension point, not an enabled content provider. The launcher does not create a client, request credentials, import CurseForge manifests, or download CurseForge files. No production API calls have been made to validate this integration.
+This document describes the reserved typed query client in `native/CurseForgeClient.cs`. The separate modpack service in `native/CurseForgeService.cs` uses the build credential described below. Injecting a credential does not enable the reserved query client or assert application approval.
 
 ## Approval and credentials
 
 Before activation, the operator must apply for access for this specific application and review the applicable [third-party API terms](https://support.curseforge.com/support/solutions/articles/9000207405-curseforge-3rd-party-api-terms-and-conditions), including the restrictions on competing services. Code cannot establish permission to operate the application. See the official [application process](https://support.curseforge.com/support/solutions/articles/9000208346-about-the-curseforge-api-and-how-to-apply-for-a-key).
 
-The client defaults to disabled. An operator-controlled host may explicitly enable it only after approval, supplying an authorized key through a runtime callback. No key is read from launcher settings, embedded in the assembly, or included in source or release archives. The approval flag is a caller assertion, not a license grant or proof of approval. Do not embed an operator key in a publicly distributed desktop build or borrow another application's key; a permitted credential-delivery/deployment arrangement must be established before adding a public UI.
+The typed client defaults to disabled and still requires an explicit approval flag and key-provider callback. Its constructor does not automatically consume the build credential. The approval flag is a caller assertion, not a license grant or proof of approval.
+
+## CI credential injection
+
+Create a repository Actions secret named `CURSEFORGE_API_KEY` containing the key issued for this application. Push and manually dispatched builds require it; pull-request builds skip injection and build without a key. Missing keys fail trusted builds before publishing.
+
+`scripts/configure-curseforge.ps1` reads the secret from its environment and writes `winui/curseforge.local.json` without printing the value. The desktop and native projects embed that JSON as `CMCLauncher.CurseForgeApi`; `CurseForgeCredentials` reads it for the modpack service. The file is ignored by Git, excluded from ZIP packaging, and removed from the CI workspace after publishing, including failed publishes. A build without a key reports that CurseForge is not configured when a request is attempted; there is no borrowed-key fallback.
+
+For a local build, set `CURSEFORGE_API_KEY` in the process environment and run the same script before publishing. Remove the generated local file when it is no longer needed.
+
+An embedded desktop credential can be extracted from the binary. CI Secrets protect the source and build inputs, not the confidentiality of a key shipped to users. Use credentials issued for this application's intended distribution and usage; a confidential key requires a server-side arrangement.
 
 ## Available extension points
 

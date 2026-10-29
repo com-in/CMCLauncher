@@ -1128,7 +1128,7 @@ public sealed partial class MainWindow
         await Capture(Path.Combine(directory, "version-settings.png"));
         kind = "resourcepack";
         Report("配色已应用并保存");
-        await Task.Delay(60);
+        await Task.Delay(250);
         Check(
             StatusText.Visibility == Visibility.Collapsed
                 && logs.Any(line => line.Contains("配色已应用并保存")),

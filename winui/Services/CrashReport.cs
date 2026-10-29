@@ -15,7 +15,7 @@ public sealed partial class MainWindow
         {
             process.Refresh();
             var exitCode = process.ExitCode;
-            var crashFile = CrashReport.LatestCrashFile(store, instance);
+            var crashFile = await Task.Run(() => CrashReport.LatestCrashFile(store, instance));
             if (
                 exitCode == 0
                 && (
@@ -26,7 +26,13 @@ public sealed partial class MainWindow
                 return;
             while (dialogOpen)
                 await Task.Delay(150);
-            var report = CrashReport.Build(store, instance, process, logs);
+            var logSnapshot = logs.ToArray();
+            var report = await Task.Run(() =>
+                CrashReport.Build(store, instance, process, logSnapshot)
+            );
+            // Another dialog may have opened while the report was being read.
+            while (dialogOpen)
+                await Task.Delay(150);
             AddLog(Ui("The game exited unexpectedly; a crash report summary is ready."));
             var content = new StackPanel { Spacing = 8 };
             content.Children.Add(
@@ -168,8 +174,7 @@ public sealed record CrashReport(string FileName, string Summary, string Text)
         {
             if (!File.Exists(path))
                 return "(file not found)";
-            var text = File.ReadAllText(path);
-            return text.Length <= max ? text : text[^max..];
+            return LogTail.Read(path, max);
         }
         catch (Exception ex)
         {

@@ -124,6 +124,10 @@
       Link="Core/Models.cs"
     />
     <Compile
+      Include="../native/LogTail.cs"
+      Link="Core/LogTail.cs"
+    />
+    <Compile
       Include="../native/GameMemory.cs"
       Link="Core/GameMemory.cs"
     />
@@ -162,6 +166,15 @@
     <Compile
       Include="../native/ModrinthService.cs"
       Link="Core/ModrinthService.cs"
+    />
+    <EmbeddedResource
+      Include="curseforge.local.json"
+      LogicalName="CMCLauncher.CurseForgeApi"
+      Condition="Exists('curseforge.local.json')"
+    />
+    <Compile
+      Include="../native/CurseForgeCredentials.cs"
+      Link="Core/CurseForgeCredentials.cs"
     />
     <Compile
       Include="../native/CurseForgeService.cs"

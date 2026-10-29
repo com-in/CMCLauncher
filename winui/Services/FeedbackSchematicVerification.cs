@@ -100,7 +100,7 @@ public sealed partial class MainWindow
             check(!await confirmation, "canceling popconfirm rejects the delete operation");
             await Task.Delay(200);
             confirmation = ConfirmPop(anchor, Ui("Delete item?"), "Fixture");
-            await Task.Delay(100);
+            await Task.Delay(250);
             panel = (StackPanel)activePopconfirm!.Content;
             Invoke(
                 Descendants(panel)
@@ -110,7 +110,7 @@ public sealed partial class MainWindow
             check(await confirmation, "confirming popconfirm authorizes the operation");
             await Task.Delay(200);
             confirmation = ConfirmPop(anchor, "Fixture", "Dismiss");
-            await Task.Delay(100);
+            await Task.Delay(250);
             activePopconfirm!.Hide();
             check(!await confirmation, "dismissing popconfirm does not authorize deletion");
 
@@ -176,7 +176,7 @@ public sealed partial class MainWindow
                 .OfType<TextBox>()
                 .Single(t => t.Tag?.ToString() == "schematic-search");
             search.Text = "machine";
-            await Task.Delay(100);
+            await Task.Delay(250);
             await schematicLoad;
             check(
                 Descendants(PageBody)
@@ -192,7 +192,7 @@ public sealed partial class MainWindow
                 "search expands the matching schematic directory"
             );
             search.Text = "";
-            await Task.Delay(100);
+            await Task.Delay(250);
             await schematicLoad;
             PageViewport.ChangeView(null, 0, null, true);
             await Task.Delay(450);
@@ -215,7 +215,7 @@ public sealed partial class MainWindow
             debug.IsOn = true;
             await Task.Delay(200);
             RuntimeLog.Debug("UI debug fixture");
-            await Task.Delay(100);
+            await Task.Delay(250);
             check(
                 store.Config.Settings.DebugLogging
                     && logView!.Text.Contains("[DEBUG]")
@@ -225,7 +225,7 @@ public sealed partial class MainWindow
             RuntimeLog.Debug(
                 "access_token=secret-test refresh_token=refresh-test Authorization: Bearer bearer-test"
             );
-            await Task.Delay(100);
+            await Task.Delay(250);
             check(
                 !logView!.Text.Contains("secret-test")
                     && !logView.Text.Contains("refresh-test")
@@ -234,9 +234,9 @@ public sealed partial class MainWindow
             );
             await Capture(Path.Combine(directory, "debug-logs.png"));
             debug.IsOn = false;
-            await Task.Delay(100);
+            await Task.Delay(250);
             RecordFrpcOutput("frpc runtime log fixture auth.token=hidden-frpc-secret");
-            await Task.Delay(100);
+            await Task.Delay(250);
             check(
                 logView!.Text.Contains("[FRPC]")
                     && logView.Text.Contains("frpc runtime log fixture")
@@ -256,8 +256,32 @@ public sealed partial class MainWindow
             await Capture(Path.Combine(directory, "runtime-logs-toolbar.png"));
             var before = logs.Count;
             RuntimeLog.Debug("hidden debug fixture");
-            await Task.Delay(100);
+            await Task.Delay(250);
             check(logs.Count == before, "disabling DEBUG stops new diagnostic events");
+            await Task.Run(() =>
+            {
+                for (var i = 0; i < 50_000; i++)
+                    RuntimeLogWritten("crash flood fixture " + i);
+            });
+            lock (runtimeLogGate)
+                check(
+                    pendingRuntimeLogs.Count <= 500,
+                    "crash log flood cannot grow an unbounded UI queue"
+                );
+            FlushRuntimeLogs();
+            check(
+                logs.Count <= 1000
+                    && logView!.Text.Length <= 250_000
+                    && logView.Text.Contains("crash flood fixture 49999"),
+                "batched crash log refresh retains the newest output within display bounds"
+            );
+            var heartbeat = new TaskCompletionSource();
+            DispatcherQueue.TryEnqueue(() => heartbeat.SetResult());
+            await heartbeat.Task;
+            check(
+                heartbeat.Task.IsCompletedSuccessfully,
+                "UI dispatcher remains usable after a crash log flood"
+            );
         }
         finally
         {

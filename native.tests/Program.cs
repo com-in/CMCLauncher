@@ -179,6 +179,10 @@ internal static class Program
     // 覆盖路径、内容识别、账号、下载和整合包流程；多数网络响应由 MockHandler 提供。
     static async Task CoreTests()
     {
+        await CurseForgeCredentialsTests.Run(Path.Combine(root, "curseforge-credentials"));
+        Pass("missing CurseForge build credentials fail before network access");
+        LogTailTests.Run(Path.Combine(root, "log-tail"));
+        Pass("bounded UTF-8 crash log tails while files remain open");
         await LoaderRecognitionTests.Run(Path.Combine(root, "loader-recognition"));
         Pass("authoritative loader recognition and imported metadata repair");
         var appData = Path.Combine(root, "appdata");

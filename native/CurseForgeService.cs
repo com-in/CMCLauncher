@@ -1,4 +1,4 @@
-using System.IO.Compression;
+﻿using System.IO.Compression;
 using System.Net.Http;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
@@ -9,8 +9,6 @@ namespace CMCLauncher;
 // manifest.json → 内部统一格式 → InstallPack 复用现有安装流程
 public sealed class CurseForgeService(LauncherCore core)
 {
-    // 公开的 CurseForge API Key（提取自 CurseForge 官方启动器）
-    const string ApiKey = "$2a$10$bL4bIL5pAGwFUf1uQZS8M.jQWULVMk0bX1mCQ4od/V4dXl7EAx33y";
     const string BaseUrl = "https://api.curseforge.com/v1/";
 
     // 将 CurseForge manifest.json 转换为内部统一格式（与 Modrinth index.json 一致）
@@ -160,7 +158,7 @@ public sealed class CurseForgeService(LauncherCore core)
     async Task<JsonNode> Request(string url, CancellationToken ct)
     {
         using var request = new HttpRequestMessage(HttpMethod.Get, url);
-        request.Headers.Add("x-api-key", ApiKey);
+        request.Headers.Add("x-api-key", CurseForgeCredentials.RequireApiKey());
         using var response = await core.Http.SendAsync(request, ct);
         response.EnsureSuccessStatusCode();
         return JsonNode.Parse(await response.Content.ReadAsStringAsync(ct))

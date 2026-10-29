@@ -1,4 +1,4 @@
-using System.Text;
+﻿using System.Text;
 
 namespace CMCLauncher.WinUI;
 
@@ -49,8 +49,7 @@ static class RuntimeLog
         {
             if (!File.Exists(FilePath))
                 return "(launcher log not found)";
-            var text = File.ReadAllText(FilePath);
-            return text.Length <= maxCharacters ? text : text[^maxCharacters..];
+            return LogTail.Read(FilePath, maxCharacters);
         }
         catch (Exception ex)
         {
