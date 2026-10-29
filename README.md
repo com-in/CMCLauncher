@@ -116,6 +116,8 @@ For a one-click local build, double-click `build-and-run.cmd` in the repository 
 
 To build without opening the application, run `./build-and-run.ps1 -NoLaunch` in PowerShell.
 
+To test CurseForge locally, run `build-and-run.cmd "-curseforgekey=YOUR_KEY"` in Command Prompt. Add `-NoLaunch` to build only. The script embeds the key through a temporary configuration file and deletes that file when the build finishes, including failed builds. It does not print the key or modify `dist`.
+
 ### Configure Microsoft sign-in
 
 A source build without a client ID can run the interface, but Microsoft sign-in is unavailable. To enable it in a local build, create `winui/clientid.local.json` with your configured public OAuth client ID:

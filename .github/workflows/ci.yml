@@ -73,10 +73,11 @@ jobs:
           CURSEFORGE_API_KEY: ${{ secrets.CURSEFORGE_API_KEY }}
         run: ./scripts/verify-curseforge-secrets.ps1 -ArchivePath dist/CMCLauncher-win-x64.zip
       - name: Upload build artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
-          name: CMCLauncher-win-x64
           path: dist/CMCLauncher-win-x64.zip
+          # Upload the scanned ZIP directly instead of wrapping it in another archive.
+          archive: false
           if-no-files-found: error
   # 发布任务只处理标签，复用上一步已打包并检查过的 ZIP。
   release:
@@ -90,9 +91,9 @@ jobs:
       - name: Checkout release notes
         uses: actions/checkout@v4
       - name: Download build artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
-          name: CMCLauncher-win-x64
+          name: CMCLauncher-win-x64.zip
           path: release-files
       # Only release assets receive a version; workflow artifacts keep a stable name.
       - name: Name release archive
