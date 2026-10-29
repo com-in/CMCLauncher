@@ -10,6 +10,8 @@ public sealed partial class MainWindow
     async Task VerifyCommunityPagination(Action<bool, string> check, string directory)
     {
         var savedSearch = searchResourcePage;
+        var savedCurseForgeFilters = fetchCurseForgeFilters;
+        fetchCurseForgeFilters = async (_, ct) => await fetchCommunityFilters(ct);
         var savedStates = communityBrowseStates.ToDictionary(pair => pair.Key, pair => pair.Value);
         var savedPage = page;
         TaskCompletionSource<CommunitySearchPage>? delayed = null;
@@ -345,6 +347,35 @@ public sealed partial class MainWindow
             await RenderAsync();
             await communityLoad;
             await Search("");
+            await communityFilterLoad;
+            var provider = Descendants(PageBody)
+                .OfType<ComboBox>()
+                .Single(c => c.Tag?.ToString() == "community-filter-provider");
+            foreach (var source in new[] { "curseforge", "all", "modrinth" })
+            {
+                provider.SelectedItem = provider
+                    .Items.OfType<FilterChoice>()
+                    .Single(c => c.Value == source);
+                await communityFilterLoad;
+                await Task.Delay(50);
+                await communityLoad;
+                check(
+                    requestedFilters.Last()?.Source == source && requests.Last().Offset == 0,
+                    "source switching searches from the first page: " + source
+                );
+                check(
+                    Tagged("community-more-filters").IsEnabled == (source == "modrinth"),
+                    "source-specific advanced filters: " + source
+                );
+                var sort = Descendants(PageBody)
+                    .OfType<ComboBox>()
+                    .Single(c => c.Tag?.ToString() == "community-filter-sort");
+                check(
+                    sort.Items.OfType<FilterChoice>().Any(c => c.Value == "follows")
+                        == (source == "modrinth"),
+                    "unsupported source sorting is hidden: " + source
+                );
+            }
             failNext = true;
             await Click(Tagged("community-next"));
             check(
@@ -394,6 +425,7 @@ public sealed partial class MainWindow
         {
             delayed?.TrySetResult(new([], 0, 16, 0));
             searchResourcePage = savedSearch;
+            fetchCurseForgeFilters = savedCurseForgeFilters;
             communityBrowseStates.Clear();
             foreach (var pair in savedStates)
                 communityBrowseStates.Add(pair.Key, pair.Value);

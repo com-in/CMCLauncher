@@ -2,6 +2,13 @@
   "code": "en_us",
   "displayName": "English",
   "strings": {
+    "Source": "Source",
+    "Select a source to filter by category.": "Select a source to filter by category.",
+    "View on CurseForge": "View on CurseForge",
+    "{0:N0} downloads": "{0:N0} downloads",
+    "Additional filters are available for Modrinth only.": "Additional filters are available for Modrinth only.",
+    "Modrinth is unavailable. Showing CurseForge results only.": "Modrinth is unavailable. Showing CurseForge results only.",
+    "CurseForge is unavailable. Showing Modrinth results only.": "CurseForge is unavailable. Showing Modrinth results only.",
     " MB. Recalculated at each launch based on physical and available memory.": " MB. Recalculated at each launch based on physical and available memory.",
     " · {0:N0} results": " · {0:N0} results",
     " · Using official release page": " · Using official release page",

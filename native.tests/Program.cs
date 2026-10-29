@@ -179,6 +179,10 @@ internal static class Program
     // 覆盖路径、内容识别、账号、下载和整合包流程；多数网络响应由 MockHandler 提供。
     static async Task CoreTests()
     {
+        await CurseForgeCommunityTests.Run(Path.Combine(root, "curseforge-community"));
+        Pass(
+            "CurseForge community filters, attribution, authenticated downloads and combined page boundaries"
+        );
         await CurseForgeCredentialsTests.Run(Path.Combine(root, "curseforge-credentials"));
         Pass("missing CurseForge build credentials fail before network access");
         LogTailTests.Run(Path.Combine(root, "log-tail"));
@@ -1517,6 +1521,7 @@ internal static class Program
             ),
         }.ToJsonString();
         var vanillaPack = Path.Combine(root, "vanilla-pack.mrpack");
+        var packRequestOrder = new List<string>();
         Zip(
             vanillaPack,
             new()
@@ -1527,7 +1532,20 @@ internal static class Program
                     ["game"] = "minecraft",
                     ["name"] = "Vanilla Pack",
                     ["dependencies"] = new JsonObject { ["minecraft"] = "1.21.1" },
-                    ["files"] = new JsonArray(),
+                    ["files"] = new JsonArray(
+                        new JsonObject
+                        {
+                            ["path"] = "config/pack.txt",
+                            ["fileSize"] = packBytes.Length,
+                            ["downloads"] = new JsonArray("https://fixture.test/pack-file"),
+                            ["hashes"] = new JsonObject
+                            {
+                                ["sha1"] = Convert
+                                    .ToHexString(SHA1.HashData(packBytes))
+                                    .ToLowerInvariant(),
+                            },
+                        }
+                    ),
                 }.ToJsonString(),
             }
         );
@@ -1535,7 +1553,10 @@ internal static class Program
             var packCore = new LauncherCore(
                 packStore,
                 new MockHandler(request =>
-                    request.RequestUri!.AbsolutePath switch
+                {
+                    var path = request.RequestUri!.AbsolutePath;
+                    packRequestOrder.Add(path);
+                    return path switch
                     {
                         "/mc/game/version_manifest_v2.json" => new HttpResponseMessage(
                             HttpStatusCode.OK
@@ -1551,9 +1572,13 @@ internal static class Program
                         {
                             Content = new ByteArrayContent(packBytes),
                         },
+                        "/pack-file" => new HttpResponseMessage(HttpStatusCode.OK)
+                        {
+                            Content = new ByteArrayContent(packBytes),
+                        },
                         _ => new HttpResponseMessage(HttpStatusCode.NotFound),
-                    }
-                )
+                    };
+                })
             )
         )
         {
@@ -1568,6 +1593,16 @@ internal static class Program
             Check(
                 File.ReadAllBytes(clientJar).SequenceEqual(packBytes),
                 "modpack installation downloads the vanilla Minecraft client before creating the instance"
+            );
+            Check(
+                packRequestOrder.IndexOf("/client.jar") < packRequestOrder.IndexOf("/pack-file"),
+                "modpack resources download only after the Minecraft version is prepared"
+            );
+            Check(
+                File.ReadAllText(
+                    Path.Combine(packStore.GameDirectory(packInstance), "config/pack.txt")
+                ) == Encoding.UTF8.GetString(packBytes),
+                "modpack resources are installed into the final instance"
             );
             Check(
                 !Directory.Exists(

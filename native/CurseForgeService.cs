@@ -1,7 +1,5 @@
 ﻿using System.IO.Compression;
-using System.Net.Http;
 using System.Text.Json.Nodes;
-using System.Text.RegularExpressions;
 
 namespace CMCLauncher;
 
@@ -9,8 +7,6 @@ namespace CMCLauncher;
 // manifest.json → 内部统一格式 → InstallPack 复用现有安装流程
 public sealed class CurseForgeService(LauncherCore core)
 {
-    const string BaseUrl = "https://api.curseforge.com/v1/";
-
     // 将 CurseForge manifest.json 转换为内部统一格式（与 Modrinth index.json 一致）
     // 返回值与 ReadPack 相同，可直接传给 InstallPack
     public static (JsonNode Manifest, string[] ContentPrefixes) ParseManifest(
@@ -103,7 +99,12 @@ public sealed class CurseForgeService(LauncherCore core)
         if (pending.Count == 0)
             return;
 
-        // 逐个解析：CurseForge API 无批量接口，按文件逐一请求
+        CurseForgeCredentials.RequireApiKey();
+        using var api = new CurseForgeClient(
+            () => CurseForgeCredentials.ConfiguredApiKey,
+            applicationAccessApproved: true
+        );
+        // Resolve metadata without forwarding credentials through the shared HTTP transport.
         foreach (var f in pending)
         {
             ct.ThrowIfCancellationRequested();
@@ -111,22 +112,29 @@ public sealed class CurseForgeService(LauncherCore core)
             var fileId = f["fileID"]!.GetValue<int>();
 
             // 获取文件元数据（文件名、哈希、大小）
-            var fileInfo = await Request($"{BaseUrl}mods/{projectId}/files/{fileId}", ct);
+            var project = (await api.Query($"mods/{projectId}", ct))["data"];
+            if (
+                project.Int("id") != projectId
+                || project.Int("gameId") != 432
+                || project.S("allowModDistribution") != "true"
+            )
+                throw new InvalidOperationException(
+                    "The author does not allow third-party distribution."
+                );
+            var fileInfo =
+                (await api.Query($"mods/{projectId}/files/{fileId}", ct))["data"]
+                ?? throw new InvalidDataException("CurseForge returned no file.");
+            if (
+                fileInfo.Int("modId") != projectId
+                || fileInfo.Int("id") != fileId
+                || fileInfo.Int("gameId") != 432
+                || fileInfo.S("isAvailable") != "true"
+                || fileInfo.S("isEarlyAccessContent") == "true"
+            )
+                throw new InvalidDataException("The CurseForge file is unavailable.");
 
-            // 获取实际下载链接（某些文件需要单独请求）
+            // A missing URL is a distribution restriction, not a reason to invent a CDN path.
             var url = fileInfo.S("downloadUrl");
-            if (url.Length == 0)
-            {
-                try
-                {
-                    var dl = await Request(
-                        $"{BaseUrl}mods/{projectId}/files/{fileId}/download-url",
-                        ct
-                    );
-                    url = dl.S("data");
-                }
-                catch { }
-            }
 
             if (url.Length == 0)
                 throw new Exception(
@@ -134,7 +142,7 @@ public sealed class CurseForgeService(LauncherCore core)
                 );
 
             var fileName = fileInfo.S("fileName");
-            if (fileName.Length == 0)
+            if (fileName.Length == 0 || Path.GetFileName(fileName) != fileName)
                 throw new Exception(
                     $"CurseForge 文件缺少文件名: project={projectId}, file={fileId}"
                 );
@@ -152,16 +160,5 @@ public sealed class CurseForgeService(LauncherCore core)
             };
             f["fileSize"] = fileInfo["fileLength"]?.GetValue<long>();
         }
-    }
-
-    // 带 API Key 的 GET 请求
-    async Task<JsonNode> Request(string url, CancellationToken ct)
-    {
-        using var request = new HttpRequestMessage(HttpMethod.Get, url);
-        request.Headers.Add("x-api-key", CurseForgeCredentials.RequireApiKey());
-        using var response = await core.Http.SendAsync(request, ct);
-        response.EnsureSuccessStatusCode();
-        return JsonNode.Parse(await response.Content.ReadAsStringAsync(ct))
-            ?? throw new Exception("CurseForge API 返回空数据");
     }
 }

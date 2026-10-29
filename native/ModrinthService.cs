@@ -11,7 +11,8 @@ public sealed record SearchResult(
     string Description,
     string Type,
     string IconUrl,
-    long Downloads = 0
+    long Downloads = 0,
+    string Source = "modrinth"
 )
 {
     public override string ToString() => Name;
@@ -24,7 +25,9 @@ public sealed record CommunityProject(
     string IconUrl,
     long Downloads,
     long Followers,
-    List<string> Categories
+    List<string> Categories,
+    string WebsiteUrl = "",
+    string Authors = ""
 );
 
 public sealed record CommunityVersion(
@@ -41,7 +44,8 @@ public sealed record CommunitySearchPage(
     IReadOnlyList<SearchResult> Hits,
     int Offset,
     int Limit,
-    int TotalHits
+    int TotalHits,
+    string? Warning = null
 )
 {
     public bool HasNext => Hits.Count > 0 && (long)Offset + Hits.Count < TotalHits;
@@ -64,10 +68,16 @@ public sealed record CommunitySearchFilters(
     string UpdatedAfter = "",
     IReadOnlyList<string>? Disclosures = null,
     bool ShowSnapshots = false,
-    bool ShowAprilFools = false
+    bool ShowAprilFools = false,
+    string Source = "modrinth"
 );
 
-public sealed record CommunityCategory(string Name, string ProjectType, string Header);
+public sealed record CommunityCategory(
+    string Name,
+    string ProjectType,
+    string Header,
+    string? DisplayName = null
+);
 
 public sealed record CommunityLoader(string Name, IReadOnlyList<string> ProjectTypes);
 
@@ -743,9 +753,7 @@ public sealed class ModrinthService(LauncherCore core, Store store)
             if (files.Any(f => f["projectID"] != null && f["fileID"] != null))
             {
                 Status?.Invoke("解析 CurseForge 文件链接…");
-                var fileArray = new JsonArray(files.Select(f => f).ToArray());
-                await new CurseForgeService(core).ResolveFiles(fileArray, ct);
-                // ResolveFiles 直接修改了 fileArray 中的元素，files 也指向同一对象
+                await new CurseForgeService(core).ResolveFiles(manifest["files"]!.AsArray(), ct);
             }
             if (
                 files.Length > 20000
@@ -765,43 +773,6 @@ public sealed class ModrinthService(LauncherCore core, Store store)
                     return (File: f, Target: target, Urls: urls);
                 })
                 .ToArray();
-            int count = 0;
-            await core.DownloadMany(
-                jobs,
-                async (job, token) =>
-                {
-                    var current = Interlocked.Increment(ref count);
-                    Status?.Invoke($"安装整合包 {current}/{files.Length} · {job.File.S("path")}");
-                    Exception? failure = null;
-                    foreach (var url in job.Urls)
-                    {
-                        try
-                        {
-                            await DownloadFile(
-                                new JsonObject
-                                {
-                                    ["url"] = url,
-                                    ["hashes"] = job.File["hashes"]?.DeepClone(),
-                                    ["size"] = job.File["fileSize"]?.DeepClone(),
-                                },
-                                job.Target,
-                                token
-                            );
-                            failure = null;
-                            break;
-                        }
-                        catch (Exception ex) when (ex is not OperationCanceledException)
-                        {
-                            failure = ex;
-                        }
-                    }
-                    if (failure != null)
-                        throw failure;
-                },
-                ct
-            );
-            foreach (var prefix in contentPrefixes)
-                await LauncherCore.Extract(zip, stage, prefix, ct: ct);
             var baseGame = new Instance
             {
                 Name = instance.Name + "-base",
@@ -834,6 +805,54 @@ public sealed class ModrinthService(LauncherCore core, Store store)
             }
             else
                 await core.VersionFor(instance, ct);
+            int count = 0;
+            await core.DownloadMany(
+                jobs,
+                async (job, token) =>
+                {
+                    var current = Interlocked.Increment(ref count);
+                    Status?.Invoke($"安装整合包 {current}/{files.Length} · {job.File.S("path")}");
+                    if (job.File["projectID"] != null && job.File["fileID"] != null)
+                    {
+                        using var cf = new CurseForgeCommunityService(core, store, this);
+                        await cf.DownloadFile(
+                            job.File.Int("projectID"),
+                            job.File.Int("fileID"),
+                            job.Target,
+                            token
+                        );
+                        return;
+                    }
+                    Exception? failure = null;
+                    foreach (var url in job.Urls)
+                    {
+                        try
+                        {
+                            await DownloadFile(
+                                new JsonObject
+                                {
+                                    ["url"] = url,
+                                    ["hashes"] = job.File["hashes"]?.DeepClone(),
+                                    ["size"] = job.File["fileSize"]?.DeepClone(),
+                                },
+                                job.Target,
+                                token
+                            );
+                            failure = null;
+                            break;
+                        }
+                        catch (Exception ex) when (ex is not OperationCanceledException)
+                        {
+                            failure = ex;
+                        }
+                    }
+                    if (failure != null)
+                        throw failure;
+                },
+                ct
+            );
+            foreach (var prefix in contentPrefixes)
+                await LauncherCore.Extract(zip, stage, prefix, ct: ct);
             store.PrepareIsolatedInstance(instance);
             var destination = store.GameDirectory(instance);
             Directory.CreateDirectory(Path.GetDirectoryName(destination)!);

@@ -6,6 +6,7 @@ namespace CMCLauncher.WinUI;
 public sealed partial class MainWindow
 {
     Func<CancellationToken, Task<CommunityFilterCatalog>> fetchCommunityFilters = null!;
+    Func<string, CancellationToken, Task<CommunityFilterCatalog>> fetchCurseForgeFilters = null!;
     Task communityFilterLoad = Task.CompletedTask;
 
     sealed record FilterChoice(string Value, string Label)
@@ -59,6 +60,22 @@ public sealed partial class MainWindow
             return combo;
         }
         static string Value(ComboBox combo) => (combo.SelectedItem as FilterChoice)?.Value ?? "";
+        var source = Choice("Source", "community-filter-provider", [], "");
+        allCombos.Remove(source);
+        source.Items.Clear();
+        foreach (
+            var entry in new[]
+            {
+                new FilterChoice("modrinth", "Modrinth"),
+                new FilterChoice("curseforge", "CurseForge"),
+                new FilterChoice("all", Ui("All")),
+            }
+        )
+            source.Items.Add(entry);
+        source.SelectedItem =
+            source.Items.OfType<FilterChoice>().FirstOrDefault(c => c.Value == initial.Source)
+            ?? source.Items[0];
+        root.Children.Add(source);
         IEnumerable<FilterChoice> Values(params (string Id, string Key)[] entries) =>
             entries.Select(e => new FilterChoice(e.Id, Ui(e.Key)));
 
@@ -218,10 +235,10 @@ public sealed partial class MainWindow
         optionsRow.Children.Add(versionOptions);
         root.Children.Add(optionsRow);
 
-        // 四个主要筛选项始终在同一行，额外的类型专属筛选接到下一行。
+        // 分类数量因资源类型而异；所有基础筛选均分同一行，不按固定列数换行。
         void LayoutFields()
         {
-            const int columns = 4;
+            var columns = Math.Max(1, fields.Count);
             basic.Children.Clear();
             basic.ColumnDefinitions.Clear();
             basic.RowDefinitions.Clear();
@@ -535,7 +552,8 @@ public sealed partial class MainWindow
                     .Select(c => c.Tag.ToString()!)
                     .ToArray(),
                 showSnapshots.IsChecked == true,
-                showAprilFools.IsChecked == true
+                showAprilFools.IsChecked == true,
+                Value(source)
             );
         void Reset()
         {
@@ -586,19 +604,35 @@ public sealed partial class MainWindow
         showAprilFools.Checked += VisibilityChanged;
         showAprilFools.Unchecked += VisibilityChanged;
 
+        var catalogRevision = 0;
         async Task Load()
         {
+            var revision = ++catalogRevision;
             using var request = new CancellationTokenSource(TimeSpan.FromSeconds(30));
             var generation = renderVersion;
+            var selectedSource = Value(source);
             metadataRetry.IsEnabled = false;
             metadataRetry.Visibility = Visibility.Collapsed;
             metadataStatus.Visibility = Visibility.Visible;
             metadataStatus.Text = Ui("Loading filter options…");
             try
             {
-                var catalog = await fetchCommunityFilters(request.Token);
-                if (generation != renderVersion)
+                var catalog =
+                    selectedSource == "curseforge"
+                        ? await fetchCurseForgeFilters(type, request.Token)
+                        : await fetchCommunityFilters(request.Token);
+                if (
+                    generation != renderVersion
+                    || selectedSource != Value(source)
+                    || revision != catalogRevision
+                )
                     return;
+                foreach (var category in categories)
+                {
+                    fields.Remove(category);
+                    allCombos.Remove(category);
+                }
+                categories.Clear();
                 void Populate(ComboBox combo, IEnumerable<FilterChoice> choices)
                 {
                     var selected = Value(combo);
@@ -631,7 +665,13 @@ public sealed partial class MainWindow
                 Populate(
                     loader,
                     catalog
-                        .Loaders.Where(l => l.ProjectTypes.Contains(type))
+                        .Loaders.Where(l =>
+                            l.ProjectTypes.Contains(type)
+                            && (
+                                selectedSource == "modrinth"
+                                || l.Name is "forge" or "fabric" or "quilt" or "neoforge"
+                            )
+                        )
                         .Select(l => new FilterChoice(l.Name, l.Name))
                 );
                 Populate(
@@ -639,8 +679,10 @@ public sealed partial class MainWindow
                     catalog.Licenses.Select(l => new FilterChoice(l.Id, l.Id + " · " + l.Name))
                 );
                 // 数据包在标签目录中沿用 Mod 的分类，不显示无关的材质或光影分类。
-                var applicable = catalog.Categories.Where(c => c.ProjectType == type).ToArray();
-                if (type == "datapack" && applicable.Length == 0)
+                var applicable = catalog
+                    .Categories.Where(c => c.ProjectType == type && selectedSource != "all")
+                    .ToArray();
+                if (type == "datapack" && applicable.Length == 0 && selectedSource != "all")
                     applicable = catalog.Categories.Where(c => c.ProjectType == "mod").ToArray();
                 foreach (var group in applicable.GroupBy(c => c.Header))
                 {
@@ -659,18 +701,38 @@ public sealed partial class MainWindow
                     var combo = Choice(
                         label,
                         "community-filter-category-" + group.Key,
-                        group.Select(c => new FilterChoice(c.Name, c.Name)),
+                        group.Select(c => new FilterChoice(c.Name, c.DisplayName ?? c.Name)),
                         selected
                     );
                     categories.Add(combo);
                     fields.Add(combo);
+                }
+                if (selectedSource == "all")
+                {
+                    var category = Choice(
+                        "Category",
+                        "community-filter-category-categories",
+                        [],
+                        ""
+                    );
+                    category.IsEnabled = false;
+                    ToolTipService.SetToolTip(
+                        category,
+                        Ui("Select a source to filter by category.")
+                    );
+                    categories.Add(category);
+                    fields.Add(category);
                 }
                 LayoutFields();
                 metadataStatus.Visibility = Visibility.Collapsed;
             }
             catch (Exception ex)
             {
-                if (generation != renderVersion)
+                if (
+                    generation != renderVersion
+                    || selectedSource != Value(source)
+                    || revision != catalogRevision
+                )
                     return;
                 metadataStatus.Text = Ui("Could not load filter options: ") + ex.Message;
                 metadataRetry.Visibility = Visibility.Visible;
@@ -682,6 +744,69 @@ public sealed partial class MainWindow
         }
         metadataRetry.Click += async (_, _) => await (communityFilterLoad = Load());
         var controls = new CommunityFilterControls(root, Read, Reset, Load);
+        void UpdateSource()
+        {
+            var modrinthOnly = Value(source) == "modrinth";
+            foreach (var combo in new[] { environment, openSource, license })
+                combo.IsEnabled = modrinthOnly;
+            foreach (var input in advancedFields)
+                input.IsEnabled = modrinthOnly;
+            foreach (var check in disclosures)
+                check.IsEnabled = modrinthOnly;
+            moreButton.IsEnabled = modrinthOnly;
+            ToolTipService.SetToolTip(
+                moreButton,
+                modrinthOnly ? null : Ui("Additional filters are available for Modrinth only.")
+            );
+            foreach (var unsupported in new[] { "follows", "relevance" })
+            {
+                var option = sort
+                    .Items.OfType<FilterChoice>()
+                    .FirstOrDefault(c => c.Value == unsupported);
+                if (!modrinthOnly && option != null)
+                {
+                    if (Value(sort) == unsupported)
+                        sort.SelectedIndex = 0;
+                    sort.Items.Remove(option);
+                }
+                else if (modrinthOnly && option == null)
+                    sort.Items.Add(
+                        new FilterChoice(
+                            unsupported,
+                            Ui(unsupported == "follows" ? "关注数" : "相关度")
+                        )
+                    );
+            }
+            loader.IsEnabled = modrinthOnly || type is "mod" or "modpack";
+            if (!loader.IsEnabled)
+                loader.SelectedIndex = 0;
+        }
+        source.SelectionChanged += async (_, _) =>
+        {
+            resourceSearch?.Cancel();
+            initial = initial with { Categories = [] };
+            foreach (var category in categories)
+            {
+                fields.Remove(category);
+                allCombos.Remove(category);
+            }
+            categories.Clear();
+            LayoutFields();
+            ResetAdvanced();
+            loader.SelectedIndex = 0;
+            UpdateSource();
+            var current = Value(source);
+            var generation = renderVersion;
+            var revision = catalogRevision + 1;
+            await (communityFilterLoad = Load());
+            if (
+                current == Value(source)
+                && generation == renderVersion
+                && revision == catalogRevision
+            )
+                await controls.Apply();
+        };
+        UpdateSource();
         moreButton.Click += (_, _) =>
             OpenCommunityFilterDrawer(advanced, moreButton, () => controls.Apply(), ResetAdvanced);
         return controls;

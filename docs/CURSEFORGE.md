@@ -1,6 +1,8 @@
-# Reserved CurseForge integration
+# CurseForge integration
 
-This document describes the reserved typed query client in `native/CurseForgeClient.cs`. The separate modpack service in `native/CurseForgeService.cs` uses the build credential described below. Injecting a credential does not enable the reserved query client or assert application approval.
+Community browsing supports Modrinth, CurseForge, and All. `CurseForgeCommunityService` uses the application credential injected during the build. The standalone typed client still defaults to disabled; the community entry point explicitly enables it when this application credential is present. The application operator remains responsible for obtaining approval for the intended usage.
+
+All alternates projects from both sources, then continues with the longer list. It does not claim a shared popularity ranking. Totals and page offsets account for both lists; a failed provider produces a visible warning and leaves the other provider usable. Category and advanced filters remain source-specific. CurseForge supports game versions, supported mod loaders, categories, downloads, update date, and release date; unsupported ordering and Modrinth-only advanced fields are disabled in the interface.
 
 ## Approval and credentials
 
@@ -29,9 +31,9 @@ An embedded desktop credential can be extracted from the binary. CI Secrets prot
 - The access check only accepts a supplied HTTPS `edge.forgecdn.net` URL without credentials, query parameters, fragments or a custom port. Other hosts require review; missing URLs never trigger URL construction, scraping, mirror lookup or fallback downloads.
 - Authentication errors, forbidden responses, redirects and rate limits stop the request. `CurseForgeApiException` exposes status and optional `RetryAfter`, without echoing server content. The caller must respect quotas; the client does not automatically retry or scrape around restrictions.
 
-## Before implementing downloads
+## Downloads
 
-The access result is metadata, not a downloader, installation approval, or a promise that the file will still be available later. Recheck permission when implementing the actual operation, preserve project/author attribution, and handle revoked access. Do not pass the URL to the existing generic downloader: it lacks CurseForge-specific CDN authentication. The official [CDN authentication announcement](https://blog.curseforge.com/introducing-api-key-authentication-for-curseforge-file-downloads/) requires download authentication and recommends the `x-api-key` header. Add a dedicated, reviewed transport, integrity checks, cancellation/cleanup tests and dependency compatibility checks before enabling installation.
+Community installations and imported CurseForge packs recheck project permission and file identity before downloading. The dedicated download transport sends `x-api-key` only to the supplied official `edge.forgecdn.net` HTTPS URL, rejects redirects, verifies the declared size and SHA-1, and removes partial files on failure or cancellation. Required mod dependencies are resolved against the selected Minecraft version and loader. Project details preserve the author attribution and link to CurseForge. See the official [CDN authentication announcement](https://blog.curseforge.com/introducing-api-key-authentication-for-curseforge-file-downloads/).
 
 ## Verification
 

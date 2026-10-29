@@ -52,6 +52,13 @@ public sealed partial class MainWindow
                 string.Join(" / ", info.Categories)
             );
             var stats = Text(statsText, 12);
+            if (project.Source == "curseforge")
+                stats.Text =
+                    UiFormat("{0:N0} downloads", info.Downloads)
+                    + " · "
+                    + info.Authors
+                    + " · "
+                    + string.Join(" / ", info.Categories);
             stats.Opacity = .7;
             identity.Children.Add(stats);
             var heading = new Grid { ColumnSpacing = 14 };
@@ -82,9 +89,22 @@ public sealed partial class MainWindow
             host.Children.Add(
                 new HyperlinkButton
                 {
-                    Content = Ui("View on Modrinth"),
+                    Content = Ui(
+                        project.Source == "curseforge" ? "View on CurseForge" : "View on Modrinth"
+                    ),
                     NavigateUri = new Uri(
-                        "https://modrinth.com/project/" + Uri.EscapeDataString(project.Id)
+                        project.Source == "curseforge"
+                            ? (
+                                Uri.TryCreate(info.WebsiteUrl, UriKind.Absolute, out var website)
+                                && website.Scheme == "https"
+                                && (
+                                    website.Host == "www.curseforge.com"
+                                    || website.Host == "curseforge.com"
+                                )
+                                    ? website.AbsoluteUri
+                                    : "https://www.curseforge.com/minecraft"
+                            )
+                            : "https://modrinth.com/project/" + Uri.EscapeDataString(project.Id)
                     ),
                     Padding = new Thickness(0),
                 }
@@ -245,12 +265,20 @@ public sealed partial class MainWindow
                                 {
                                     if (project.Type == "modpack")
                                     {
-                                        var instance = await modrinth.InstallProjectPack(
-                                            project.Id,
-                                            ct,
-                                            version.Id,
-                                            ResolveModpackName
-                                        );
+                                        var instance =
+                                            project.Source == "curseforge"
+                                                ? await curseforge.InstallPack(
+                                                    project.Id,
+                                                    version.Id,
+                                                    ct,
+                                                    ResolveModpackName
+                                                )
+                                                : await modrinth.InstallProjectPack(
+                                                    project.Id,
+                                                    ct,
+                                                    version.Id,
+                                                    ResolveModpackName
+                                                );
                                         store.Config.Instances.Add(instance);
                                         selected = instance;
                                         store.Config.SelectedInstanceId = instance.Id;
@@ -265,7 +293,16 @@ public sealed partial class MainWindow
                                         );
                                         if (failure != null)
                                             throw new Exception(failure);
-                                        if (project.Type == "mod")
+                                        if (project.Source == "curseforge")
+                                            await curseforge.InstallContent(
+                                                location.Instance,
+                                                project.Id,
+                                                version.Id,
+                                                project.Type,
+                                                location.World,
+                                                ct
+                                            );
+                                        else if (project.Type == "mod")
                                             await modrinth.InstallMod(
                                                 location.Instance,
                                                 project.Id,

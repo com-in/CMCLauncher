@@ -170,6 +170,8 @@
       Include="../native/ModrinthService.cs"
       Link="Core/ModrinthService.cs"
     />
+    <Compile Include="../native/CommunityService.cs" Link="Core/CommunityService.cs" />
+    <Compile Include="../native/CurseForgeCommunityService.cs" Link="Core/CurseForgeCommunityService.cs" />
     <EmbeddedResource
       Include="$(CurseForgeConfigurationFile)"
       LogicalName="CMCLauncher.CurseForgeApi"

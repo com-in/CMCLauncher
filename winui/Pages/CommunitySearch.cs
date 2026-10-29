@@ -263,12 +263,16 @@ public sealed partial class MainWindow
                 heading.Text =
                     (
                         string.IsNullOrWhiteSpace(term)
-                        && selectedFilters.Sort is not ("" or "downloads")
+                        && (
+                            selectedFilters.Source == "all"
+                            || selectedFilters.Sort is not ("" or "downloads")
+                        )
                             ? Ui("context.communitysearch.community_resources")
                             : Ui(string.IsNullOrWhiteSpace(term) ? "下载量排行" : "搜索结果")
                     ) + UiFormat(" · {0:N0} results", total);
-                status.Text = "";
-                status.Visibility = Visibility.Collapsed;
+                status.Text = response.Warning == null ? "" : Ui(response.Warning);
+                status.Visibility =
+                    response.Warning == null ? Visibility.Collapsed : Visibility.Visible;
                 if (response.Hits.Count == 0)
                     results.Children.Add(Text("没有找到匹配的内容"));
                 foreach (var item in response.Hits)
@@ -282,6 +286,9 @@ public sealed partial class MainWindow
                     title.TextWrapping = TextWrapping.NoWrap;
                     title.TextTrimming = TextTrimming.CharacterEllipsis;
                     detail.Children.Add(title);
+                    detail.Children.Add(
+                        Text(item.Source == "curseforge" ? "CurseForge" : "Modrinth", 11)
+                    );
                     // NoWrap 不会忽略文本自带的换行，卡片摘要先将空白合并成空格。
                     var summary = Text(
                         System

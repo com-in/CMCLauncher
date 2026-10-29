@@ -5,7 +5,7 @@ using System.Text.Json;
 
 namespace CMCLauncher;
 
-// 这里只预留查询接口，不接入页面、整合包安装或文件下载。
+// Typed queries remain available independently of the community browsing entry point.
 public interface ICurseForgeClient
 {
     bool IsEnabled { get; }
@@ -223,6 +223,104 @@ public sealed class CurseForgeClient : ICurseForgeClient, IDisposable
         )
             return new(false, "The download URL requires a separate transport review.", null);
         return new(true, null, uri);
+    }
+
+    internal Task<System.Text.Json.Nodes.JsonNode> Query(string relative, CancellationToken ct) =>
+        GetAsync<System.Text.Json.Nodes.JsonNode>(relative, ct);
+
+    internal async Task DownloadAuthenticated(
+        Uri uri,
+        string target,
+        string hash,
+        long size,
+        CancellationToken ct,
+        Action<long>? received = null
+    )
+    {
+        if (
+            uri.Scheme != "https"
+            || !uri.IsDefaultPort
+            || uri.Host != "edge.forgecdn.net"
+            || uri.UserInfo.Length != 0
+            || uri.Query.Length != 0
+            || uri.Fragment.Length != 0
+        )
+            throw new InvalidDataException("Unsupported CurseForge download URL.");
+        if (!IsEnabled)
+            throw new InvalidOperationException("CurseForge is not enabled in this build.");
+        var key = apiKeyProvider();
+        if (string.IsNullOrWhiteSpace(key) || key.Any(char.IsControl))
+            throw new InvalidOperationException("An authorized CurseForge API key is required.");
+        if (
+            hash.Length != 40
+            || !hash.All(Uri.IsHexDigit)
+            || size <= 0
+            || size > 1024L * 1024 * 1024
+        )
+            throw new InvalidDataException("CurseForge file has an invalid size or SHA-1 hash.");
+        Directory.CreateDirectory(Path.GetDirectoryName(target)!);
+        var temporary = target + "." + Guid.NewGuid().ToString("N") + ".part";
+        try
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Get, uri);
+            request.Headers.Add("x-api-key", key);
+            using var response = await http.SendAsync(
+                request,
+                HttpCompletionOption.ResponseHeadersRead,
+                ct
+            );
+            if (!response.IsSuccessStatusCode)
+                throw new CurseForgeApiException(
+                    response.StatusCode,
+                    response.Headers.RetryAfter?.Delta
+                );
+            await using var source = await response.Content.ReadAsStreamAsync(ct);
+            using var digest = System.Security.Cryptography.IncrementalHash.CreateHash(
+                System.Security.Cryptography.HashAlgorithmName.SHA1
+            );
+            await using (
+                var output = new FileStream(
+                    temporary,
+                    FileMode.CreateNew,
+                    FileAccess.Write,
+                    FileShare.None,
+                    131072,
+                    true
+                )
+            )
+            {
+                var buffer = new byte[131072];
+                long total = 0;
+                int count;
+                while ((count = await source.ReadAsync(buffer, ct)) > 0)
+                {
+                    total += count;
+                    if (total > size)
+                        throw new InvalidDataException(
+                            "CurseForge file exceeds its declared size."
+                        );
+                    digest.AppendData(buffer, 0, count);
+                    await output.WriteAsync(buffer.AsMemory(0, count), ct);
+                    received?.Invoke(count);
+                }
+                if (
+                    total != size
+                    || !Convert
+                        .ToHexString(digest.GetHashAndReset())
+                        .Equals(hash, StringComparison.OrdinalIgnoreCase)
+                )
+                    throw new InvalidDataException(
+                        "CurseForge file failed integrity verification."
+                    );
+            }
+            ct.ThrowIfCancellationRequested();
+            File.Move(temporary, target, false);
+        }
+        finally
+        {
+            if (File.Exists(temporary))
+                File.Delete(temporary);
+        }
     }
 
     async Task<T> GetAsync<T>(string relative, CancellationToken ct)

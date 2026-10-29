@@ -18,6 +18,8 @@ public sealed partial class MainWindow : Window
     readonly Store store;
     readonly LauncherCore core;
     readonly ModrinthService modrinth;
+    readonly CurseForgeCommunityService curseforge;
+    readonly CommunityService community;
     readonly MicrosoftAuth auth;
     string page = "home",
         kind = "resourcepack";
@@ -139,15 +141,24 @@ public sealed partial class MainWindow : Window
                 : null
         );
         modrinth = new ModrinthService(core, store);
+        curseforge = new(core, store, modrinth);
+        community = new(modrinth, curseforge);
         auth = new MicrosoftAuth(core);
         fetchVersions = ct => core.VersionCatalog(ct);
         fetchDownloadLoaderBuilds = core.LoaderBuilds;
-        fetchProject = modrinth.ProjectDetails;
-        fetchProjectVersions = modrinth.ProjectVersions;
-        searchResourcePage = modrinth.SearchPage;
+        fetchProject = community.ProjectDetails;
+        fetchProjectVersions = community.ProjectVersions;
+        searchResourcePage = community.SearchPage;
         fetchCommunityFilters = modrinth.FilterCatalog;
+        fetchCurseForgeFilters = curseforge.FilterCatalog;
         core.Status += Report;
         modrinth.Status += Report;
+        curseforge.Status += Report;
+        curseforge.DownloadBytes += bytes =>
+        {
+            if (activeWork is { } work)
+                Interlocked.Add(ref work.Bytes, bytes);
+        };
         core.DownloadBytes += bytes =>
         {
             if (activeWork is { } work)
@@ -198,6 +209,7 @@ public sealed partial class MainWindow : Window
             systemUi.ColorValuesChanged -= SystemThemeChanged;
             task?.Cancel();
             core.Dispose();
+            curseforge.Dispose();
         };
     }
 

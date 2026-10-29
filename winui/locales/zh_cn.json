@@ -2,6 +2,13 @@
   "code": "zh_cn",
   "displayName": "简体中文",
   "strings": {
+    "Source": "来源",
+    "Select a source to filter by category.": "选择具体来源后可以按分类筛选。",
+    "View on CurseForge": "在 CurseForge 上查看",
+    "{0:N0} downloads": "{0:N0} 次下载",
+    "Additional filters are available for Modrinth only.": "更多筛选仅适用于 Modrinth。",
+    "Modrinth is unavailable. Showing CurseForge results only.": "Modrinth 暂不可用，当前仅显示 CurseForge 的结果。",
+    "CurseForge is unavailable. Showing Modrinth results only.": "CurseForge 暂不可用，当前仅显示 Modrinth 的结果。",
     " MB. Recalculated at each launch based on physical and available memory.": " MB；每次启动根据物理内存和可用内存重新计算。",
     " · {0:N0} results": " · 共 {0:N0} 项",
     " · Using official release page": " · 已切换官方发布页",
