@@ -60,6 +60,14 @@ static class RuntimeLog
     // 过滤常见凭据字段；调用方输出游戏命令时仍需自行隐藏令牌参数。
     static string Redact(string value)
     {
+        try
+        {
+            if (CurseForgeCredentials.ConfiguredApiKey is { Length: > 0 } key)
+                value = value.Replace(key, "[REDACTED]", StringComparison.Ordinal);
+        }
+        catch
+        { /* An invalid credential resource must not break logging. */
+        }
         value = System.Text.RegularExpressions.Regex.Replace(
             value,
             @"(?i)\bBearer\s+[^\s""'&,}]+",
@@ -76,6 +84,9 @@ static class RuntimeLog
                 "device_code",
                 "authorization",
                 "password",
+                "apiKey",
+                "api_key",
+                "x-api-key",
             }
         )
             value = System.Text.RegularExpressions.Regex.Replace(

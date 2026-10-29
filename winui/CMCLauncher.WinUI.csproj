@@ -22,6 +22,9 @@
     <Title>CMCLauncher</Title>
     <RootNamespace>CMCLauncher.WinUI</RootNamespace>
     <Version>0.9.4</Version>
+    <CurseForgeConfigurationFile
+      Condition="'$(CurseForgeConfigurationFile)' == ''"
+    >$(MSBuildProjectDirectory)/curseforge.local.json</CurseForgeConfigurationFile>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>assets/cmc-logo.ico</ApplicationIcon>
     <!-- 使用 Program.cs 中的自定义入口，负责 OLE 初始化和资源准备。 -->
@@ -168,9 +171,9 @@
       Link="Core/ModrinthService.cs"
     />
     <EmbeddedResource
-      Include="curseforge.local.json"
+      Include="$(CurseForgeConfigurationFile)"
       LogicalName="CMCLauncher.CurseForgeApi"
-      Condition="Exists('curseforge.local.json')"
+      Condition="Exists('$(CurseForgeConfigurationFile)')"
     />
     <Compile
       Include="../native/CurseForgeCredentials.cs"

@@ -8,6 +8,9 @@
     <AssemblyName>CMCLauncher</AssemblyName>
     <RootNamespace>CMCLauncher</RootNamespace>
     <Version>0.9.4</Version>
+    <CurseForgeConfigurationFile
+      Condition="'$(CurseForgeConfigurationFile)' == ''"
+    >$(MSBuildProjectDirectory)/../winui/curseforge.local.json</CurseForgeConfigurationFile>
   </PropertyGroup>
   <!-- 本地构建可嵌入公开 OAuth 客户端 ID，源文件不进入发行包。 -->
   <ItemGroup>
@@ -26,9 +29,9 @@
       Condition="Exists('../winui/clientid.local.json')"
     />
     <EmbeddedResource
-      Include="../winui/curseforge.local.json"
+      Include="$(CurseForgeConfigurationFile)"
       LogicalName="CMCLauncher.CurseForgeApi"
-      Condition="Exists('../winui/curseforge.local.json')"
+      Condition="Exists('$(CurseForgeConfigurationFile)')"
     />
   </ItemGroup>
 </Project>
