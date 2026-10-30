@@ -201,6 +201,8 @@
     "Hide launcher, close when game exits": "游戏启动后隐藏，游戏退出后自动关闭",
     "Hide launcher, reopen when game exits": "游戏启动后隐藏，游戏退出后重新打开",
     "Minimize launcher after launch": "游戏启动后最小化",
+    "Custom JVM arguments": "自定义 JVM 参数",
+    "Custom JVM arguments ({0}): {1}": "自定义 JVM 参数({0}个)：{1}",
     "Default window mode": "启动器默认窗口状态",
     "Launch game": "启动游戏",
     "Launch game · ": "启动游戏 · ",

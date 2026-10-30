@@ -183,6 +183,8 @@
     "Hide launcher, close when game exits": "Скрывать лаунчер и закрывать при выходе из игры",
     "Hide launcher, reopen when game exits": "Скрывать лаунчер и повторно показывать при выходе из игры",
     "Minimize launcher after launch": "Сворачивать лаунчер после запуска",
+    "Custom JVM arguments": "Настраиваемые аргументы JVM",
+    "Custom JVM arguments ({0}): {1}": "Настраиваемые аргументы JVM ({0}): {1}",
     "Default window mode": "Состояние окна по умолчанию",
     "Launch game": "Запустить игру",
     "Launch game · ": "Запуск игры · ",

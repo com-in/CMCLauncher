@@ -183,6 +183,8 @@
     "Hide launcher, close when game exits": "Ocultar el lanzador y cerrarlo cuando el juego se cierre",
     "Hide launcher, reopen when game exits": "Ocultar el lanzador y volver a mostrarlo cuando el juego termine",
     "Minimize launcher after launch": "Minimizar el lanzador tras el inicio",
+    "Custom JVM arguments": "Argumentos JVM personalizados",
+    "Custom JVM arguments ({0}): {1}": "Argumentos JVM personalizados ({0}): {1}",
     "Default window mode": "Estado de ventana predeterminado",
     "Launch game": "Lanzar el juego",
     "Launch game · ": "Lanzar el juego · ",

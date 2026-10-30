@@ -1484,6 +1484,39 @@ internal static class Program
             );
         }
         Pass("NeoForge module exclusions follow the actual vanilla client JAR");
+        Check(
+            LauncherCore.SplitJvmArgs("").Count == 0
+                && LauncherCore.SplitJvmArgs("   ").Count == 0,
+            "empty custom JVM arguments yield no tokens"
+        );
+        Check(
+            LauncherCore.SplitJvmArgs("-Dexample=1 -XX:+UseG1GC").SequenceEqual(
+                new[] { "-Dexample=1", "-XX:+UseG1GC" }
+            ),
+            "custom JVM arguments split on whitespace"
+        );
+        Check(
+            LauncherCore.SplitJvmArgs("-Dpath=\"C:\\My Folder\\a.jar\"").SequenceEqual(
+                new[] { "-Dpath=C:\\My Folder\\a.jar" }
+            ),
+            "quoted values keep embedded spaces as a single token"
+        );
+        var customSettings = new Settings { CustomJvmArgs = "-Dexample=42" };
+        var customArgs = LauncherCore.BuildArguments(
+            version,
+            root,
+            game,
+            Path.Combine(root, "natives"),
+            [Path.Combine(root, "library.jar")],
+            Account.Offline("Steve"),
+            new JsonObject(),
+            customSettings
+        );
+        Check(
+            customArgs.Contains("-Dexample=42"),
+            "custom JVM arguments are injected into the launch command"
+        );
+        Pass("custom JVM arguments split, quote, and inject correctly");
         using var core = new LauncherCore(
             settings,
             new MockHandler(_ => new HttpResponseMessage(HttpStatusCode.OK)

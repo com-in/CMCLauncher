@@ -183,6 +183,8 @@
     "Hide launcher, close when game exits": "إخفاء اللانشر وإغلاقه تلقائيًا عند خروج اللعبة",
     "Hide launcher, reopen when game exits": "إخفاء اللانشر وإعادة ظهوره عند خروج اللعبة",
     "Minimize launcher after launch": "تصغير اللانشر بعد تشغيل اللعبة",
+    "Custom JVM arguments": "وسائط JVM المخصصة",
+    "Custom JVM arguments ({0}): {1}": "وسائط JVM المخصصة ({0}): {1}",
     "Default window mode": "حالة النافذة الافتراضية",
     "Launch game": "إطلاق اللعبة",
     "Launch game · ": "إطلاق اللعبة · ",

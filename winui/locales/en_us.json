@@ -201,6 +201,8 @@
     "Hide launcher, close when game exits": "Hide launcher, close when game exits",
     "Hide launcher, reopen when game exits": "Hide launcher, reopen when game exits",
     "Minimize launcher after launch": "Minimize launcher after launch",
+    "Custom JVM arguments": "Custom JVM arguments",
+    "Custom JVM arguments ({0}): {1}": "Custom JVM arguments ({0}): {1}",
     "Default window mode": "Default window mode",
     "Launch game": "Launch game",
     "Launch game · ": "Launch game · ",

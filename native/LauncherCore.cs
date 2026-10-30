@@ -1458,6 +1458,8 @@ public sealed partial class LauncherCore : IDisposable
                 .Select(Substitute)
                 .ToList();
         var result = new List<string> { "-Xms512M", $"-Xmx{GameMemory.Resolve(settings)}M" };
+        foreach (var token in SplitJvmArgs(settings.CustomJvmArgs))
+            result.Add(token);
         var jvm = Flatten(version["arguments"]?["jvm"]);
         for (var i = 0; i + 1 < jvm.Count; i++)
             if (jvm[i] is "-p" or "--module-path")
@@ -1520,6 +1522,43 @@ public sealed partial class LauncherCore : IDisposable
                     .Select(Substitute)
         );
         return result;
+    }
+
+    // 把用户输入的自定义 JVM 参数按空白拆分，尊重引号包裹的含空格项。
+    public static List<string> SplitJvmArgs(string input)
+    {
+        var tokens = new List<string>();
+        var current = new System.Text.StringBuilder();
+        char quote = '\0';
+        foreach (var c in input)
+        {
+            if (quote != '\0')
+            {
+                if (c == quote)
+                    quote = '\0';
+                else
+                    current.Append(c);
+                continue;
+            }
+            if (c is '"' or '\'')
+            {
+                quote = c;
+                continue;
+            }
+            if (char.IsWhiteSpace(c))
+            {
+                if (current.Length > 0)
+                {
+                    tokens.Add(current.ToString());
+                    current.Clear();
+                }
+                continue;
+            }
+            current.Append(c);
+        }
+        if (current.Length > 0)
+            tokens.Add(current.ToString());
+        return tokens;
     }
 
     public static async Task<int> InspectJava(string executable, CancellationToken ct)

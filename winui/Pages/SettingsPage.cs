@@ -100,6 +100,15 @@ public sealed class SettingsPage : CMCPage
         automaticMemory.Toggled += (_, _) => RefreshMemory();
         RefreshMemory();
 
+        var customJvmArgs = new TextBox
+        {
+            Header = Ui("Custom JVM arguments"),
+            PlaceholderText = "-Dexample=1 -XX:+UseG1GC",
+            Text = settings.CustomJvmArgs,
+            AcceptsReturn = false,
+        };
+        var jvmHint = Text("", 12);
+
         var proxy = new TextBox
         {
             Header = Ui("Download proxy (blank uses system proxy)"),
@@ -233,6 +242,8 @@ public sealed class SettingsPage : CMCPage
                 projectIntro,
                 localizedGameLanguage,
                 launcherVisibility,
+                customJvmArgs,
+                jvmHint,
                 automaticMemory,
                 memory,
                 memoryHint,
@@ -297,6 +308,20 @@ public sealed class SettingsPage : CMCPage
                 downloadThreads.Value = value;
             settings.DownloadThreads = value;
             await PersistSettings();
+        };
+
+        void RefreshJvmHint()
+        {
+            var tokens = LauncherCore.SplitJvmArgs(customJvmArgs.Text);
+            jvmHint.Text = tokens.Count > 0
+                ? UiFormat("Custom JVM arguments ({0}): {1}", tokens.Count, string.Join(" ", tokens))
+                : "";
+        }
+        customJvmArgs.TextChanged += async (_, _) =>
+        {
+            settings.CustomJvmArgs = customJvmArgs.Text.Trim();
+            await PersistSettings();
+            RefreshJvmHint();
         };
 
         var proxyHint = Text("", 12);
