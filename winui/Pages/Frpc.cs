@@ -29,7 +29,7 @@ public sealed partial class MainWindow
                         Text(Ui("frpc"), 18, true),
                         Text(
                             Ui(
-                                "Download official frpc and manage connections using INI / TOML configurations."
+                                "Download official Frp Client and manage connections using INI / TOML configurations."
                             ),
                             13
                         ),

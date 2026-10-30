@@ -53,6 +53,7 @@ public sealed partial class MainWindow : Window
     string resourceReturnPage = "download-mod";
     Func<string, CancellationToken, Task<CommunityProject>> fetchProject = null!;
     Func<string, CancellationToken, Task<List<CommunityVersion>>> fetchProjectVersions = null!;
+    Func<string, int, int, CancellationToken, Task<CommunityVersionPage>>? fetchProjectVersionPage;
     string communityGameCategory = "全部";
     Func<
         string,
@@ -148,6 +149,7 @@ public sealed partial class MainWindow : Window
         fetchDownloadLoaderBuilds = core.LoaderBuilds;
         fetchProject = community.ProjectDetails;
         fetchProjectVersions = community.ProjectVersions;
+        fetchProjectVersionPage = curseforge.ProjectVersionPage;
         searchResourcePage = community.SearchPage;
         fetchCommunityFilters = modrinth.FilterCatalog;
         fetchCurseForgeFilters = curseforge.FilterCatalog;

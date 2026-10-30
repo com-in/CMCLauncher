@@ -586,6 +586,10 @@ internal static class Program
             "unverified imported account accepted"
         );
         Pass("Microsoft profile gate for offline identities and launch");
+        await ExternalAuthTests.Run(Path.Combine(root, "external-auth"));
+        Pass(
+            "external authentication ownership gate, profiles, sessions, and verified injector downloads"
+        );
         var settings = new Store(Path.Combine(root, "settings"));
         settings.Config.Settings.GameLanguage = "zh_cn";
         await settings.Save();

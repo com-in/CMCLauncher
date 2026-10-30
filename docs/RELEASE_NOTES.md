@@ -16,6 +16,6 @@
 
 ## Download
 
-Download `CMCLauncher-1.0.0-win-x64.zip`, extract the entire archive, and run `CMCLauncher.exe`. The archive includes the .NET and Windows App SDK runtimes. Java, Minecraft files, and frpc are downloaded or imported separately.
+Download `CMCLauncher-1.0.0-win-x64.zip`, extract the entire archive, and run `CMCLauncher.exe`. The archive includes the .NET and Windows App SDK runtimes. Java, Minecraft files, and Frp Client are downloaded or imported separately.
 
 Release builds inject the application's Microsoft Client ID and CurseForge API credential through GitHub Actions secrets. Local builds need their own application configuration to use those integrations.

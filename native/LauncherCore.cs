@@ -1181,6 +1181,8 @@ public sealed partial class LauncherCore : IDisposable
     )
     {
         progress?.Report((5, "读取游戏版本"));
+        if (account.Type == "yggdrasil")
+            MicrosoftAuth.EnsureAccountAllowed(store.Config.Accounts, account);
         var version = await VersionFor(instance, ct);
         progress?.Report((10, "检查 Java 环境"));
         var requiredJava = JavaManager.RequiredMajor(
@@ -1285,6 +1287,13 @@ public sealed partial class LauncherCore : IDisposable
                 ct: ct
             );
         await ContentManager.Language(game, store.Config.Settings.GameLanguage);
+        IReadOnlyList<string>? authenticationArguments = null;
+        if (account.Type == "yggdrasil")
+        {
+            MicrosoftAuth.EnsureAccountAllowed(store.Config.Accounts, account);
+            using var external = new ExternalAuth(store.Config.Settings);
+            authenticationArguments = await external.LaunchArguments(account, store.Root, ct);
+        }
         var args = BuildArguments(
             version,
             storage,
@@ -1295,7 +1304,8 @@ public sealed partial class LauncherCore : IDisposable
             credentials,
             store.Config.Settings,
             account.Type == "microsoft" ? MicrosoftAuth.ConfiguredClientId : null,
-            clientJar: jar
+            clientJar: jar,
+            authenticationArguments: authenticationArguments
         );
         var start = new ProcessStartInfo(java)
         {
@@ -1334,6 +1344,8 @@ public sealed partial class LauncherCore : IDisposable
         }
         process.OutputDataReceived += Output;
         process.ErrorDataReceived += Output;
+        if (account.Type == "yggdrasil")
+            MicrosoftAuth.EnsureAccountAllowed(store.Config.Accounts, account);
         ct.ThrowIfCancellationRequested();
         progress?.Report((98, "创建游戏进程"));
         try
@@ -1383,7 +1395,8 @@ public sealed partial class LauncherCore : IDisposable
         JsonNode credentials,
         Settings settings,
         string? clientId = null,
-        string? clientJar = null
+        string? clientJar = null,
+        IReadOnlyList<string>? authenticationArguments = null
     )
     {
         // Flattened profiles may repeat libraries; NeoForge's union filesystem rejects duplicate paths.
@@ -1414,7 +1427,10 @@ public sealed partial class LauncherCore : IDisposable
                 version["assetIndex"].S("id", "legacy")
             ),
             ["assets_index_name"] = version["assetIndex"].S("id", version.S("assets")),
-            ["user_type"] = account.Type == "microsoft" ? "msa" : "legacy",
+            ["user_type"] =
+                account.Type == "microsoft" ? "msa"
+                : account.Type == "yggdrasil" ? "mojang"
+                : "legacy",
             ["user_properties"] = "{}",
             ["clientid"] = clientId ?? settings.MicrosoftClientId,
             ["auth_xuid"] = credentials.S("xuid"),
@@ -1491,6 +1507,8 @@ public sealed partial class LauncherCore : IDisposable
         var mainClass = version.S("mainClass");
         if (mainClass.Length == 0)
             throw new InvalidDataException("The game profile is missing its main class.");
+        if (authenticationArguments != null)
+            result.AddRange(authenticationArguments);
         result.Add(mainClass);
         var gameArgs = Flatten(version["arguments"]?["game"]);
         result.AddRange(

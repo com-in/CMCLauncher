@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.Text.Json.Nodes;
 using Microsoft.UI;
 using Microsoft.UI.Windowing;
@@ -399,7 +399,7 @@ public sealed partial class MainWindow
             }
         }
         var account = store.Config.Accounts.FirstOrDefault(a =>
-            a.Uuid == store.Config.SelectedAccount
+            a.Key == store.Config.SelectedAccount
         );
         ProfileButton.Content = account?.ToString() ?? "还未添加账号";
         try

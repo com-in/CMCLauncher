@@ -318,6 +318,40 @@ public sealed class CurseForgeCommunityService : IDisposable
         return result;
     }
 
+    // Page by raw API rows, including filtered files, so unavailable entries cannot repeat or stall a page.
+    public async Task<CommunityVersionPage> ProjectVersionPage(
+        string project,
+        int offset,
+        int limit,
+        CancellationToken ct
+    )
+    {
+        var id = Number(project);
+        if (offset < 0 || offset >= 10000 || limit is < 1 or > 50)
+            throw new ArgumentOutOfRangeException(nameof(offset));
+        limit = Math.Min(limit, 10000 - offset);
+        var response = await Query($"mods/{id}/files?index={offset}&pageSize={limit}", ct)
+            .ConfigureAwait(false);
+        ct.ThrowIfCancellationRequested();
+        var files = response["data"].Items().ToArray();
+        if (
+            files.Length > limit
+            || files.Any(file => file.Int("modId") != id || file.Int("gameId") != 432)
+        )
+            throw new InvalidDataException("CurseForge returned an unexpected file list.");
+        var versions = files
+            .Where(file =>
+                file.S("isAvailable") == "true"
+                && file.S("isEarlyAccessContent") != "true"
+                && file.S("isServerPack") != "true"
+            )
+            .Select(Version)
+            .ToArray();
+        var next = offset + files.Length;
+        var total = Math.Min(10000, Math.Max(next, response["pagination"].Int("totalCount", next)));
+        return new(versions, offset, next, total);
+    }
+
     public async Task DownloadFile(int projectId, int fileId, string target, CancellationToken ct)
     {
         var project = await Project(projectId, ct);

@@ -68,6 +68,36 @@ static class CurseForgeCommunityTests
                 );
                 var uri = request.RequestUri!;
                 calls.Add(uri);
+                if (uri.AbsolutePath.EndsWith("/mods/8/files"))
+                {
+                    var offset = Parameter(uri, "index");
+                    var limit = Parameter(uri, "pageSize");
+                    return Json(
+                        new JsonObject
+                        {
+                            ["data"] = new JsonArray(
+                                Enumerable
+                                    .Range(offset, limit)
+                                    .Select(i =>
+                                        (JsonNode)
+                                            new JsonObject
+                                            {
+                                                ["id"] = i + 1,
+                                                ["modId"] = 8,
+                                                ["gameId"] = 432,
+                                                ["isAvailable"] = i % 2 == 0,
+                                                ["gameVersions"] = new JsonArray(
+                                                    "1.21.1",
+                                                    "NeoForge"
+                                                ),
+                                            }
+                                    )
+                                    .ToArray()
+                            ),
+                            ["pagination"] = new JsonObject { ["totalCount"] = 10000 },
+                        }.ToJsonString()
+                    );
+                }
                 if (uri.Host == "edge.forgecdn.net")
                     return new(HttpStatusCode.OK)
                     {
@@ -180,6 +210,31 @@ static class CurseForgeCommunityTests
             "Version loader or identity lost"
         );
         Directory.CreateDirectory(root);
+        var beforePage = calls.Count;
+        var largePage = await service.ProjectVersionPage("curseforge:8", 0, 50, default);
+        Check(
+            calls.Count == beforePage + 1
+                && largePage.NextOffset == 50
+                && largePage.TotalHits == 10000
+                && largePage.Versions.Count == 25
+                && largePage.HasNext,
+            "Large CurseForge projects fetch one bounded page and advance past filtered files"
+        );
+        var nextLargePage = await service.ProjectVersionPage(
+            "curseforge:8",
+            largePage.NextOffset,
+            50,
+            default
+        );
+        Check(
+            nextLargePage.Offset == 50
+                && nextLargePage.NextOffset == 100
+                && !nextLargePage
+                    .Versions.Select(v => v.Id)
+                    .Intersect(largePage.Versions.Select(v => v.Id))
+                    .Any(),
+            "CurseForge version pagination does not repeat files"
+        );
         var target = Path.Combine(root, "fixture.jar");
         await service.DownloadFile(7, 9, target, default);
         Check(System.IO.File.ReadAllText(target) == "abc", "Authenticated download failed");

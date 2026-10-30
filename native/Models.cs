@@ -145,9 +145,26 @@ public sealed class Account
     public string Name { get; set; } = "";
     public string Uuid { get; set; } = "";
     public string? Secret { get; set; }
+    public string AuthServer { get; set; } = "";
+    public string LoginName { get; set; } = "";
+
+    // External servers may issue the same UUID as another provider. Keep the game UUID
+    // separate from the key used to select and remove launcher accounts.
+    [System.Text.Json.Serialization.JsonIgnore]
+    public string Key =>
+        Type == "yggdrasil"
+            ? "yggdrasil:"
+                + Convert
+                    .ToHexString(
+                        SHA256.HashData(
+                            Encoding.UTF8.GetBytes(AuthServer + "\n" + LoginName + "\n" + Uuid)
+                        )
+                    )
+                    .ToLowerInvariant()
+            : Uuid;
 
     public override string ToString() =>
-        $"{Name} · {(Type == "microsoft" ? "Microsoft" : "离线身份")}";
+        $"{Name} · {(Type == "microsoft" ? "Microsoft" : Type == "yggdrasil" ? AuthServer : "离线身份")}";
 
     public static Account Offline(string name)
     {

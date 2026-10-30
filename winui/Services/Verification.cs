@@ -2394,6 +2394,14 @@ public sealed partial class MainWindow
         await RenderAsync();
         Check(
             Descendants(PageBody)
+                .OfType<ContentControl>()
+                .Single(e => e.Tag?.ToString() == "external-account-form")
+                .IsEnabled,
+            "Microsoft profile verification unlocks external sign-in"
+        );
+        await Capture(Path.Combine(directory, "external-sign-in.png"));
+        Check(
+            Descendants(PageBody)
                 .OfType<Button>()
                 .Any(b => b.Content?.ToString() == "添加离线身份"),
             "verified Microsoft Java account unlocks offline identity creation"
@@ -2405,14 +2413,35 @@ public sealed partial class MainWindow
         );
         var offlineAccount = Account.Offline("FixtureOffline");
         store.Config.Accounts.Add(offlineAccount);
+        var externalAccount = new Account
+        {
+            Type = "yggdrasil",
+            Name = "ExternalFixture",
+            Uuid = verified.Uuid,
+            AuthServer = "https://skin.example/api/yggdrasil/",
+            LoginName = "fixture",
+        };
+        await SaveAccount(externalAccount);
+        Check(
+            store.Config.Accounts.Contains(verified)
+                && store.Config.SelectedAccount == externalAccount.Key,
+            "external accounts cannot overwrite a Microsoft account with the same UUID"
+        );
         await store.Save();
         await ForgetAccount(verified);
         Check(
-            !store.Config.Accounts.Any(a => a.Uuid == verified.Uuid)
+            !store.Config.Accounts.Any(a => a.Key == verified.Key)
                 && store.Config.SelectedAccount == null,
             "removing the last verified account clears the selected account"
         );
         await RenderAsync();
+        Check(
+            !Descendants(PageBody)
+                .OfType<ContentControl>()
+                .Single(e => e.Tag?.ToString() == "external-account-form")
+                .IsEnabled && !MicrosoftAuth.CanUseAccount(store.Config.Accounts, externalAccount),
+            "removing the last verified Microsoft account locks external sign-in and selection"
+        );
         Check(
             !Descendants(PageBody)
                 .OfType<Button>()

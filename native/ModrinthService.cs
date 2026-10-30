@@ -30,6 +30,16 @@ public sealed record CommunityProject(
     string Authors = ""
 );
 
+public sealed record CommunityVersionPage(
+    IReadOnlyList<CommunityVersion> Versions,
+    int Offset,
+    int NextOffset,
+    int TotalHits
+)
+{
+    public bool HasNext => NextOffset > Offset && NextOffset < TotalHits;
+}
+
 public sealed record CommunityVersion(
     string Id,
     string Name,

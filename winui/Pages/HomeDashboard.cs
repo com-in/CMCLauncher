@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.Text.Json.Nodes;
 using Microsoft.UI;
 using Microsoft.UI.Windowing;
@@ -287,7 +287,7 @@ public sealed partial class MainWindow
         if (placement.Id == "account")
         {
             var account = store.Config.Accounts.FirstOrDefault(a =>
-                a.Uuid == store.Config.SelectedAccount
+                a.Key == store.Config.SelectedAccount
                 && MicrosoftAuth.CanUseAccount(store.Config.Accounts, a)
             );
             var row = new Grid { ColumnSpacing = 12 };
@@ -306,6 +306,7 @@ public sealed partial class MainWindow
                     Text(account?.Name ?? "未选择账号", 14, true),
                     Muted(
                         account?.Type == "microsoft" ? "Microsoft 正版账号"
+                            : account?.Type == "yggdrasil" ? "External account"
                             : account?.Type == "offline" ? "离线账号"
                             : "登录正版账号或添加离线身份",
                         11
@@ -379,7 +380,7 @@ public sealed partial class MainWindow
             Grid.SetColumnSpan(tools, 2);
             footer.Children.Add(tools);
             var account = store.Config.Accounts.FirstOrDefault(a =>
-                a.Uuid == store.Config.SelectedAccount
+                a.Key == store.Config.SelectedAccount
                 && MicrosoftAuth.CanUseAccount(store.Config.Accounts, a)
             );
             var readiness = new StackPanel

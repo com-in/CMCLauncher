@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using CMCLauncher;
 
 static class LocalizationCatalogTests
@@ -47,6 +47,18 @@ static class LocalizationCatalogTests
             catalog.Translate("unknown", "Save") == "Save"
                 && catalog.Translate("en_us", "unknown text") == "unknown text",
             "Unknown languages and keys fall back safely"
+        );
+        Check(
+            catalog.Languages.Any(l => l.Code == "ja_jp" && l.DisplayName == "日本語")
+                && catalog.Translate("ja_jp", "Authentication server") == "認証サーバー"
+                && catalog.Translate("ja_jp", "frpc") == "Frp Client",
+            "Bundled Japanese is discoverable and includes account and client terminology"
+        );
+        Check(
+            catalog.Format("ja_jp", "Page {0} of {1}", 2, 9) == "9 ページ中 2 ページ目"
+                && catalog.Format("ja_jp", "{0:N0} versions loaded", 12)
+                    == "12 件のバージョンを読み込みました",
+            "Japanese templates preserve reordered and numeric placeholders"
         );
         var english = Path.Combine(root, "en_us.json");
         await File.WriteAllTextAsync(

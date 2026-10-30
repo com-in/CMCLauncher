@@ -211,6 +211,10 @@
       Link="Core/MicrosoftAuth.cs"
     />
     <Compile
+      Include="../native/ExternalAuth.cs"
+      Link="Core/ExternalAuth.cs"
+    />
+    <Compile
       Include="../native/GlobalUsings.cs"
       Link="Core/GlobalUsings.cs"
     />

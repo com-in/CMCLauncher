@@ -23,9 +23,13 @@ public sealed partial class MainWindow
         {
             // 超时或离开后仍可能有后台请求失败，观察异常而不再更新页面。
             _ = pending.ContinueWith(
-                task => { _ = task.Exception; },
+                task =>
+                {
+                    _ = task.Exception;
+                },
                 CancellationToken.None,
-                TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously,
+                TaskContinuationOptions.OnlyOnFaulted
+                    | TaskContinuationOptions.ExecuteSynchronously,
                 TaskScheduler.Default
             );
         }
@@ -61,12 +65,25 @@ public sealed partial class MainWindow
         try
         {
             var infoTask = LoadResourceDetail(fetchProject, project.Id, request.Token);
-            var versionsTask = LoadResourceDetail(fetchProjectVersions, project.Id, request.Token);
+            var pageFetcher = project.Source == "curseforge" ? fetchProjectVersionPage : null;
+            CommunityVersionPage? versionPage = null;
+            async Task<List<CommunityVersion>> InitialVersions(string id, CancellationToken ct)
+            {
+                if (pageFetcher == null)
+                    return await fetchProjectVersions(id, ct).ConfigureAwait(false);
+                versionPage = await pageFetcher(id, 0, 50, ct).ConfigureAwait(false);
+                return versionPage.Versions.ToList();
+            }
+            var versionsTask = LoadResourceDetail(InitialVersions, project.Id, request.Token);
             // 元数据失败时，仍观察并发版本请求的异常。
             _ = versionsTask.ContinueWith(
-                task => { _ = task.Exception; },
+                task =>
+                {
+                    _ = task.Exception;
+                },
                 CancellationToken.None,
-                TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously,
+                TaskContinuationOptions.OnlyOnFaulted
+                    | TaskContinuationOptions.ExecuteSynchronously,
                 TaskScheduler.Default
             );
             var info = await infoTask;
@@ -119,9 +136,10 @@ public sealed partial class MainWindow
                     {
                         MaxHeight = 360,
                         // CurseForge 的 HTML 已在服务层转成纯文本，无需再解析 Markdown。
-                        Content = project.Source == "curseforge"
-                            ? Text(info.Body, 13)
-                            : RenderMarkdown(info.Body),
+                        Content =
+                            project.Source == "curseforge"
+                                ? Text(info.Body, 13)
+                                : RenderMarkdown(info.Body),
                     };
                 }
                 intro.Expanding += (_, _) => LoadIntroduction();
@@ -165,9 +183,10 @@ public sealed partial class MainWindow
             {
                 if (generation != renderVersion)
                     return;
-                loadingVersions.Text = ex is OperationCanceledException
-                    ? Ui("加载超时，请重试。")
-                    : Ui("加载失败：") + ex.Message;
+                loadingVersions.Text =
+                    ex is OperationCanceledException
+                        ? Ui("加载超时，请重试。")
+                        : Ui("加载失败：") + ex.Message;
                 host.Children.Add(Action("重新加载", async (_, _) => await RenderAsync()));
                 return;
             }
@@ -199,8 +218,29 @@ public sealed partial class MainWindow
                 project.Type == "modpack" ? Visibility.Collapsed : Visibility.Visible;
             host.Children.Add(filterStatus);
             host.Children.Add(groups);
+            var versionIds = versions.Select(v => v.Id).ToHashSet(StringComparer.Ordinal);
+            var pageStatus = Text("", 12);
+            pageStatus.Tag = "resource-version-page-status";
+            var moreVersions = new Button
+            {
+                Content = Ui("Load more versions"),
+                Tag = "resource-version-page-more",
+            };
+            void UpdateVersionPager()
+            {
+                pageStatus.Text = UiFormat("{0:N0} versions loaded", versions.Count);
+                moreVersions.Visibility =
+                    versionPage?.HasNext == true ? Visibility.Visible : Visibility.Collapsed;
+            }
+            if (pageFetcher != null)
+            {
+                host.Children.Add(pageStatus);
+                host.Children.Add(moreVersions);
+                UpdateVersionPager();
+            }
             // 切换分类时也要丢弃旧结果，不能只判断是否还停留在详情页。
             var filterRevision = 0;
+            var groupsDrawn = false;
             async Task FilterVersions()
             {
                 var revision = ++filterRevision;
@@ -216,7 +256,7 @@ public sealed partial class MainWindow
                     if (generation != renderVersion || revision != filterRevision)
                         return;
                     filterStatus.Text = "";
-                    DrawVersions();
+                    await DrawVersions();
                 }
                 catch (Exception ex)
                 {
@@ -241,28 +281,41 @@ public sealed partial class MainWindow
                 }
             };
             // 一个资源版本可能支持多个 Minecraft 版本，按游戏版本展开后分别归组。
-            void DrawVersions()
+            async Task DrawVersions()
             {
                 var revisionAtDraw = filterRevision;
-                groups.Children.Clear();
+                var snapshot = versions.ToArray();
+                var category = communityGameCategory;
+                var allowedGames = cachedVersions
+                    .Where(mc => mc.Category == category)
+                    .Select(mc => mc.Id)
+                    .ToHashSet(StringComparer.Ordinal);
                 bool? shaderSupport =
                     project.Type == "shader" && selected != null
                         ? ContentManager.HasShaderSupport(selected, store.GameDirectory(selected))
                         : null;
-                var grouped = versions
-                    .OrderByDescending(v => v.Published, StringComparer.Ordinal)
-                    .SelectMany(v =>
-                        v.GameVersions.Distinct().Select(mc => (Minecraft: mc, Version: v))
-                    )
-                    .Where(v =>
-                        project.Type == "modpack"
-                        || communityGameCategory == "全部"
-                        || cachedVersions.Any(mc =>
-                            mc.Id == v.Minecraft && mc.Category == communityGameCategory
+                var grouped = await Task.Run(() =>
+                    snapshot
+                        .OrderByDescending(v => v.Published, StringComparer.Ordinal)
+                        .SelectMany(v =>
+                            v.GameVersions.Distinct().Select(mc => (Minecraft: mc, Version: v))
                         )
-                    )
-                    .GroupBy(v => v.Minecraft)
-                    .ToList();
+                        .Where(v =>
+                            project.Type == "modpack"
+                            || category == "全部"
+                            || allowedGames.Contains(v.Minecraft)
+                        )
+                        .GroupBy(v => v.Minecraft)
+                        .ToList()
+                );
+                if (generation != renderVersion || revisionAtDraw != filterRevision)
+                    return;
+                var expanded = groups
+                    .Children.OfType<Expander>()
+                    .Where(e => e.IsExpanded)
+                    .Select(e => e.Tag?.ToString())
+                    .ToHashSet();
+                groups.Children.Clear();
                 if (grouped.Count == 0)
                     groups.Children.Add(Text("此分类下没有可下载的游戏版本。", 13));
                 foreach (var group in grouped)
@@ -307,10 +360,10 @@ public sealed partial class MainWindow
                                     " · ",
                                     new[]
                                     {
-                                    version.Number,
-                                    string.Join(" / ", version.Loaders),
-                                    channel,
-                                    date,
+                                        version.Number,
+                                        string.Join(" / ", version.Loaders),
+                                        channel,
+                                        date,
                                     }.Where(s => s.Length > 0)
                                 ),
                                 11
@@ -333,7 +386,10 @@ public sealed partial class MainWindow
                                     var destination =
                                         project.Type == "modpack"
                                             ? null
-                                            : await ResolveInstallDestination(project.Type, version);
+                                            : await ResolveInstallDestination(
+                                                project.Type,
+                                                version
+                                            );
                                     if (project.Type != "modpack" && destination == null)
                                         return;
                                     await Run(async ct =>
@@ -404,9 +460,14 @@ public sealed partial class MainWindow
                             install.Padding = new Thickness(9, 4, 9, 4);
                             var row = new Grid { ColumnSpacing = 12 };
                             row.ColumnDefinitions.Add(
-                                new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) }
+                                new ColumnDefinition
+                                {
+                                    Width = new GridLength(1, GridUnitType.Star),
+                                }
                             );
-                            row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+                            row.ColumnDefinitions.Add(
+                                new ColumnDefinition { Width = GridLength.Auto }
+                            );
                             row.Children.Add(labels);
                             Grid.SetColumn(install, 1);
                             row.Children.Add(install);
@@ -414,20 +475,25 @@ public sealed partial class MainWindow
                         }
                         if (offset < entries.Length)
                         {
-                            more = Action("加载更多", (_, _) => { AddRows(); return Task.CompletedTask; });
+                            more = Action(
+                                "加载更多",
+                                (_, _) =>
+                                {
+                                    AddRows();
+                                    return Task.CompletedTask;
+                                }
+                            );
                             rows.Children.Add(more);
                         }
                     }
                     var expander = new Expander
                     {
-                        Header = UiFormat(
-                                "Minecraft {0} · {1} versions",
-                                group.Key,
-                                group.Count()
-                            ),
+                        Tag = group.Key,
+                        Header = UiFormat("Minecraft {0} · {1} versions", group.Key, group.Count()),
                         Content = rows,
-                        IsExpanded =
-                                group.Key == selected?.GameVersion
+                        IsExpanded = groupsDrawn
+                            ? expanded.Contains(group.Key)
+                            : group.Key == selected?.GameVersion
                                 || (selected == null && group == grouped[0]),
                         HorizontalAlignment = HorizontalAlignment.Stretch,
                         HorizontalContentAlignment = HorizontalAlignment.Stretch,
@@ -441,7 +507,54 @@ public sealed partial class MainWindow
                         AddRows();
                     groups.Children.Add(expander);
                 }
+                groupsDrawn = true;
             }
+            moreVersions.Click += async (_, _) =>
+            {
+                if (
+                    pageFetcher == null
+                    || versionPage?.HasNext != true
+                    || !moreVersions.IsEnabled
+                    || generation != renderVersion
+                )
+                    return;
+                moreVersions.IsEnabled = false;
+                using var nextRequest = new CancellationTokenSource(resourceDetailTimeout);
+                resourceSearch = nextRequest;
+                try
+                {
+                    var offset = versionPage.NextOffset;
+                    var next = await LoadResourceDetail(
+                        (id, ct) => pageFetcher(id, offset, 50, ct),
+                        project.Id,
+                        nextRequest.Token
+                    );
+                    if (generation != renderVersion)
+                        return;
+                    nextRequest.Token.ThrowIfCancellationRequested();
+                    foreach (var version in next.Versions)
+                        if (versionIds.Add(version.Id))
+                            versions.Add(version);
+                    versionPage = next;
+                    await FilterVersions();
+                    UpdateVersionPager();
+                }
+                catch (Exception ex)
+                {
+                    if (generation == renderVersion)
+                        pageStatus.Text =
+                            ex is OperationCanceledException
+                                ? Ui("加载超时，请重试。")
+                                : Ui("加载失败：") + ex.Message;
+                }
+                finally
+                {
+                    if (ReferenceEquals(resourceSearch, nextRequest))
+                        resourceSearch = null;
+                    if (generation == renderVersion)
+                        moreVersions.IsEnabled = true;
+                }
+            };
             await FilterVersions();
         }
         catch (OperationCanceledException)
@@ -465,7 +578,11 @@ public sealed partial class MainWindow
         finally
         {
             if (ReferenceEquals(resourceSearch, request))
+            {
                 resourceSearch = null;
+                // 元数据先失败时，不让并发的版本请求在页面结束后继续运行。
+                request.Cancel();
+            }
         }
     }
 }

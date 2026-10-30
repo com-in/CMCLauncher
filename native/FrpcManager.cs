@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.IO.Compression;
 using System.Security.Cryptography;
 using System.Text.Json.Nodes;
@@ -48,7 +48,7 @@ public sealed class FrpcManager(Store store, LauncherCore core) : IDisposable
     public static string Version(string value) =>
         VersionPattern.IsMatch(value)
             ? value.TrimStart('v')
-            : throw new IOException("Invalid frpc version (example: 0.71.1).");
+            : throw new IOException("Invalid Frp Client version (example: 0.71.1).");
 
     public string Executable(string version) =>
         Store.SafePath(Root, Version(version) + "/frpc.exe");
@@ -77,7 +77,7 @@ public sealed class FrpcManager(Store store, LauncherCore core) : IDisposable
         }
         catch (Exception ex) when (CanFallback(ex, ct))
         {
-            Emit("frpc release API unavailable; using official release downloads. " + ex.Message);
+            Emit("Frp Client release API unavailable; using official release downloads. " + ex.Message);
             try
             {
                 if (latest)
@@ -122,7 +122,7 @@ public sealed class FrpcManager(Store store, LauncherCore core) : IDisposable
                     && Regex.IsMatch(cached.Sha256, "^[a-fA-F0-9]{64}$")
                 )
                 {
-                    Emit("Using cached official frpc release metadata.");
+                    Emit("Using cached official Frp Client release metadata.");
                     return cached;
                 }
                 throw new IOException(
@@ -145,13 +145,13 @@ public sealed class FrpcManager(Store store, LauncherCore core) : IDisposable
         var resolved = Version(json["tag_name"]?.GetValue<string>() ?? "");
         var name = $"frp_{resolved}_windows_amd64.zip";
         var assets =
-            json["assets"]?.AsArray() ?? throw new IOException("frpc release has no assets.");
+            json["assets"]?.AsArray() ?? throw new IOException("Frp Client release has no assets.");
         var asset =
             assets.FirstOrDefault(a => a?["name"]?.GetValue<string>() == name)
-            ?? throw new IOException("Windows x64 frpc package not found.");
+            ?? throw new IOException("Windows x64 Frp Client package not found.");
         var url = asset["browser_download_url"]!.GetValue<string>();
         if (!OfficialAsset(url))
-            throw new IOException("Unexpected frpc download source.");
+            throw new IOException("Unexpected Frp Client download source.");
         var digest = asset["digest"]?.GetValue<string>() ?? "";
         var hash = digest.StartsWith("sha256:") ? digest[7..] : "";
         if (hash.Length == 0)
@@ -331,7 +331,7 @@ public sealed class FrpcManager(Store store, LauncherCore core) : IDisposable
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            Emit("frpc cache unavailable: " + ex.GetType().Name);
+            Emit("Frp Client cache unavailable: " + ex.GetType().Name);
         }
     }
 
@@ -368,13 +368,13 @@ public sealed class FrpcManager(Store store, LauncherCore core) : IDisposable
         {
             ObjectDisposedException.ThrowIf(disposed, this);
             if (Running)
-                throw new IOException("Stop frpc before installing a client.");
+                throw new IOException("Stop Frp Client before installing a client.");
             if (
                 !OfficialAsset(release.Url)
                 || !Regex.IsMatch(release.Sha256, "^[a-fA-F0-9]{64}$")
                 || release.Size is <= 0 or > 100_000_000
             )
-                throw new IOException("Invalid frpc release metadata.");
+                throw new IOException("Invalid Frp Client release metadata.");
             var target = Store.SafePath(Root, Version(release.Version));
             if (File.Exists(Executable(release.Version)))
                 return;
@@ -385,9 +385,9 @@ public sealed class FrpcManager(Store store, LauncherCore core) : IDisposable
             await ExtractClient(zip, Path.Combine(stage, "client"), ct);
             ct.ThrowIfCancellationRequested();
             if (Directory.Exists(target))
-                throw new IOException("Incomplete frpc installation already exists.");
+                throw new IOException("Incomplete Frp Client installation already exists.");
             Directory.Move(Path.Combine(stage, "client"), target);
-            Emit("Installed frpc " + release.Version);
+            Emit("Installed Frp Client " + release.Version);
         }
         finally
         {
@@ -404,7 +404,7 @@ public sealed class FrpcManager(Store store, LauncherCore core) : IDisposable
             .Entries.Where(e => e.Name.Equals("frpc.exe", StringComparison.OrdinalIgnoreCase))
             .ToArray();
         if (executables.Length != 1 || executables[0].Length is < 2 or > 150_000_000)
-            throw new IOException("Invalid frpc executable in archive.");
+            throw new IOException("Invalid Frp Client executable in archive.");
         // 不按归档路径解压，只提取白名单文件到固定位置，忽略 frps 和其他内容。
         Directory.CreateDirectory(destination);
         foreach (
@@ -414,7 +414,7 @@ public sealed class FrpcManager(Store store, LauncherCore core) : IDisposable
         )
         {
             if (entry.Length > 150_000_000)
-                throw new IOException("frpc archive entry is too large.");
+                throw new IOException("Frp Client archive entry is too large.");
             await using var input = entry.Open();
             await using var output = new FileStream(
                 Store.SafePath(destination, entry.Name),
@@ -429,7 +429,7 @@ public sealed class FrpcManager(Store store, LauncherCore core) : IDisposable
         var signature = new byte[2];
         await using var exe = File.OpenRead(Store.SafePath(destination, "frpc.exe"));
         if (await exe.ReadAsync(signature, ct) != 2 || signature[0] != 'M' || signature[1] != 'Z')
-            throw new IOException("frpc is not a Windows executable.");
+            throw new IOException("Frp Client is not a Windows executable.");
     }
 
     public static string Config(string path)
@@ -450,7 +450,7 @@ public sealed class FrpcManager(Store store, LauncherCore core) : IDisposable
         var path = Config(config);
         var exe = Executable(version);
         if (!File.Exists(exe))
-            throw new IOException("Download frpc first.");
+            throw new IOException("Download Frp Client first.");
         var info = new ProcessStartInfo(exe)
         {
             WorkingDirectory = Path.GetDirectoryName(path)!,
@@ -486,7 +486,7 @@ public sealed class FrpcManager(Store store, LauncherCore core) : IDisposable
         timeout.CancelAfter(TimeSpan.FromSeconds(15));
         using var child =
             Process.Start(StartInfo(version, config, true))
-            ?? throw new IOException("Could not start frpc verification.");
+            ?? throw new IOException("Could not start Frp Client verification.");
         try
         {
             var stdout = Pump(child.StandardOutput);
@@ -494,7 +494,7 @@ public sealed class FrpcManager(Store store, LauncherCore core) : IDisposable
             await child.WaitForExitAsync(timeout.Token);
             await Task.WhenAll(stdout, stderr);
             if (child.ExitCode != 0)
-                throw new IOException("frpc configuration verification failed. See frpc logs.");
+                throw new IOException("Frp Client configuration verification failed. See Frp Client logs.");
             Emit("Configuration verified.");
         }
         finally
@@ -514,7 +514,7 @@ public sealed class FrpcManager(Store store, LauncherCore core) : IDisposable
         {
             ObjectDisposedException.ThrowIf(disposed, this);
             if (Running)
-                throw new IOException("frpc is already running.");
+                throw new IOException("Frp Client is already running.");
             await completion;
             await VerifyCore(version, config, ct);
             ct.ThrowIfCancellationRequested();
@@ -523,7 +523,7 @@ public sealed class FrpcManager(Store store, LauncherCore core) : IDisposable
             ExitCode = null;
             process =
                 Process.Start(StartInfo(version, config))
-                ?? throw new IOException("Could not start frpc.");
+                ?? throw new IOException("Could not start Frp Client.");
             ActiveConfig = Config(config);
             ActiveVersion = Version(version);
             completion = Observe(process);
@@ -542,7 +542,7 @@ public sealed class FrpcManager(Store store, LauncherCore core) : IDisposable
         await child.WaitForExitAsync();
         await Task.WhenAll(stdout, stderr);
         ExitCode = child.ExitCode;
-        Emit("frpc exited: " + ExitCode);
+        Emit("Frp Client exited: " + ExitCode);
         Changed?.Invoke();
     }
 

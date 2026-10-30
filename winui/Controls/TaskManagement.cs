@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -67,7 +67,7 @@ public sealed partial class MainWindow
         launchCardPercent.Text = $"{launchProgressValue:0}%";
         launchCardCancel.IsEnabled = launching && task != null && !task.IsCancellationRequested;
         var account = store.Config.Accounts.FirstOrDefault(a =>
-            a.Uuid == store.Config.SelectedAccount
+            a.Key == store.Config.SelectedAccount
         );
         launchStatusText.Text = Ui(
             launching ? activeWork?.Stage ?? launchStage

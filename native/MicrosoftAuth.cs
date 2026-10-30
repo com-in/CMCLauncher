@@ -262,17 +262,26 @@ public sealed class MicrosoftAuth(LauncherCore core)
     public const string OfflineLockedMessage =
         "请先通过 Microsoft 登录并验证 Minecraft Java Edition 正版档案，才能使用离线身份。";
 
+    public const string ExternalLockedMessage =
+        "Sign in with Microsoft and verify ownership of Minecraft Java Edition before using external accounts.";
+
+    public static void EnsureExternalAllowed(IEnumerable<Account> accounts)
+    {
+        if (!accounts.Any(IsVerifiedMinecraftPlayer))
+            throw new InvalidOperationException(ExternalLockedMessage);
+    }
+
     public static bool CanUseAccount(IEnumerable<Account> accounts, Account account) =>
         IsVerifiedMinecraftPlayer(account)
-        || account.Type == "offline" && accounts.Any(IsVerifiedMinecraftPlayer);
+        || account.Type is "offline" or "yggdrasil" && accounts.Any(IsVerifiedMinecraftPlayer);
 
     public static void EnsureAccountAllowed(IEnumerable<Account> accounts, Account account)
     {
         if (!CanUseAccount(accounts, account))
             throw new Exception(
-                account.Type == "offline"
-                    ? OfflineLockedMessage
-                    : "此账号尚未通过 Minecraft Java Edition 正版验证，请重新通过 Microsoft 登录。"
+                account.Type == "yggdrasil" ? ExternalLockedMessage
+                : account.Type == "offline" ? OfflineLockedMessage
+                : "此账号尚未通过 Minecraft Java Edition 正版验证，请重新通过 Microsoft 登录。"
             );
     }
 

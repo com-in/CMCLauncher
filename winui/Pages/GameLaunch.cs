@@ -40,11 +40,29 @@ public sealed partial class MainWindow
                     var launchStarted = DateTimeOffset.UtcNow;
                     var account =
                         store.Config.Accounts.FirstOrDefault(a =>
-                            a.Uuid == store.Config.SelectedAccount
+                            a.Key == store.Config.SelectedAccount
                         )
                         ?? throw new Exception("请先添加账号");
                     MicrosoftAuth.EnsureAccountAllowed(store.Config.Accounts, account);
                     UpdateLaunchProgress(0, "正在验证账号…");
+                    if (account.Type == "yggdrasil")
+                    {
+                        // Refresh the ownership account before sending any third-party token.
+                        var owner = store.Config.Accounts.First(
+                            MicrosoftAuth.IsVerifiedMinecraftPlayer
+                        );
+                        var verified = await auth.Refresh(
+                            owner,
+                            MicrosoftAuth.ConfiguredClientId,
+                            ct
+                        );
+                        store.Config.Accounts[store.Config.Accounts.IndexOf(owner)] = verified;
+                        using var external = new ExternalAuth(store.Config.Settings);
+                        var refreshed = await external.Refresh(store.Config.Accounts, account, ct);
+                        store.Config.Accounts[store.Config.Accounts.IndexOf(account)] = refreshed;
+                        account = refreshed;
+                        await store.Save();
+                    }
                     if (account.Type == "microsoft")
                     {
                         var refreshed = await auth.Refresh(

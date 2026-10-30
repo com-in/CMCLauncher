@@ -21,6 +21,8 @@ Current version: **1.0.0** · Platform: **Windows x64**
 3. Open **Settings → Accounts** and choose Microsoft device-code sign-in. Complete authorization in your browser, then wait for the launcher to verify your Minecraft Java profile.
 4. Download a game version, import an existing `.minecraft` folder, or import a modpack. Select a version and account on Home, then launch.
 
+External sign-in is available under **Settings → Accounts → External sign-in (authlib-injector)** after a Microsoft account has passed Minecraft Java profile verification. Enter your Yggdrasil server URL and that server's credentials, then select a player profile if prompted. The launcher stores encrypted session tokens, downloads and verifies authlib-injector when launching, and requires a verified Microsoft account to remain in the account list. Removing the last verified Microsoft account locks external accounts until Microsoft verification is restored.
+
 The release archive includes the .NET and Windows App SDK runtimes, so you do not need to install .NET separately. Java and game files are downloaded or imported separately. Updates are user initiated.
 
 ### Requirements
@@ -41,9 +43,9 @@ The release archive includes the .NET and Windows App SDK runtimes, so you do no
 | Schematics | Search, import, export, rename, and delete `.litematic`, `.schematic`, `.schem`, and `.nbt` files, including nested folders |
 | Java and memory | Scan, import, and download Temurin Java; match Java versions automatically; use automatic or manual heap allocation |
 | Downloads | View progress and speed, cancel tasks, and configure 1–256 simultaneous file downloads; default: 16 |
-| frpc | Download official Windows x64 releases, verify INI/TOML configurations, start or stop the client, and view its output |
+| Frp Client | Download official Windows x64 releases, verify INI/TOML configurations, start or stop the client, and view its output |
 | Appearance and language | Light, dark, and system themes; colors, fonts, scaling, and appearance presets; launcher and game language settings |
-| Accounts and diagnostics | Microsoft device-code sign-in, Windows DPAPI credential encryption, runtime logs, and game error report export |
+| Accounts and diagnostics | Microsoft device-code sign-in, external authlib-injector sign-in, Windows DPAPI credential encryption, runtime logs, and game error report export |
 
 New instances keep Mods, saves, and settings separate. Imported games retain their original locations, including recognized version-isolation layouts.
 
@@ -65,19 +67,19 @@ Color presets are loaded from `themes/*.json`. Fresh green is embedded as a fall
 
 ## Support and limitations
 
-### frpc
+### Frp Client
 
-Open **More → frpc**, select a version from the online release list, and choose **Download online**. **Refresh releases** updates the list; **Load more releases** fetches older versions. Downloads come from [official frp releases](https://github.com/fatedier/frp/releases) and must pass the official SHA-256 check. The client is downloaded on demand and is not included in the launcher package.
+Open **More → Frp Client**, select a version from the online release list, and choose **Download online**. **Refresh releases** updates the list; **Load more releases** fetches older versions. Downloads come from [official frp releases](https://github.com/fatedier/frp/releases) and must pass the official SHA-256 check. The client is downloaded on demand and is not included in the launcher package.
 
 The downloads section opens by default until a client is installed, then starts collapsed with the installed version shown in its header. Expand it to change or download versions. The selected saved profile stays above separate **New configuration** and **Import** sections, both collapsed by default. The entire creation form, including its own content editor and creation button, is inside the New configuration section. Imports close after a successful copy. Name, format, and path fields adapt to the available width.
 
 If GitHub's API returns 403/429 or is unavailable, the launcher uses the official release webpages and honors the API retry window. Download metadata can also use official release assets and checksums without the API. Previously fetched version lists and release metadata are cached in the launcher data directory and remain available when both online sources fail. Cached or alternate sources are identified on the page and in runtime logs; downloads still require the official SHA-256 check.
 
-Configurations are managed under `frpc/configs/` beside `CMCLauncher.exe`. Enter a file or folder path, choose files, or choose a folder to import copies. Folder imports also copy relative includes, certificates, and other supporting files; single-file imports copy only the selected configuration. The original files are never edited or used to launch frpc. Imports with matching names create separate copies. Existing external configuration selections are copied into this managed directory when the page opens.
+Configurations are managed under `frpc/configs/` beside `CMCLauncher.exe`. Enter a file or folder path, choose files, or choose a folder to import copies. Folder imports also copy relative includes, certificates, and other supporting files; single-file imports copy only the selected configuration. The original files are never edited or used to launch Frp Client. Imports with matching names create separate copies. Existing external configuration selections are copied into this managed directory when the page opens.
 
-To create a configuration, expand **New configuration**, enter a name, choose INI or TOML, and type or paste the content in that section. Choose **Create configuration** to save and select the new profile. **Copy current content** fills the new draft from the selected profile without modifying it; **Save as** opens the same form with the current content prefilled. Keep multiple profiles, switch between them, edit and save a profile, save its text as a new profile, or delete a saved configuration with confirmation. The program directory must be writable. Select a downloaded client and a saved profile, then use **Verify** or **Start frpc**; edited content is saved and verified before starting. INI is a legacy format; new configurations should use TOML. Match your client version to your frps server.
+To create a configuration, expand **New configuration**, enter a name, choose INI or TOML, and type or paste the content in that section. Choose **Create configuration** to save and select the new profile. **Copy current content** fills the new draft from the selected profile without modifying it; **Save as** opens the same form with the current content prefilled. Keep multiple profiles, switch between them, edit and save a profile, save its text as a new profile, or delete a saved configuration with confirmation. The program directory must be writable. Select a downloaded client and a saved profile, then use **Verify** or **Start Frp Client**; edited content is saved and verified before starting. INI is a legacy format; new configurations should use TOML. Match your client version to your frps server.
 
-The client keeps running while you navigate the launcher. **Stop frpc** terminates the managed process and its children; closing the launcher stops it too. The page shows a bounded, redacted output log. “Running” indicates that the process is alive; check the frpc output to confirm the server connection. Configure your own frps server and credentials in the selected file. Client binaries are stored under `tools/frpc/` in the launcher data directory; only the selected version and configuration path are saved in launcher settings.
+The client keeps running while you navigate the launcher. **Stop Frp Client** terminates the managed process and its children; closing the launcher stops it too. The page shows a bounded, redacted output log. “Running” indicates that the process is alive; check the Frp Client output to confirm the server connection. Configure your own frps server and credentials in the selected file. Client binaries are stored under `tools/frpc/` in the launcher data directory; only the selected version and configuration path are saved in launcher settings.
 
 ### Other limitations
 
@@ -151,7 +153,7 @@ dotnet publish winui/CMCLauncher.WinUI.csproj -c Release -p:Platform=x64 -r win-
 
 The packaging script excludes local configuration, credential, and key files, then checks that the archive contains the launcher executable.
 
-Build a self-extracting single EXE with `./scripts/publish-singlefile.ps1`. It embeds the validated portable runtime rather than changing WinUI's native library layout. Runtime files are cached under `%LOCALAPPDATA%/CMCLauncher/singlefile/`; editable language packs, themes, frpc configurations, and logs stay beside the distributed EXE. Existing language/theme edits are preserved. Use a writable folder. Pass `-CurseForgeConfigurationFile PATH` to embed your local application credential through the same portable build.
+Build a self-extracting single EXE with `./scripts/publish-singlefile.ps1`. It embeds the validated portable runtime rather than changing WinUI's native library layout. Runtime files are cached under `%LOCALAPPDATA%/CMCLauncher/singlefile/`; editable language packs, themes, Frp Client configurations, and logs stay beside the distributed EXE. Existing language/theme edits are preserved. Use a writable folder. Pass `-CurseForgeConfigurationFile PATH` to embed your local application credential through the same portable build.
 
 CI produces both `CMCLauncher-win-x64.zip` and `CMCLauncher-win-x64.exe`. Only tagged Release assets receive a version in their filenames. Both formats use the same credential injection and archive checks; the single EXE also runs an isolated WinUI activation smoke test before upload.
 
