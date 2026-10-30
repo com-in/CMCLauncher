@@ -23,6 +23,15 @@ public sealed partial class MainWindow
                             Children =
                             {
                                 Text(Labeled("Version", LauncherBuildInfo.Version), 13),
+                                Text(
+                                    Labeled(
+                                        "Is release",
+                                        LauncherBuildInfo.IsRelease
+                                            ? Ui("Release build")
+                                            : Ui("Development build")
+                                    ),
+                                    13
+                                ),
                                 Text(Labeled("Build time", LauncherBuildInfo.BuildTime), 13),
                                 Text(Labeled("Commit", LauncherBuildInfo.GitCommit), 13),
                             },

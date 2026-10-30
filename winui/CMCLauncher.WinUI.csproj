@@ -30,10 +30,13 @@
     <!-- 使用 Program.cs 中的自定义入口，负责 OLE 初始化和资源准备。 -->
     <DefineConstants>$(DefineConstants);DISABLE_XAML_GENERATED_MAIN</DefineConstants>
     <EnableMsixTooling Condition="'$(PublishSingleFile)' == 'true'">true</EnableMsixTooling>
-    <!-- 构建时自动填写构建时间/版本/提交，About 页读取展示。构建提交号由 _GenerateLauncherBuildInfo 在编译时读取 Git 填充。 -->
+    <!-- 构建时自动填写构建时间/版本/提交/发布标识，About 页读取展示。构建提交号由 _GenerateLauncherBuildInfo 在编译时读取 Git 填充。 -->
     <LauncherBuildTime>$([System.DateTime]::UtcNow.ToString("yyyy-MM-dd HH:mm:ss 'UTC'"))</LauncherBuildTime>
     <LauncherGitCommit>
     </LauncherGitCommit>
+    <!-- 主版本号 + 提交号构成小版本识别号；发布标识在构建阶段自动填写。 -->
+    <LauncherMajorVersion>1.0</LauncherMajorVersion>
+    <LauncherIsRelease Condition="'$(LauncherIsRelease)' == ''">true</LauncherIsRelease>
     <IncludeNativeLibrariesForSelfExtract
       Condition="'$(PublishSingleFile)' == 'true'"
     >true</IncludeNativeLibrariesForSelfExtract>
@@ -266,6 +269,13 @@
       >$(GitShortCommit)</LauncherGitCommit>
       <LauncherGitCommit Condition="'$(LauncherGitCommit)' == ''">unknown</LauncherGitCommit>
     </PropertyGroup>
+    <!-- 完整版本号 = 主版本号 + 提交号（小版本识别号）。 -->
+    <PropertyGroup>
+      <LauncherFullVersion>$(LauncherMajorVersion)</LauncherFullVersion>
+      <LauncherFullVersion
+        Condition="'$(LauncherGitCommit)' != '' and '$(LauncherGitCommit)' != 'unknown'"
+      >$(LauncherMajorVersion)-$(LauncherGitCommit)</LauncherFullVersion>
+    </PropertyGroup>
     <!-- 逐行生成 C#，用 %3B 转义分号，避免 XML 属性换行规范化和 item 分号拆分导致代码损坏。 -->
     <ItemGroup>
       <BuildInfoLine Include="#pragma warning disable CS1591" />
@@ -274,9 +284,10 @@
       <BuildInfoLine Include="     " />
       <BuildInfoLine Include="internal static partial class LauncherBuildInfo" />
       <BuildInfoLine Include="{" />
-      <BuildInfoLine Include="    public const string Version = &quot;$(Version)&quot;%3B" />
+      <BuildInfoLine Include="    public const string Version = &quot;$(LauncherFullVersion)&quot;%3B" />
       <BuildInfoLine Include="    public const string BuildTime = &quot;$(LauncherBuildTime)&quot;%3B" />
       <BuildInfoLine Include="    public const string GitCommit = &quot;$(LauncherGitCommit)&quot;%3B" />
+      <BuildInfoLine Include="    public const bool IsRelease = &quot;$(LauncherIsRelease)&quot; == &quot;true&quot;%3B" />
       <BuildInfoLine Include="}" />
       <BuildInfoLine Include="     " />
     </ItemGroup>
