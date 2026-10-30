@@ -49,6 +49,8 @@ The release archive includes the .NET and Windows App SDK runtimes, so you do no
 
 New instances keep Mods, saves, and settings separate. Imported games retain their original locations, including recognized version-isolation layouts.
 
+Local imports accept a PCL/HMCL launcher folder, `.minecraft`, `versions`, or an individual `versions/<id>` folder. CMCLauncher reads PCL isolation settings and description/favorite/icon metadata, legacy HMCL `hmclversion.cfg`, and current `.hmcl/config/instance-game-settings.json` directory overrides. Explicit isolation and custom runtime directories take precedence over folder detection. HMCL game-component metadata also identifies renamed Minecraft profiles. New isolated instances write compatible PCL and legacy/current HMCL isolation metadata. Discovery uses local profiles only and keeps source files in place; launcher-global preferences and credentials remain managed by each launcher.
+
 Interface translations are loaded from editable JSON files under `locales/` beside the executable, with built-in fallback copies. Additional valid packs appear in the language selector. See [Interface language packs](docs/LOCALIZATION.md) for the schema, reload behavior, and translation guidelines.
 
 Completed tasks show a temporary toast at the bottom center of the window. Canceled and failed tasks show their respective outcomes there. Deletion uses a confirmation popover beside the action; dismissed popovers leave files unchanged.

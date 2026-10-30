@@ -274,6 +274,12 @@ public sealed class Store
             )
         )
         {
+            var configured = LauncherInstanceFormat.GameDirectory(
+                instance.ImportRoot,
+                instance.VersionId
+            );
+            if (configured != null)
+                return configured;
             var isolated = SafePath(instance.ImportRoot, "versions/" + instance.VersionId);
             if (
                 new[] { "mods", "saves", "options.txt" }.Any(name =>

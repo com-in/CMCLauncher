@@ -548,6 +548,13 @@ public sealed partial class LauncherCore : IDisposable
     {
         var changed = false;
         var game = profile.S("clientVersion");
+        if (game.Length == 0)
+            game =
+                profile["patches"]
+                    .Items()
+                    .FirstOrDefault(p => p.S("id") is "game" or "minecraft")
+                    ?.S("version")
+                ?? "";
         if (game.Length > 0 && instance.GameVersion != game)
         {
             instance.GameVersion = game;
@@ -1083,19 +1090,7 @@ public sealed partial class LauncherCore : IDisposable
         await Store.AtomicJson(Store.SafePath(game, id + ".json"), profile);
         Directory.CreateDirectory(Store.SafePath(game, "mods"));
         Directory.CreateDirectory(Store.SafePath(game, "saves"));
-        var pcl = Store.SafePath(game, "PCL/Setup.ini");
-        Directory.CreateDirectory(Path.GetDirectoryName(pcl)!);
-        if (!File.Exists(pcl))
-            await File.WriteAllTextAsync(
-                pcl,
-                "VersionArgumentIndie:1\nVersionArgumentIndieV2:True\n"
-            );
-        var hmcl = Store.SafePath(game, "hmclversion.cfg");
-        if (!File.Exists(hmcl))
-            await Store.AtomicJson(
-                hmcl,
-                new JsonObject { ["usesGlobal"] = false, ["gameDirType"] = 1 }
-            );
+        await LauncherInstanceFormat.WriteIsolationMetadata(game);
     }
 
     // 按清单顺序应用匹配规则，后面的规则可以覆盖前面的结果。

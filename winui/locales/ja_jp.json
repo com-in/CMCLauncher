@@ -2,6 +2,7 @@
   "code": "ja_jp",
   "displayName": "日本語",
   "strings": {
+    "Import PCL/HMCL folders, .minecraft, versions, or a single version folder. Existing files stay in place.": "PCL/HMCL フォルダー、.minecraft、versions、または個別のバージョンフォルダーを読み込めます。既存のファイルは移動しません。",
     "This release requires a manual download. Open its release notes.": "このリリースは手動でダウンロードしてください。リリースノートを開いてください。",
     "Launcher updates": "ランチャーの更新",
     "Current version: {0}": "現在のバージョン: {0}",

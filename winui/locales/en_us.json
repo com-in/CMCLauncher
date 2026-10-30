@@ -2,6 +2,7 @@
   "code": "en_us",
   "displayName": "English",
   "strings": {
+    "Import PCL/HMCL folders, .minecraft, versions, or a single version folder. Existing files stay in place.": "Import PCL/HMCL folders, .minecraft, versions, or a single version folder. Existing files stay in place.",
     "This release requires a manual download. Open its release notes.": "This release requires a manual download. Open its release notes.",
     "Launcher updates": "Launcher updates",
     "Current version: {0}": "Current version: {0}",

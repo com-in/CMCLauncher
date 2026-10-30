@@ -38,6 +38,8 @@
     >$(DefineConstants);SINGLE_FILE</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../native/LauncherInstanceFormat.cs" Link="Core/LauncherInstanceFormat.cs" />
+    <Compile Include="../native/LocalInstanceDiscovery.cs" Link="Core/LocalInstanceDiscovery.cs" />
     <Compile Include="../native/LauncherUpdates.cs" Link="Core/LauncherUpdates.cs" />
     <Compile Include="../native/LauncherUpdateInstaller.cs" Link="Core/LauncherUpdateInstaller.cs" />
     <EmbeddedResource Include="../native/LauncherUpdateWorker.ps1" LogicalName="CMCLauncher.UpdateWorker" />

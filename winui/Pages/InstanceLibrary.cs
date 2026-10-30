@@ -41,6 +41,12 @@ public sealed partial class MainWindow
         folder.Children.Add(Text(".minecraft 文件夹", 13, true));
         folder.Children.Add(Text(store.MinecraftRoot, 12));
         folder.Children.Add(
+            Text(
+                "Import PCL/HMCL folders, .minecraft, versions, or a single version folder. Existing files stay in place.",
+                12
+            )
+        );
+        folder.Children.Add(
             Buttons(
                 Action("设置文件夹", async (_, _) => await ImportLocal()),
                 Action(
@@ -591,72 +597,11 @@ public sealed partial class MainWindow
     {
         await Run(async ct =>
         {
-            var root = Path.GetFullPath(path);
-            Directory.CreateDirectory(root);
-            var versions = Path.Combine(root, "versions");
-            Directory.CreateDirectory(versions);
             await core.RefreshImportedMetadata(ct);
-            var pending = new List<Instance>();
-            var failed = 0;
-            foreach (var directory in Directory.EnumerateDirectories(versions))
-            {
-                ct.ThrowIfCancellationRequested();
-                var id = Path.GetFileName(directory);
-                if (File.GetAttributes(directory).HasFlag(FileAttributes.ReparsePoint))
-                    continue;
-                var file = Store.SafePath(root, $"versions/{id}/{id}.json");
-                if (
-                    !File.Exists(file)
-                    || store.Config.Instances.Any(i =>
-                        string.Equals(i.ImportRoot, root, StringComparison.OrdinalIgnoreCase)
-                            && i.VersionId == id
-                        || string.Equals(
-                            store.GameDirectory(i),
-                            directory,
-                            StringComparison.OrdinalIgnoreCase
-                        )
-                    )
-                )
-                    continue;
-                try
-                {
-                    var baseVersion = JsonNode.Parse(await File.ReadAllTextAsync(file, ct))!;
-                    var seen = new HashSet<string>();
-                    while (baseVersion.S("inheritsFrom") is { Length: > 0 } parent)
-                    {
-                        if (!seen.Add(parent))
-                            throw new Exception("本地版本继承循环");
-                        baseVersion = JsonNode.Parse(
-                            await File.ReadAllTextAsync(
-                                Store.SafePath(root, $"versions/{parent}/{parent}.json"),
-                                ct
-                            )
-                        )!;
-                    }
-                    var version = await core.Resolve(id, root, ct);
-                    var detected = LauncherCore.IdentifyLoader(version);
-                    pending.Add(
-                        new Instance
-                        {
-                            Name = id,
-                            VersionId = id,
-                            GameVersion =
-                                version["clientVersion"]?.ToString()
-                                ?? version["jar"]?.ToString()
-                                ?? baseVersion.S("id"),
-                            Loader = detected?.Loader ?? "vanilla",
-                            LoaderVersion = detected?.Version,
-                            ImportRoot = root,
-                            Directory = root,
-                        }
-                    );
-                }
-                catch (Exception ex) when (ex is not OperationCanceledException)
-                {
-                    failed++;
-                    AddLog("跳过版本 " + id + "：" + ex.Message);
-                }
-            }
+            var scan = await core.ScanLocalInstances(path, ct, AddLog);
+            var root = scan.Root;
+            var pending = scan.Instances;
+            var failed = scan.Failed;
             var previousRoot = store.Config.Settings.MinecraftRoot;
             store.Config.Settings.MinecraftRoot = root;
             store.Config.Instances.AddRange(pending);
