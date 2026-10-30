@@ -74,6 +74,7 @@
     "Download mods": "Télécharger des Mods",
     "Download Temurin Java (Windows x64)": "Télécharger Temurin Java (Windows x64)",
     "Download frpc": "Télécharger frpc",
+    "Update acceleration (blank auto-selects fastest)": "Accélération des mises à jour (vide = sélection la plus rapide)",
     "Download proxy (blank uses system proxy)": "Procuration de téléchargement (vide = proxysystème)",
     "Download shaders": "Télécharger des shaders",
     "Download and install": "Télécharger et installer",

@@ -115,6 +115,7 @@
     "Download Temurin Java (Windows x64)": "Download Temurin Java (Windows x64)",
     "Download frpc": "Download Frp Client",
     "Download proxy (blank uses system proxy)": "Download proxy (blank uses system proxy)",
+    "Update acceleration (blank auto-selects fastest)": "Update acceleration (blank auto-selects fastest)",
     "Download shaders": "Download shaders",
     "Download and install": "Download and install",
     "Download data packs": "Download data packs",

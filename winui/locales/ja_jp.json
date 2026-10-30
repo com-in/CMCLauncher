@@ -114,6 +114,7 @@
     "Download mods": "Mod をダウンロード",
     "Download Temurin Java (Windows x64)": "Temurin Java (Windows x64) をダウンロード",
     "Download frpc": "Frp Client をダウンロード",
+    "Update acceleration (blank auto-selects fastest)": "更新の高速化（空欄で最速を自動選択）",
     "Download proxy (blank uses system proxy)": "ダウンロードプロキシ（空欄でシステムプロキシを使用）",
     "Download shaders": "シェーダーパックをダウンロード",
     "Download and install": "ダウンロードしてインストール",

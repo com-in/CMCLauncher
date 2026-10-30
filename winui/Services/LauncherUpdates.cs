@@ -251,7 +251,8 @@ public sealed partial class MainWindow
                         asset,
                         package,
                         new Progress<double>(value => UpdateDownloadProgress(value)),
-                        linked.Token
+                        linked.Token,
+                        store.Config.Settings.DownloadMirror
                     );
                     linked.Token.ThrowIfCancellationRequested();
                     files = await Task.Run(

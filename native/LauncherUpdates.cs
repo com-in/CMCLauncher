@@ -136,6 +136,86 @@ public sealed class LauncherUpdates(HttpClient client)
             StringComparison.Ordinal
         );
 
+    // 加速下载前缀（下载镜像）：仅作用于启动器更新包下载。
+    // 未配置或地址不属于官方 GitHub 发布资产时原样返回。
+    public static Uri AcceleratedAssetUrl(Uri url, string? mirror)
+    {
+        var prefix = mirror?.Trim().TrimEnd('/');
+        if (
+            string.IsNullOrEmpty(prefix)
+            || !IsAssetUrl(url)
+            || !Uri.TryCreate(prefix, UriKind.Absolute, out var mirrorUri)
+            || mirrorUri.Scheme is not ("http" or "https")
+        )
+            return url;
+        return new Uri(mirrorUri.AbsoluteUri.TrimEnd('/') + "/" + url.AbsoluteUri);
+    }
+
+    // 内置的 GitHub 加速下载前缀候选，下载前会同用户自定义前缀一起做连通性测速。
+    static readonly string[] KnownMirrors =
+    [
+        "https://ghfast.top",
+        "https://ghproxy.net",
+        "https://gh-proxy.com",
+        "https://ghps.cc",
+        "https://ghproxy.cc",
+    ];
+
+    static Uri Mirrored(Uri assetUrl, string prefix) =>
+        new(prefix.TrimEnd('/') + "/" + assetUrl.AbsoluteUri);
+
+    // 对候选前缀并行做连接 + 首字节测速，返回最快且可达的前缀；全部不可达时返回 null。
+    public static async Task<string?> SelectFastestMirrorAsync(
+        Uri assetUrl,
+        string? custom,
+        HttpClient client,
+        CancellationToken ct
+    )
+    {
+        if (!IsAssetUrl(assetUrl))
+            return null;
+        var candidates = new List<string>();
+        var normalised = custom?.Trim().TrimEnd('/');
+        if (
+            !string.IsNullOrEmpty(normalised)
+            && Uri.TryCreate(normalised, UriKind.Absolute, out var from)
+            && from.Scheme is ("http" or "https")
+        )
+            candidates.Add(normalised);
+        candidates.AddRange(KnownMirrors);
+
+        var best = (Prefix: (string?)null, Ms: long.MaxValue);
+        await Task.WhenAll(
+            candidates.Select(async prefix =>
+            {
+                var clock = System.Diagnostics.Stopwatch.StartNew();
+                try
+                {
+                    using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+                    cts.CancelAfter(TimeSpan.FromSeconds(6));
+                    using var request = Request(Mirrored(assetUrl, prefix));
+                    using var response = await client.SendAsync(
+                        request,
+                        HttpCompletionOption.ResponseHeadersRead,
+                        cts.Token
+                    );
+                    if (!response.IsSuccessStatusCode)
+                        return;
+                    clock.Stop();
+                    var ms = clock.ElapsedMilliseconds;
+                    lock (candidates)
+                    {
+                        if (ms < best.Ms)
+                            best = (prefix, ms);
+                    }
+                }
+                catch (OperationCanceledException) when (ct.IsCancellationRequested) { }
+                catch { }
+            })
+        );
+        return best.Prefix;
+    }
+
     public static IReadOnlyList<LauncherRelease> ParseReleases(string json, bool singleFile)
     {
         using var document = JsonDocument.Parse(json);
@@ -258,7 +338,8 @@ public sealed class LauncherUpdates(HttpClient client)
         LauncherUpdateAsset asset,
         string destination,
         IProgress<double>? progress,
-        CancellationToken ct
+        CancellationToken ct,
+        string? mirror = null
     )
     {
         if (
@@ -270,10 +351,14 @@ public sealed class LauncherUpdates(HttpClient client)
             throw new InvalidDataException(
                 "The update package has no valid SHA-256 digest. Download it from the release page."
             );
+        // 下载连通性测速：从用户配置与内置候选里选出最快可达的前缀。
+        var fastest = await SelectFastestMirrorAsync(asset.Url, mirror, client, ct);
+        if (fastest != null)
+            mirror = fastest;
         var temporary = destination + ".partial";
         try
         {
-            using var request = Request(asset.Url);
+            using var request = Request(AcceleratedAssetUrl(asset.Url, mirror));
             using var response = await client.SendAsync(
                 request,
                 HttpCompletionOption.ResponseHeadersRead,

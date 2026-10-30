@@ -74,6 +74,7 @@
     "Download mods": "تنزيل التعديلات",
     "Download Temurin Java (Windows x64)": "تنزيل Temurin جافا (Windows x64)",
     "Download frpc": "تنزيل frpc",
+    "Update acceleration (blank auto-selects fastest)": "تسريع التحديث (فارغ يختار الأسرع تلقائيًا)",
     "Download proxy (blank uses system proxy)": "وكيل التنزيل (فارغ يستخدم وكيل النظام)",
     "Download shaders": "تنزيل الـ Shaders",
     "Download and install": "تنزيل وتثبيت",

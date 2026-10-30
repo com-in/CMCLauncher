@@ -162,6 +162,53 @@ static class LauncherUpdateTests
             payload.Length,
             Convert.ToHexString(SHA256.HashData(payload))
         );
+        Check(
+            LauncherUpdates.AcceleratedAssetUrl(asset.Url, null) == asset.Url
+                && LauncherUpdates.AcceleratedAssetUrl(
+                    asset.Url,
+                    "https://mirror.example/download"
+                )
+                    == new Uri(
+                        "https://mirror.example/download/https://github.com/com-in/CMCLauncher/releases/download/v2.0.0/update.exe"
+                    )
+                && LauncherUpdates.AcceleratedAssetUrl(asset.Url, "not-a-url") == asset.Url
+                && LauncherUpdates.AcceleratedAssetUrl(
+                        new Uri("https://example.com/other"),
+                        "https://mirror.example"
+                    )
+                    == new Uri("https://example.com/other"),
+            "accelerated download prefix rewrites only this repository's update assets"
+        );
+        using (
+            var client = new HttpClient(
+                new Handler(request =>
+                    request.RequestUri.Host.Contains("best")
+                        ? new HttpResponseMessage(HttpStatusCode.OK)
+                        : new HttpResponseMessage(HttpStatusCode.ServiceUnavailable)
+                )
+            )
+        )
+        {
+            var selected = await LauncherUpdates.SelectFastestMirrorAsync(
+                asset.Url,
+                "https://best.mirror.example",
+                client,
+                default
+            );
+            Check(
+                selected != null && selected.Contains("best"),
+                "connectivity test selects a reachable fastest mirror and skips unreachable ones"
+            );
+            Check(
+                await LauncherUpdates.SelectFastestMirrorAsync(
+                    new Uri("https://example.com/other"),
+                    null,
+                    client,
+                    default
+                ) == null,
+                "connectivity test ignores unrelated asset urls"
+            );
+        }
         using (
             var client = new HttpClient(
                 new Handler(_ => new HttpResponseMessage(HttpStatusCode.OK)

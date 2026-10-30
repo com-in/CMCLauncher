@@ -74,6 +74,7 @@
     "Download mods": "Скачать моды",
     "Download Temurin Java (Windows x64)": "Скачать Temurin Java (Windows x64)",
     "Download frpc": "Скачать frpc",
+    "Update acceleration (blank auto-selects fastest)": "Ускорение обновления (пусто = выбор быстрейшего)",
     "Download proxy (blank uses system proxy)": "Прокси для загрузок (пусто = системный прокси)",
     "Download shaders": "Скачать шейдеры",
     "Download and install": "Скачать и установить",

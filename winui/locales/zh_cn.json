@@ -114,6 +114,7 @@
     "Download mods": "下载 Mod",
     "Download Temurin Java (Windows x64)": "下载 Temurin Java（Windows x64）",
     "Download frpc": "下载 Frp Client",
+    "Update acceleration (blank auto-selects fastest)": "更新加速（留空自动测速选最快）",
     "Download proxy (blank uses system proxy)": "下载代理（留空使用系统代理）",
     "Download shaders": "下载光影包",
     "Download and install": "下载并安装",

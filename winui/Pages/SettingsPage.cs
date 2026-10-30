@@ -116,6 +116,13 @@ public sealed class SettingsPage : CMCPage
             PlaceholderText = "http://127.0.0.1:7890",
             Text = settings.Proxy,
         };
+        var downloadMirror = new TextBox
+        {
+            Header = Ui("Update acceleration (blank auto-selects fastest)"),
+            PlaceholderText = "https://ghproxy.com/",
+            Text = settings.DownloadMirror,
+            AcceptsReturn = false,
+        };
         var ignoreSslErrors = new ToggleSwitch
         {
             Header = Ui("Ignore SSL certificate errors"),
@@ -304,6 +311,7 @@ public sealed class SettingsPage : CMCPage
                 memoryHint,
                 downloadThreads,
                 proxy,
+                downloadMirror,
                 ignoreSslErrors,
                 sslWarning,
             }
@@ -401,6 +409,21 @@ public sealed class SettingsPage : CMCPage
             proxyHint.Text = "";
             settings.Proxy = value;
             Core.ConfigureNetwork();
+            await PersistSettings();
+        };
+        downloadMirror.TextChanged += async (_, _) =>
+        {
+            var value = downloadMirror.Text.Trim().TrimEnd('/');
+            if (
+                value.Length > 0
+                && (
+                    !Uri.TryCreate(value, UriKind.Absolute, out var mirrorUri)
+                    || mirrorUri.Scheme is not ("http" or "https")
+                    || string.IsNullOrWhiteSpace(mirrorUri.Host)
+                )
+            )
+                return;
+            settings.DownloadMirror = value;
             await PersistSettings();
         };
         ignoreSslErrors.Toggled += async (_, _) =>
