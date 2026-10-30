@@ -190,6 +190,8 @@
     "Realtime priority": "Temps réel",
     "Below normal priority": "En dessous de la normale",
     "Idle priority": "Faible",
+    "Custom game window title": "Titre de fenêtre du jeu personnalisé",
+    "Blank keeps the game default": "Laisser vide pour conserver le titre par défaut",
     "Custom JVM arguments": "Arguments JVM personnalisés",
     "Custom JVM arguments ({0}): {1}": "Arguments JVM personnalisés ({0}) : {1}",
     "Default window mode": "État de fenêtre par défaut",

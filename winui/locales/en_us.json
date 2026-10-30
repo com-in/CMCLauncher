@@ -208,6 +208,8 @@
     "Realtime priority": "Realtime",
     "Below normal priority": "Below normal",
     "Idle priority": "Idle",
+    "Custom game window title": "Custom game window title",
+    "Blank keeps the game default": "Blank keeps the game default",
     "Custom JVM arguments": "Custom JVM arguments",
     "Custom JVM arguments ({0}): {1}": "Custom JVM arguments ({0}): {1}",
     "Default window mode": "Default window mode",

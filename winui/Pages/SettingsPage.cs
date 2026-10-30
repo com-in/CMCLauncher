@@ -240,6 +240,19 @@ public sealed class SettingsPage : CMCPage
             await PersistSettings();
         };
 
+        var gameWindowTitle = new TextBox
+        {
+            Header = Ui("Custom game window title"),
+            PlaceholderText = Ui("Blank keeps the game default"),
+            Text = settings.GameWindowTitle,
+            AcceptsReturn = false,
+        };
+        gameWindowTitle.TextChanged += async (_, _) =>
+        {
+            settings.GameWindowTitle = gameWindowTitle.Text.TrimStart();
+            await PersistSettings();
+        };
+
         var localizedGameLanguage = new BelowComboBox
         {
             Header = Ui("Game language"),
@@ -282,6 +295,7 @@ public sealed class SettingsPage : CMCPage
                 localizedGameLanguage,
                 launcherVisibility,
                 gamePriority,
+                gameWindowTitle,
                 customJvmArgs,
                 jvmHint,
                 automaticMemory,

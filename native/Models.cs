@@ -54,6 +54,7 @@ public sealed class Settings
     public string GameLanguage { get; set; } = "auto";
     public string CustomJvmArgs { get; set; } = "";
     public string PlayerPriority { get; set; } = "normal";
+    public string GameWindowTitle { get; set; } = "";
     public string MinecraftRoot { get; set; } = "";
     public bool StartMaximized { get; set; }
     public string LauncherVisibility { get; set; } = "keep";

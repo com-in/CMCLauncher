@@ -190,6 +190,8 @@
     "Realtime priority": "في الوقت الحقيقي",
     "Below normal priority": "دون العادية",
     "Idle priority": "منخفضة",
+    "Custom game window title": "عنوان مخصص لنافذة اللعبة",
+    "Blank keeps the game default": "اتركه فارغًا لاستخدام العنوان الافتراضي",
     "Custom JVM arguments": "وسائط JVM المخصصة",
     "Custom JVM arguments ({0}): {1}": "وسائط JVM المخصصة ({0}): {1}",
     "Default window mode": "حالة النافذة الافتراضية",

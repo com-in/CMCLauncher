@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using System.Text.Json.Nodes;
 using Microsoft.UI;
 using Microsoft.UI.Windowing;
@@ -15,6 +16,10 @@ namespace CMCLauncher.WinUI;
 
 public sealed partial class MainWindow
 {
+    // 修改任意窗口标题；游戏主窗口出现后按设置重命名。
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+    static extern bool SetWindowText(IntPtr hWnd, string text);
+
     Process? game;
     bool launching;
     string? launcherExitBehavior;
@@ -132,6 +137,11 @@ public sealed partial class MainWindow
                             await Task.Delay(250, ct);
                         }
                         UpdateLaunchProgress(100, "游戏窗口已出现");
+                        if (!string.IsNullOrWhiteSpace(store.Config.Settings.GameWindowTitle))
+                            SetWindowText(
+                                launchedGame.MainWindowHandle,
+                                store.Config.Settings.GameWindowTitle
+                            );
                         await Task.Delay(350, ct);
                         if (launchedGame.HasExited)
                             throw new Exception(

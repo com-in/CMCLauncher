@@ -208,6 +208,8 @@
     "Realtime priority": "リアルタイム",
     "Below normal priority": "標準より下",
     "Idle priority": "待機",
+    "Custom game window title": "カスタムゲームウィンドウタイトル",
+    "Blank keeps the game default": "空欄の場合はゲーム既定のタイトル",
     "Custom JVM arguments": "カスタム JVM 引数",
     "Custom JVM arguments ({0}): {1}": "カスタム JVM 引数({0}個)：{1}",
     "Default window mode": "既定のウィンドウ状態",

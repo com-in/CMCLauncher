@@ -190,6 +190,8 @@
     "Realtime priority": "Реального времени",
     "Below normal priority": "Ниже обычного",
     "Idle priority": "Низкий",
+    "Custom game window title": "Свой заголовок окна игры",
+    "Blank keeps the game default": "Пусто — использовать заголовок по умолчанию",
     "Custom JVM arguments": "Настраиваемые аргументы JVM",
     "Custom JVM arguments ({0}): {1}": "Настраиваемые аргументы JVM ({0}): {1}",
     "Default window mode": "Состояние окна по умолчанию",
