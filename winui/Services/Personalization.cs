@@ -14,6 +14,50 @@ public sealed partial class MainWindow
 {
     const string DefaultFontFamily = "Segoe UI Variable Text";
 
+    // 界面为中文时，把常见中文字体族名显示为中文名；键为字体族名，值为中文显示名。
+    static readonly Dictionary<string, string> ChineseFontDisplayNames = new(
+        StringComparer.OrdinalIgnoreCase
+    )
+    {
+        ["Microsoft YaHei"] = "微软雅黑",
+        ["Microsoft YaHei UI"] = "微软雅黑 UI",
+        ["Microsoft YaHei & Microsoft YaHei UI"] = "微软雅黑",
+        ["Microsoft JhengHei"] = "微软正黑体",
+        ["Microsoft JhengHei UI"] = "微软正黑体",
+        ["SimSun"] = "宋体",
+        ["NSimSun"] = "新宋体",
+        ["SimHei"] = "黑体",
+        ["KaiTi"] = "楷体",
+        ["FangSong"] = "仿宋",
+        ["DengXian"] = "等线",
+        ["YouYuan"] = "幼圆",
+    };
+
+    // 当前为中文界面时返回中文显示名，否则保持字体族名不变。
+    string LocalizedFontName(string family)
+    {
+        if (
+            store.Config.Settings.LauncherLanguage.StartsWith("zh", StringComparison.OrdinalIgnoreCase)
+            && ChineseFontDisplayNames.TryGetValue(family.Trim(), out var chinese)
+        )
+            return chinese;
+        return family;
+    }
+
+    // 把下拉框里的显示名反查回字体族名（用于存入 UiFontFamily）；未知名称原样返回。
+    string FontFamilyForDisplay(string display)
+    {
+        if (store.Config.Settings.LauncherLanguage.StartsWith("zh", StringComparison.OrdinalIgnoreCase))
+        {
+            foreach (var pair in ChineseFontDisplayNames)
+            {
+                if (pair.Value == display)
+                    return pair.Key;
+            }
+        }
+        return display;
+    }
+
     sealed class OriginalAppearance
     {
         public double FontSize,
@@ -216,7 +260,7 @@ public sealed partial class MainWindow
                                     control is ComboBox fontChoice
                                     && fontChoice.Header?.ToString() == Ui("Font family")
                                 )
-                                    fontChoice.SelectedItem = DefaultFontFamily;
+                                    fontChoice.SelectedItem = LocalizedFontName(DefaultFontFamily);
                             }
                         }),
                     },
@@ -250,14 +294,14 @@ public sealed partial class MainWindow
             SmallChange = 5,
             SpinButtonPlacementMode = NumberBoxSpinButtonPlacementMode.Compact,
         };
-        var fonts = InstalledFontFamilies(settings.UiFontFamily);
+        var fonts = InstalledFontFamilies(settings.UiFontFamily).ToList();
         if (string.IsNullOrWhiteSpace(settings.UiFontFamily))
             settings.UiFontFamily = DefaultFontFamily;
         var font = new BelowComboBox
         {
             Header = Ui("Font family"),
-            ItemsSource = fonts,
-            SelectedItem = settings.UiFontFamily,
+            ItemsSource = fonts.Select(LocalizedFontName).ToArray(),
+            SelectedItem = LocalizedFontName(settings.UiFontFamily),
             MaxDropDownHeight = 360,
             HorizontalAlignment = HorizontalAlignment.Stretch,
         };
@@ -299,7 +343,7 @@ public sealed partial class MainWindow
         {
             if (font.SelectedItem is string family && family.Length > 0)
             {
-                settings.UiFontFamily = family;
+                settings.UiFontFamily = FontFamilyForDisplay(family);
                 await SaveAppearance();
             }
         };
@@ -522,7 +566,7 @@ public sealed partial class MainWindow
                         control is ComboBox fontChoice
                         && fontChoice.Header?.ToString() == Ui("Font family")
                     )
-                        fontChoice.SelectedItem = settings.UiFontFamily;
+                        fontChoice.SelectedItem = LocalizedFontName(settings.UiFontFamily);
                     else if (
                         control is ComboBox colorPreset
                         && colorPreset.Header?.ToString() == Ui("Preset")
