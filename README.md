@@ -185,6 +185,12 @@ The check uses an isolated data directory and produces screenshots and `passed.t
 
 ## Source layout
 
+The repository follows a three-layer architecture:
+
+- [`native/`](native/) contains the **core logic** layer, including downloads, launch arguments, authentication, Java handling, content management, and storage.
+- [`winui/`](winui/) is the **UI layer** with the desktop entry point, window, pages, controls, and UI services.
+- [`native.tests/`](native.tests/) is the **test layer** with native regression tests and certificate fixtures.
+
 | Directory | Contents |
 | --- | --- |
 | [`winui/`](winui/) | Desktop entry point, window, pages, controls, and UI services |
