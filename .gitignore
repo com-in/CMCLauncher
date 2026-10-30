@@ -9,3 +9,4 @@ winui/curseforge.local.json
 winui/artifacts/
 winui/CompanionData.g.cs
 test-extract/
+.vscode/
