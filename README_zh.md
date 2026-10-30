@@ -4,6 +4,8 @@
 
 [English](README.md) · [简体中文](README_zh.md) · [日本語](README_ja.md)
 
+本启动器内置了英文、简体中文、日文、俄文、法文、西班牙文与阿拉伯文的界面翻译，可在**设置 → 常规 → 语言**中自动或手动选择；README 文档提供英文、简体中文与日文版本。
+
 </div>
 
 一款用于 Minecraft Java 版的 Windows 原生启动器，基于 C#、.NET 8 与 WinUI 3 构建。支持管理隔离实例、下载游戏版本与加载器、安装 Modrinth 内容，以及管理 Java 与账号。
