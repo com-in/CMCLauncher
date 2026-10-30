@@ -17,6 +17,7 @@ public sealed partial class MainWindow
 {
     Process? game;
     bool launching;
+    string? launcherExitBehavior;
     TextBlock? launchStatusText;
     ProgressBar? launchCardProgress;
     Button? launchCardCancel;
@@ -109,6 +110,7 @@ public sealed partial class MainWindow
                             if (ReferenceEquals(game, launchedGame))
                                 game = null;
                             launchedGame.Dispose();
+                            ApplyLauncherVisibilityOnExit();
                         }
                     }
                     _ = ObserveExit();
@@ -152,12 +154,52 @@ public sealed partial class MainWindow
                 "启动游戏 · " + instance.Name
             );
             Report("游戏正在运行");
+            ApplyLaunchVisibility();
         }
         finally
         {
             launching = false;
             RefreshLaunchCard();
         }
+    }
+
+    // 根据「启动器可见性」设置决定游戏启动后对窗口的处置。
+    void ApplyLaunchVisibility()
+    {
+        if (AppWindow.Presenter is not OverlappedPresenter presenter)
+            return;
+        switch (store.Config.Settings.LauncherVisibility)
+        {
+            case "hide_close":
+                launcherExitBehavior = "close";
+                AppWindow.Hide();
+                break;
+            case "hide_reopen":
+                launcherExitBehavior = "reopen";
+                AppWindow.Hide();
+                break;
+            case "minimize":
+                presenter.Minimize();
+                break;
+            case "close":
+                Close();
+                break;
+        }
+    }
+
+    // 游戏退出后按先前选择的可见性设置恢复或关闭启动器窗口。
+    void ApplyLauncherVisibilityOnExit()
+    {
+        if (launcherExitBehavior is not { } behavior)
+            return;
+        launcherExitBehavior = null;
+        DispatcherQueue.TryEnqueue(() =>
+        {
+            if (behavior == "close")
+                Close();
+            else if (behavior == "reopen" && AppWindow.Presenter is OverlappedPresenter presenter)
+                AppWindow.Show();
+        });
     }
 
     // 并发依赖的进度回调可能乱序，显示值只前进，不往回跳。

@@ -54,6 +54,7 @@ public sealed class Settings
     public string GameLanguage { get; set; } = "auto";
     public string MinecraftRoot { get; set; } = "";
     public bool StartMaximized { get; set; }
+    public string LauncherVisibility { get; set; } = "keep";
     public int WindowWidth { get; set; } = 1280;
     public int WindowHeight { get; set; } = 820;
     public bool ExpandProjectIntroduction { get; set; } = true;

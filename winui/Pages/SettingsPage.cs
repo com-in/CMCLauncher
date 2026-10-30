@@ -157,6 +157,41 @@ public sealed class SettingsPage : CMCPage
             }
         };
 
+        var launcherVisibility = new BelowComboBox
+        {
+            Header = Ui("Launcher visibility"),
+            ItemsSource = new[]
+            {
+                Ui("Launcher stays visible"),
+                Ui("Close launcher after launch"),
+                Ui("Hide launcher, close when game exits"),
+                Ui("Hide launcher, reopen when game exits"),
+                Ui("Minimize launcher after launch"),
+            },
+            SelectedIndex = settings.LauncherVisibility switch
+            {
+                "close" => 1,
+                "hide_close" => 2,
+                "hide_reopen" => 3,
+                "minimize" => 4,
+                _ => 0,
+            },
+        };
+        launcherVisibility.SelectionChanged += async (_, _) =>
+        {
+            if (launcherVisibility.SelectedIndex < 0)
+                return;
+            settings.LauncherVisibility = launcherVisibility.SelectedIndex switch
+            {
+                1 => "close",
+                2 => "hide_close",
+                3 => "hide_reopen",
+                4 => "minimize",
+                _ => "keep",
+            };
+            await PersistSettings();
+        };
+
         var localizedGameLanguage = new BelowComboBox
         {
             Header = Ui("Game language"),
@@ -197,6 +232,7 @@ public sealed class SettingsPage : CMCPage
                 localizedWindow,
                 projectIntro,
                 localizedGameLanguage,
+                launcherVisibility,
                 automaticMemory,
                 memory,
                 memoryHint,
