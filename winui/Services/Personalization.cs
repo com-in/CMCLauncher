@@ -58,6 +58,8 @@ public sealed partial class MainWindow
         return display;
     }
 
+    // 字体下拉框：每个选项都用对应的真实字体渲染文本，便于直观挑选。
+    // 由 BelowComboBox.ItemFontFactory 在项容器上直接应用字体，无需模板或转换器。
     sealed class OriginalAppearance
     {
         public double FontSize,
@@ -304,6 +306,8 @@ public sealed partial class MainWindow
             SelectedItem = LocalizedFontName(settings.UiFontFamily),
             MaxDropDownHeight = 360,
             HorizontalAlignment = HorizontalAlignment.Stretch,
+            FontFamily = new FontFamily(settings.UiFontFamily),
+            ItemFontFactory = display => new FontFamily(FontFamilyForDisplay(display)),
         };
         var fontSize = new NumberBox
         {
@@ -344,6 +348,7 @@ public sealed partial class MainWindow
             if (font.SelectedItem is string family && family.Length > 0)
             {
                 settings.UiFontFamily = FontFamilyForDisplay(family);
+                font.FontFamily = new FontFamily(settings.UiFontFamily);
                 await SaveAppearance();
             }
         };
@@ -566,7 +571,10 @@ public sealed partial class MainWindow
                         control is ComboBox fontChoice
                         && fontChoice.Header?.ToString() == Ui("Font family")
                     )
+                    {
                         fontChoice.SelectedItem = LocalizedFontName(settings.UiFontFamily);
+                        fontChoice.FontFamily = new FontFamily(settings.UiFontFamily);
+                    }
                     else if (
                         control is ComboBox colorPreset
                         && colorPreset.Header?.ToString() == Ui("Preset")

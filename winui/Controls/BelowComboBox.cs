@@ -29,6 +29,10 @@ public sealed class BelowComboBox : ComboBox
         AnchorPopup();
     }
 
+    // 可选：按下拉项文本生成该项的字体，用于「所见即所得」预览（如字体选择器）。
+    // 在项容器上直接设置，避开弹层内的静态资源查找，避免 XAML 解析崩溃。
+    public Func<string, FontFamily>? ItemFontFactory { get; set; }
+
     static readonly SolidColorBrush TransparentBrush = new(Microsoft.UI.Colors.Transparent);
 
     static void AddItemPalette(ResourceDictionary resources)
@@ -118,7 +122,11 @@ public sealed class BelowComboBox : ComboBox
     {
         // 弹层与正文不在同一棵可视树，虚拟化生成的选项也要有自己的资源入口。
         if (element is ComboBoxItem container)
+        {
             AddItemPalette(container.Resources);
+            if (ItemFontFactory is { } factory && item is string display)
+                container.FontFamily = factory(display);
+        }
         base.PrepareContainerForItemOverride(element, item);
     }
 
