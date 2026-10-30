@@ -119,9 +119,19 @@ public sealed partial class MainWindow : Window
         CustomTitleBar.SizeChanged += (_, _) => UpdateTitleBarInset();
         AppWindow.Changed += (_, _) => UpdateTitleBarInset();
         // Frame 加载前先缓存正文，等它准备好后再执行首次导航。
+        var startupUpdateChecked = false;
         PageFrame.Loaded += (_, _) =>
         {
             pageFrameReady = true;
+            if (
+                !startupUpdateChecked
+                && args.Length == 0
+                && store.Config.Settings.CheckLauncherUpdates
+            )
+            {
+                startupUpdateChecked = true;
+                _ = CheckLauncherUpdate(true);
+            }
             if (pendingPageBody is { } initial)
             {
                 pendingPageBody = null;
@@ -200,6 +210,7 @@ public sealed partial class MainWindow : Window
         RuntimeLog.Write("INFO", "应用启动 · 程序目录=" + AppContext.BaseDirectory);
         Closed += (_, _) =>
         {
+            updateLifetime.Cancel();
             RuntimeLog.Written -= RuntimeLogWritten;
             runtimeLogTimer.Stop();
             core.DebugLog -= RuntimeLog.Debug;

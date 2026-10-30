@@ -13,6 +13,7 @@ public sealed class SettingsPage : CMCPage
     {
         Header("启动器设置", "");
         var settings = Store.Config.Settings;
+        PageBody.Children.Add(Window.BuildLauncherUpdateSettings());
 
         var launcherLanguage = new BelowComboBox
         {
@@ -409,6 +410,6 @@ public sealed class SettingsPage : CMCPage
             await PersistSettings();
         };
 
-        PageBody.Children.Add(Text("版本 1.0.0", 12));
+        PageBody.Children.Add(Text(UiFormat("Current version: {0}", LauncherUpdates.CurrentVersion), 12));
     }
 }

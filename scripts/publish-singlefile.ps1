@@ -38,6 +38,7 @@ Write-Host "`n=== Stage 2: Package and validate runtime ===" -ForegroundColor Cy
 Write-Host "`n=== Stage 3: Publish single executable ===" -ForegroundColor Cyan
 [xml]$projectDefinition = Get-Content -LiteralPath $projectPath -Raw
 $version = @($projectDefinition.Project.PropertyGroup.Version | Where-Object { $_ })[0]
+if ($env:CMC_RELEASE_VERSION) { $version = $env:CMC_RELEASE_VERSION }
 & dotnet publish (Join-Path $repoRoot 'singlefile/CMCLauncher.SingleFile.csproj') -c $Configuration -r $Runtime --self-contained true "-p:Version=$version" "-p:SingleFilePayload=$payload" "-p:SingleFilePayloadHashFile=$payloadHash" -o $bundleDir --nologo
 if ($LASTEXITCODE -ne 0)
 {

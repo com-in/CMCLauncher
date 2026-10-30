@@ -227,6 +227,8 @@ internal static class Program
         );
         await ThemeCatalogTests.Run(Path.Combine(root, "themes"));
         Pass("JSON theme discovery, mode overrides, embedded fallback and native preset isolation");
+        await LauncherUpdateTests.Run(Path.Combine(root, "launcher-updates"));
+        Pass("launcher update versions, channels, pagination, hashes, cancellation and safe staging");
         await LocalizationCatalogTests.Run(Path.Combine(root, "locales"));
         Pass(
             "JSON language packs, embedded fallback, templates, rules, overrides and additional languages"

@@ -49,6 +49,18 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
+      - name: Set embedded release version
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: pwsh
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          if ($env:RELEASE_TAG -notmatch '^(?:CMCL-)?v?(?<version>\d+\.\d+\.\d+)(?:-(?<channel>release|beta|alpha)(?<revision>(?:[.-]\d+)?))?$') {
+            throw "Unsupported release tag: $env:RELEASE_TAG"
+          }
+          $version = $Matches['version']
+          if ($Matches['channel'] -in @('beta', 'alpha')) { $version += '-' + $Matches['channel'] + $Matches['revision'] }
+          "CMC_RELEASE_VERSION=$version" >> $env:GITHUB_ENV
       # 仅标签发行构建从 Actions secret 写入公开客户端 ID，普通 PR 构建不读取它。
       - name: Configure Microsoft login for tagged release
         if: startsWith(github.ref, 'refs/tags/')

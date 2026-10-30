@@ -62,6 +62,8 @@ public sealed class Settings
     public int WindowHeight { get; set; } = 820;
     public bool ExpandProjectIntroduction { get; set; } = true;
     public string LauncherLanguage { get; set; } = "en_us";
+    public bool CheckLauncherUpdates { get; set; } = true;
+    public bool ReceiveBetaUpdates { get; set; }
     public string InstanceView { get; set; } = "list";
     public List<HomeCardPlacement> HomeCards { get; set; } =
     [new() { Id = "account" }, new() { Id = "game" }];

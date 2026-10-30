@@ -1,0 +1,9 @@
+<Project>
+  <!-- CI sets the normalized release tag for both the WinUI payload and EXE host. -->
+  <PropertyGroup Condition="'$(CMC_RELEASE_VERSION)' != ''">
+    <Version>$(CMC_RELEASE_VERSION)</Version>
+    <InformationalVersion>$(CMC_RELEASE_VERSION)</InformationalVersion>
+    <AssemblyVersion>$([System.Text.RegularExpressions.Regex]::Match('$(CMC_RELEASE_VERSION)', '^\d+\.\d+\.\d+').Value).0</AssemblyVersion>
+    <FileVersion>$(AssemblyVersion)</FileVersion>
+  </PropertyGroup>
+</Project>

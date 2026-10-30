@@ -12,6 +12,9 @@
       Condition="'$(CurseForgeConfigurationFile)' == ''"
     >$(MSBuildProjectDirectory)/../winui/curseforge.local.json</CurseForgeConfigurationFile>
   </PropertyGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="LauncherUpdateWorker.ps1" LogicalName="CMCLauncher.UpdateWorker" />
+  </ItemGroup>
   <!-- 本地构建可嵌入公开 OAuth 客户端 ID，源文件不进入发行包。 -->
   <ItemGroup>
     <EmbeddedResource

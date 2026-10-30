@@ -129,6 +129,10 @@ internal static class Program
                 CreateNoWindow = true,
             };
             start.Environment["CMCLAUNCHER_PROGRAM_DIRECTORY"] = userDirectory;
+            start.Environment["CMCLAUNCHER_UPDATE_EXECUTABLE"] = Environment.ProcessPath!;
+            start.Environment["CMCLAUNCHER_UPDATE_PARENT"] = Environment.ProcessId.ToString(
+                System.Globalization.CultureInfo.InvariantCulture
+            );
             foreach (var arg in args)
                 start.ArgumentList.Add(arg);
             using var process =
