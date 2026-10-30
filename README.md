@@ -4,6 +4,8 @@
 
 [English](README.md) · [简体中文](README_zh.md) · [日本語](README_ja.md)
 
+This launcher ships with interface translations for English, Simplified Chinese, Japanese, Russian, French, Spanish, and Arabic, selected automatically or in **Settings → General → Language**. The README itself is available in English, Simplified Chinese, and Japanese.
+
 </div>
 
 A native Windows launcher for Minecraft Java Edition, built with C#, .NET 8, and WinUI 3. Manage isolated instances, download game versions and loaders, install Modrinth and CurseForge content, and manage Java and accounts.
