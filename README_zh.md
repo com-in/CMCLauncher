@@ -185,6 +185,12 @@ dotnet run --project native.tests/CMCLauncher.Tests.csproj -c Release
 
 ## 源码结构
 
+本仓库采用三层分层架构：
+
+- [`native/`](native/) 为**核心逻辑层**，包含下载、启动参数、认证、Java 处理、内容管理与存储。
+- [`winui/`](winui/) 为**界面层**，包含桌面入口、窗口、页面、控件与 UI 服务。
+- [`native.tests/`](native.tests/) 为**测试层**，包含原生回归测试与证书夹具。
+
 | 目录 | 内容 |
 | --- | --- |
 | [`winui/`](winui/) | 桌面入口、窗口、页面、控件与 UI 服务 |
