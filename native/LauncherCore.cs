@@ -1353,6 +1353,7 @@ public sealed partial class LauncherCore : IDisposable
             if (!process.Start())
                 throw new Exception("游戏进程启动失败");
             nativeDirectory.Started();
+            ApplyPlayerPriority(process, store.Config.Settings.PlayerPriority);
             process.BeginOutputReadLine();
             process.BeginErrorReadLine();
         }
@@ -1371,6 +1372,39 @@ public sealed partial class LauncherCore : IDisposable
             throw;
         }
         return process;
+    }
+
+    // 把用户配置的进程优先级应用到已启动的游戏进程；异常时忽略，不阻断启动。
+    static void ApplyPlayerPriority(Process process, string setting)
+    {
+        ProcessPriorityClass priority;
+        switch (setting)
+        {
+            case "realtime":
+                priority = ProcessPriorityClass.RealTime;
+                break;
+            case "high":
+                priority = ProcessPriorityClass.High;
+                break;
+            case "above":
+                priority = ProcessPriorityClass.AboveNormal;
+                break;
+            case "below":
+                priority = ProcessPriorityClass.BelowNormal;
+                break;
+            case "idle":
+                priority = ProcessPriorityClass.Idle;
+                break;
+            default:
+                priority = ProcessPriorityClass.Normal;
+                break;
+        }
+        try
+        {
+            process.PriorityClass = priority;
+        }
+        catch (System.ComponentModel.Win32Exception) { }
+        catch (InvalidOperationException) { }
     }
 
     static string RedactCommandArgument(string value, string secret)

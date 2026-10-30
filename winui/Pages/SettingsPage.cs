@@ -201,6 +201,45 @@ public sealed class SettingsPage : CMCPage
             await PersistSettings();
         };
 
+        var gamePriority = new BelowComboBox
+        {
+            Header = Ui("Game process priority"),
+            ItemsSource = new[]
+            {
+                Ui("Normal priority"),
+                Ui("Above normal priority"),
+                Ui("High priority"),
+                Ui("Realtime priority"),
+                Ui("Below normal priority"),
+                Ui("Idle priority"),
+            },
+            SelectedIndex = settings.PlayerPriority switch
+            {
+                "above" => 1,
+                "high" => 2,
+                "realtime" => 3,
+                "below" => 4,
+                "idle" => 5,
+                _ => 0,
+            },
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+        };
+        gamePriority.SelectionChanged += async (_, _) =>
+        {
+            if (gamePriority.SelectedIndex < 0)
+                return;
+            settings.PlayerPriority = gamePriority.SelectedIndex switch
+            {
+                1 => "above",
+                2 => "high",
+                3 => "realtime",
+                4 => "below",
+                5 => "idle",
+                _ => "normal",
+            };
+            await PersistSettings();
+        };
+
         var localizedGameLanguage = new BelowComboBox
         {
             Header = Ui("Game language"),
@@ -242,6 +281,7 @@ public sealed class SettingsPage : CMCPage
                 projectIntro,
                 localizedGameLanguage,
                 launcherVisibility,
+                gamePriority,
                 customJvmArgs,
                 jvmHint,
                 automaticMemory,

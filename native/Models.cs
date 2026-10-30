@@ -53,6 +53,7 @@ public sealed class Settings
     public List<CustomAppearancePreset> CustomAppearancePresets { get; set; } = [];
     public string GameLanguage { get; set; } = "auto";
     public string CustomJvmArgs { get; set; } = "";
+    public string PlayerPriority { get; set; } = "normal";
     public string MinecraftRoot { get; set; } = "";
     public bool StartMaximized { get; set; }
     public string LauncherVisibility { get; set; } = "keep";
