@@ -91,7 +91,12 @@ public sealed partial class MainWindow
                 ("运行日志", "\uE9D9", "logs"),
             }
         );
-        AddNavGroup("更多", "\uE712", "more", new[] { ("frpc", "\uE968", "frpc") });
+        AddNavGroup(
+            "更多",
+            "\uE712",
+            "more",
+            new[] { ("frpc", "\uE968", "frpc"), ("About", "\uE946", "about") }
+        );
         SyncNavigation();
     }
 
@@ -423,6 +428,9 @@ public sealed partial class MainWindow
                     break;
                 case "more":
                     MorePage();
+                    break;
+                case "about":
+                    AboutPage();
                     break;
                 case "frpc":
                     FrpcPage();

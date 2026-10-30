@@ -30,6 +30,10 @@
     <!-- 使用 Program.cs 中的自定义入口，负责 OLE 初始化和资源准备。 -->
     <DefineConstants>$(DefineConstants);DISABLE_XAML_GENERATED_MAIN</DefineConstants>
     <EnableMsixTooling Condition="'$(PublishSingleFile)' == 'true'">true</EnableMsixTooling>
+    <!-- 构建时自动填写构建时间/版本/提交，About 页读取展示。构建提交号由 _GenerateLauncherBuildInfo 在编译时读取 Git 填充。 -->
+    <LauncherBuildTime>$([System.DateTime]::UtcNow.ToString("yyyy-MM-dd HH:mm:ss 'UTC'"))</LauncherBuildTime>
+    <LauncherGitCommit>
+    </LauncherGitCommit>
     <IncludeNativeLibrariesForSelfExtract
       Condition="'$(PublishSingleFile)' == 'true'"
     >true</IncludeNativeLibrariesForSelfExtract>
@@ -226,6 +230,63 @@
       Link="Core/GlobalUsings.cs"
     />
   </ItemGroup>
+  <!-- 构建时生成构建信息源码，About 页自动展示构建时间/版本/提交。 -->
+  <ItemGroup>
+    <Compile Include="$(IntermediateOutputPath)LauncherBuildInfo.g.cs" />
+  </ItemGroup>
+  <Target
+    Name="_GenerateLauncherBuildInfo"
+    BeforeTargets="PrepareForBuild;CoreCompile"
+  >
+    <PropertyGroup>
+      <LauncherBuildInfoFile>$(IntermediateOutputPath)LauncherBuildInfo.g.cs</LauncherBuildInfoFile>
+    </PropertyGroup>
+    <MakeDir Directories="$(IntermediateOutputPath)" />
+    <!-- 编译时读取当前 Git 提交号，构建信息页展示真实提交。git 不可用时回退到默认值。 -->
+    <PropertyGroup
+      Condition="'$(LauncherGitCommitOverride)' != ''"
+    >
+      <LauncherGitCommit>$(LauncherGitCommitOverride)</LauncherGitCommit>
+    </PropertyGroup>
+    <Exec
+      Condition="'$(LauncherGitCommit)' == ''"
+      Command="git rev-parse --short HEAD"
+      ConsoleToMsBuild="true"
+      EchoOff="true"
+      IgnoreExitCode="true"
+    >
+      <Output
+        TaskParameter="ConsoleOutput"
+        PropertyName="GitShortCommit"
+      />
+    </Exec>
+    <PropertyGroup Condition="'$(LauncherGitCommit)' == ''">
+      <LauncherGitCommit
+        Condition="'$(GitShortCommit)' != ''"
+      >$(GitShortCommit)</LauncherGitCommit>
+      <LauncherGitCommit Condition="'$(LauncherGitCommit)' == ''">unknown</LauncherGitCommit>
+    </PropertyGroup>
+    <!-- 逐行生成 C#，用 %3B 转义分号，避免 XML 属性换行规范化和 item 分号拆分导致代码损坏。 -->
+    <ItemGroup>
+      <BuildInfoLine Include="#pragma warning disable CS1591" />
+      <BuildInfoLine Include="// 本文件由 MSBuild 在编译前自动生成，请勿手动修改。" />
+      <BuildInfoLine Include="namespace CMCLauncher.WinUI%3B" />
+      <BuildInfoLine Include="     " />
+      <BuildInfoLine Include="internal static partial class LauncherBuildInfo" />
+      <BuildInfoLine Include="{" />
+      <BuildInfoLine Include="    public const string Version = &quot;$(Version)&quot;%3B" />
+      <BuildInfoLine Include="    public const string BuildTime = &quot;$(LauncherBuildTime)&quot;%3B" />
+      <BuildInfoLine Include="    public const string GitCommit = &quot;$(LauncherGitCommit)&quot;%3B" />
+      <BuildInfoLine Include="}" />
+      <BuildInfoLine Include="     " />
+    </ItemGroup>
+    <WriteLinesToFile
+      File="$(LauncherBuildInfoFile)"
+      Overwrite="true"
+      Encoding="UTF-8"
+      Lines="@(BuildInfoLine)"
+    />
+  </Target>
   <!-- Filter before copying or bundling, so single-file releases cannot retain unused MUI files. -->
   <Target
     Name="FilterWinUIMuiLanguages"
