@@ -81,18 +81,25 @@ static class LocalizationCatalogTests
             catalog.Translate("en_us", "Save") == "Save",
             "Broken language files cannot prevent bundled translations from loading"
         );
+        Check(
+            catalog.Languages.Any(l => l.Code == "fr_fr" && l.DisplayName == "Français")
+                && catalog.Languages.Any(l => l.Code == "ru_ru" && l.DisplayName == "Русский")
+                && catalog.Translate("fr_fr", "Save") == "Enregistrer"
+                && catalog.Translate("ru_ru", "Save") == "Сохранить",
+            "Bundled French and Russian are fully translated and discoverable"
+        );
         await File.WriteAllTextAsync(
-            Path.Combine(root, "fr_fr.json"),
-            """{"code":"fr_fr","displayName":"Français","strings":{"Save":"Enregistrer"}}"""
+            Path.Combine(root, "it_it.json"),
+            """{"code":"it_it","displayName":"Italiano","strings":{"Save":"Salva"}}"""
         );
         catalog.Reload();
         Check(
-            catalog.Languages.Any(l => l.Code == "fr_fr" && l.DisplayName == "Français")
-                && catalog.Translate("fr_fr", "Save") == "Enregistrer",
+            catalog.Languages.Any(l => l.Code == "it_it" && l.DisplayName == "Italiano")
+                && catalog.Translate("it_it", "Save") == "Salva",
             "Additional JSON languages are discoverable"
         );
         Check(
-            catalog.Translate("fr_fr", "context.communityfilters.any") == "Any",
+            catalog.Translate("it_it", "context.communityfilters.any") == "Any",
             "Partial additional languages fall back to English text instead of internal resource identifiers"
         );
         await File.WriteAllTextAsync(
