@@ -16,7 +16,7 @@ static class RuntimeLog
     }
 
     static string FilePath =>
-        Path.Combine(AppContext.BaseDirectory, "logs", $"launcher-{DateTime.Now:yyyyMMdd}.log");
+        Path.Combine(Program.UserDirectory, "logs", $"launcher-{DateTime.Now:yyyyMMdd}.log");
 
     // 脱敏后再落盘，把消息中的换行转义，保持一条事件对应一行。
     public static void Write(string level, string message)

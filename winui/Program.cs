@@ -11,6 +11,12 @@ namespace CMCLauncher.WinUI;
 // 程序入口 — 负责 MUI 语言资源部署、COM 初始化、窗口启动
 internal static class Program
 {
+    // The single-EXE host keeps editable files beside the distributed executable.
+    internal static string UserDirectory =>
+        Environment.GetEnvironmentVariable("CMCLAUNCHER_PROGRAM_DIRECTORY")
+            is { Length: > 0 } directory
+            ? Path.GetFullPath(directory)
+            : AppContext.BaseDirectory;
     const uint MuiLanguageName = 0x8;
 
     // 当前会话已加载的 MUI 语言列表（如 zh-CN、en-us）
@@ -42,6 +48,31 @@ internal static class Program
         if (args.Length >= 2 && args[0] == "--cleanup-mui")
             return CleanupWorker(args);
         PrepareMuiResources();
+        if (args.Length == 2 && args[0] == "--verify-singlefile-runtime")
+        {
+            var result = OleInitialize(IntPtr.Zero);
+            if (result < 0)
+                Marshal.ThrowExceptionForHR(result);
+            try
+            {
+                WinRT.ComWrappersSupport.InitializeComWrappers();
+                _ = Application.Current;
+                File.WriteAllLines(
+                    args[1],
+                    new[]
+                    {
+                        "activation=success",
+                        "runtime=" + AppContext.BaseDirectory,
+                        "program=" + UserDirectory,
+                    }
+                );
+                return 0;
+            }
+            finally
+            {
+                OleUninitialize();
+            }
+        }
         StartMuiCleanupWorker();
         WinRT.ComWrappersSupport.InitializeComWrappers();
         // 文件拖放依赖 OLE，在 STA 主线程初始化，并在消息循环退出后成对清理。

@@ -12,7 +12,7 @@ public sealed partial class MainWindow
         var savedTheme = store.Config.Settings.Theme;
         var savedPreset = store.Config.Settings.ColorPreset;
         var savedFont = store.Config.Settings.UiFontSize;
-        var directory = Path.Combine(AppContext.BaseDirectory, "themes");
+        var directory = Path.Combine(Program.UserDirectory, "themes");
         var craft = Path.Combine(directory, "craft.json");
         var external = Path.Combine(directory, "verification-theme.json");
         var native = Path.Combine(directory, "native.json");

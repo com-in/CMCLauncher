@@ -38,6 +38,9 @@
     >$(DefineConstants);SINGLE_FILE</DefineConstants>
   </PropertyGroup>
   <!-- Partial trimming keeps the application and third-party libraries intact. -->
+  <ItemGroup Condition="'$(PublishSingleFile)' != 'true'">
+    <Compile Remove="CompanionData.g.cs" />
+  </ItemGroup>
   <PropertyGroup Condition="'$(Configuration)' == 'Release'">
     <PublishTrimmed Condition="'$(PublishTrimmed)' == ''">true</PublishTrimmed>
   </PropertyGroup>
@@ -146,8 +149,14 @@
       Include="../native/LauncherCore.cs"
       Link="Core/LauncherCore.cs"
     />
-    <Compile Include="../native/LauncherLibraries.cs" Link="Core/LauncherLibraries.cs" />
-    <Compile Include="../native/NativeDirectoryLease.cs" Link="Core/NativeDirectoryLease.cs" />
+    <Compile
+      Include="../native/LauncherLibraries.cs"
+      Link="Core/LauncherLibraries.cs"
+    />
+    <Compile
+      Include="../native/NativeDirectoryLease.cs"
+      Link="Core/NativeDirectoryLease.cs"
+    />
     <Compile
       Include="../native/CertificatePolicy.cs"
       Link="Core/CertificatePolicy.cs"
@@ -172,8 +181,14 @@
       Include="../native/ModrinthService.cs"
       Link="Core/ModrinthService.cs"
     />
-    <Compile Include="../native/CommunityService.cs" Link="Core/CommunityService.cs" />
-    <Compile Include="../native/CurseForgeCommunityService.cs" Link="Core/CurseForgeCommunityService.cs" />
+    <Compile
+      Include="../native/CommunityService.cs"
+      Link="Core/CommunityService.cs"
+    />
+    <Compile
+      Include="../native/CurseForgeCommunityService.cs"
+      Link="Core/CurseForgeCommunityService.cs"
+    />
     <EmbeddedResource
       Include="$(CurseForgeConfigurationFile)"
       LogicalName="CMCLauncher.CurseForgeApi"

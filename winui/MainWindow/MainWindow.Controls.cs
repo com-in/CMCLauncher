@@ -16,7 +16,7 @@ namespace CMCLauncher.WinUI;
 public sealed partial class MainWindow
 {
     readonly LocalizationCatalog localization = new(
-        Path.Combine(AppContext.BaseDirectory, "locales"),
+        Path.Combine(Program.UserDirectory, "locales"),
         message => RuntimeLog.Write("WARN", message)
     );
     internal IReadOnlyList<InterfaceLanguage> InterfaceLanguages => localization.Languages;

@@ -27,9 +27,21 @@ jobs:
 
   # 原生测试通过后再构建发行包，避免把已知失败的核心代码打包。
   build:
-    name: Build Windows release
+    name: ${{ matrix.format == 'zip' && 'Build Windows release' || 'Build single-file release' }}
     runs-on: windows-latest
     needs: test
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - format: zip
+            publish-dir: dist/cmc-launcher
+            scan-archive: dist/CMCLauncher-win-x64.zip
+            artifact: dist/CMCLauncher-win-x64.zip
+          - format: singlefile
+            publish-dir: dist/cmc-launcher-single
+            scan-archive: dist/CMCLauncher-win-x64-singlefile-scan.zip
+            artifact: dist/CMCLauncher-win-x64.exe
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -53,8 +65,19 @@ jobs:
           CURSEFORGE_API_KEY: ${{ secrets.CURSEFORGE_API_KEY }}
         run: ./scripts/configure-curseforge.ps1 -OutputPath (Join-Path $env:RUNNER_TEMP 'curseforge-api.json')
       - name: Publish self-contained WinUI app
+        if: matrix.format == 'zip'
         shell: pwsh
         run: dotnet publish winui/CMCLauncher.WinUI.csproj -c Release -p:Platform=x64 -r win-x64 --self-contained true "-p:CurseForgeConfigurationFile=$env:RUNNER_TEMP/curseforge-api.json" -o dist/cmc-launcher
+      - name: Publish single-file WinUI app
+        if: matrix.format == 'singlefile'
+        shell: pwsh
+        run: |
+          ./scripts/publish-singlefile.ps1 -OutputDir dist/cmc-launcher-single -CurseForgeConfigurationFile (Join-Path $env:RUNNER_TEMP 'curseforge-api.json')
+          Copy-Item -LiteralPath dist/cmc-launcher-single/CMCLauncher.exe -Destination dist/CMCLauncher-win-x64.exe
+      - name: Verify isolated single-file startup
+        if: matrix.format == 'singlefile'
+        shell: pwsh
+        run: ./scripts/verify-singlefile.ps1 -ExecutablePath dist/CMCLauncher-win-x64.exe
       - name: Remove temporary CurseForge configuration
         if: always()
         shell: pwsh
@@ -65,21 +88,21 @@ jobs:
           }
       - name: Package and scan release archive
         shell: pwsh
-        run: ./scripts/package-release.ps1 -PublishDirectory dist/cmc-launcher -ArchivePath dist/CMCLauncher-win-x64.zip
+        run: ./scripts/package-release.ps1 -PublishDirectory '${{ matrix.publish-dir }}' -ArchivePath '${{ matrix.scan-archive }}'
       - name: Check CurseForge credential exposure
         if: github.event_name != 'pull_request'
         shell: pwsh
         env:
           CURSEFORGE_API_KEY: ${{ secrets.CURSEFORGE_API_KEY }}
-        run: ./scripts/verify-curseforge-secrets.ps1 -ArchivePath dist/CMCLauncher-win-x64.zip
+        run: ./scripts/verify-curseforge-secrets.ps1 -ArchivePath '${{ matrix.scan-archive }}'
       - name: Upload build artifact
         uses: actions/upload-artifact@v7
         with:
-          path: dist/CMCLauncher-win-x64.zip
-          # Upload the scanned ZIP directly instead of wrapping it in another archive.
+          path: ${{ matrix.artifact }}
+          # Upload the validated ZIP/EXE directly without another archive wrapper.
           archive: false
           if-no-files-found: error
-  # 发布任务只处理标签，复用上一步已打包并检查过的 ZIP。
+  # 标签发布复用已经检查过的 ZIP 和单文件 EXE。
   release:
     name: Publish tagged release
     runs-on: windows-latest
@@ -97,8 +120,14 @@ jobs:
           path: release-files
           # Preserve the already packaged ZIP instead of extracting its application files.
           skip-decompress: true
+      - name: Download single-file artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: CMCLauncher-win-x64.exe
+          path: release-files
+          skip-decompress: true
       # Only release assets receive a version; workflow artifacts keep a stable name.
-      - name: Name release archive
+      - name: Name release assets
         id: archive
         shell: pwsh
         env:
@@ -114,7 +143,10 @@ jobs:
           $suffix = if ($prerelease) { "-$channel$revision" } else { '' }
           $archivePath = "release-files/CMCLauncher-$version$suffix-win-x64.zip"
           Move-Item -LiteralPath release-files/CMCLauncher-win-x64.zip -Destination $archivePath
+          $executablePath = "release-files/CMCLauncher-$version$suffix-win-x64.exe"
+          Move-Item -LiteralPath release-files/CMCLauncher-win-x64.exe -Destination $executablePath
           "path=$archivePath" >> $env:GITHUB_OUTPUT
+          "executable=$executablePath" >> $env:GITHUB_OUTPUT
           "prerelease=$($prerelease.ToString().ToLowerInvariant())" >> $env:GITHUB_OUTPUT
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
@@ -122,4 +154,6 @@ jobs:
           body_path: docs/RELEASE_NOTES.md
           generate_release_notes: true
           prerelease: ${{ steps.archive.outputs.prerelease == 'true' }}
-          files: ${{ steps.archive.outputs.path }}
+          files: |
+            ${{ steps.archive.outputs.path }}
+            ${{ steps.archive.outputs.executable }}

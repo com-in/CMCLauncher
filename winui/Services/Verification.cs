@@ -816,6 +816,7 @@ public sealed partial class MainWindow
         );
         fetchProject = savedProject;
         fetchProjectVersions = savedProjectVersions;
+        await VerifyResourceDetailLoading(Check);
         var savedVersions = fetchVersions;
         var delayedVersions = new TaskCompletionSource<List<GameRelease>>();
         fetchVersions = _ => delayedVersions.Task;

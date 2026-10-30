@@ -57,7 +57,7 @@ public sealed class LogsPage : CMCPage
             Ui("Open log folder"),
             (_, _) =>
             {
-                var path = Path.Combine(AppContext.BaseDirectory, "logs");
+                var path = Path.Combine(Program.UserDirectory, "logs");
                 Directory.CreateDirectory(path);
                 System.Diagnostics.Process.Start(
                     new System.Diagnostics.ProcessStartInfo(path) { UseShellExecute = true }

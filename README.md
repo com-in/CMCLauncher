@@ -151,6 +151,10 @@ dotnet publish winui/CMCLauncher.WinUI.csproj -c Release -p:Platform=x64 -r win-
 
 The packaging script excludes local configuration, credential, and key files, then checks that the archive contains the launcher executable.
 
+Build a self-extracting single EXE with `./scripts/publish-singlefile.ps1`. It embeds the validated portable runtime rather than changing WinUI's native library layout. Runtime files are cached under `%LOCALAPPDATA%/CMCLauncher/singlefile/`; editable language packs, themes, frpc configurations, and logs stay beside the distributed EXE. Existing language/theme edits are preserved. Use a writable folder. Pass `-CurseForgeConfigurationFile PATH` to embed your local application credential through the same portable build.
+
+CI produces both `CMCLauncher-win-x64.zip` and `CMCLauncher-win-x64.exe`. Only tagged Release assets receive a version in their filenames. Both formats use the same credential injection and archive checks; the single EXE also runs an isolated WinUI activation smoke test before upload.
+
 Portable releases include the .NET runtime and the required Windows App SDK components, so users do not need to install these runtimes separately. The project references the WinUI and DWrite component packages instead of the full Windows App SDK bundle to avoid shipping unused AI, machine learning, and Widgets dependencies. Keep their versions aligned with the dependencies of the same Windows App SDK release when updating them. Publish into a fresh directory: publishing over an older output does not remove obsolete dependency files.
 
 Release builds also use partial .NET trimming. The launcher assembly and Windows/WinUI projections remain fully rooted to preserve reflection-based JSON models, XAML controls, and WinRT collection conversions; built-in COM and JSON reflection stay enabled. Trim analysis warnings remain visible. Debug builds are not trimmed. To compare against an untrimmed release, add `-p:PublishTrimmed=false` to the publish command.

@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>CMCLauncher</AssemblyName>
+    <Product>CMCLauncher</Product>
+    <ApplicationIcon>../winui/assets/cmc-logo.ico</ApplicationIcon>
+    <PublishSingleFile>true</PublishSingleFile>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+    <PublishTrimmed>true</PublishTrimmed>
+    <DebugType>none</DebugType>
+    <DebugSymbols>false</DebugSymbols>
+  </PropertyGroup>
+  <ItemGroup>
+    <EmbeddedResource
+      Include="$(SingleFilePayload)"
+      LogicalName="CMCLauncher.SingleFile.Payload"
+    />
+    <EmbeddedResource
+      Include="$(SingleFilePayloadHashFile)"
+      LogicalName="CMCLauncher.SingleFile.Hash"
+    />
+  </ItemGroup>
+</Project>

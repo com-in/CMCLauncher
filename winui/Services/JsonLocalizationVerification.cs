@@ -9,7 +9,7 @@ public sealed partial class MainWindow
     {
         var savedPage = page;
         var savedLanguage = store.Config.Settings.LauncherLanguage;
-        var directory = Path.Combine(AppContext.BaseDirectory, "locales");
+        var directory = Path.Combine(Program.UserDirectory, "locales");
         var english = Path.Combine(directory, "en_us.json");
         var french = Path.Combine(directory, "fr_fr.json");
         var original = await File.ReadAllBytesAsync(english);

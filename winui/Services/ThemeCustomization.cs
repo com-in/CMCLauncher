@@ -87,7 +87,7 @@ static class ThemeTokens
 public sealed partial class MainWindow
 {
     readonly ThemeCatalog themeCatalog = new(
-        Path.Combine(AppContext.BaseDirectory, "themes"),
+        Path.Combine(Program.UserDirectory, "themes"),
         message => RuntimeLog.Write("WARN", message)
     );
 

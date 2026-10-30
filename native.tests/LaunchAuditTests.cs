@@ -30,10 +30,9 @@ static class LaunchAuditTests
                 return 9;
             if (File.ReadAllText(installer) == "waiting installer")
             {
-                File.WriteAllText(
-                    Path.Combine(storage, "audit-installer-pid"),
-                    Environment.ProcessId.ToString()
-                );
+                var pidFile = Path.Combine(storage, "audit-installer-pid");
+                File.WriteAllText(pidFile + ".tmp", Environment.ProcessId.ToString());
+                File.Move(pidFile + ".tmp", pidFile);
                 Thread.Sleep(30000);
                 return 0;
             }

@@ -1,10 +1,36 @@
-﻿using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 
 namespace CMCLauncher.WinUI;
 
 public sealed partial class MainWindow
 {
+    TimeSpan resourceDetailTimeout = TimeSpan.FromSeconds(45);
+
+    // 隔离请求的同步准备阶段；底层即使不响应取消，页面也能结束等待。
+    static async Task<T> LoadResourceDetail<T>(
+        Func<string, CancellationToken, Task<T>> fetch,
+        string id,
+        CancellationToken ct
+    )
+    {
+        var pending = Task.Run(() => fetch(id, ct), ct);
+        try
+        {
+            return await pending.WaitAsync(ct).ConfigureAwait(false);
+        }
+        finally
+        {
+            // 超时或离开后仍可能有后台请求失败，观察异常而不再更新页面。
+            _ = pending.ContinueWith(
+                task => { _ = task.Exception; },
+                CancellationToken.None,
+                TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously,
+                TaskScheduler.Default
+            );
+        }
+    }
+
     // 项目信息和版本列表并发加载，离开页面后不再提交结果。
     async Task ResourceDetail()
     {
@@ -30,17 +56,23 @@ public sealed partial class MainWindow
         if (pageFrameReady)
             NavigatePage(PageBody);
         var generation = renderVersion;
-        using var request = new CancellationTokenSource(TimeSpan.FromSeconds(45));
+        using var request = new CancellationTokenSource(resourceDetailTimeout);
         resourceSearch = request;
         try
         {
-            var infoTask = fetchProject(project.Id, request.Token);
-            var versionsTask = fetchProjectVersions(project.Id, request.Token);
-            await Task.WhenAll(infoTask, versionsTask);
-            if (generation != renderVersion || request.IsCancellationRequested)
-                return;
+            var infoTask = LoadResourceDetail(fetchProject, project.Id, request.Token);
+            var versionsTask = LoadResourceDetail(fetchProjectVersions, project.Id, request.Token);
+            // 元数据失败时，仍观察并发版本请求的异常。
+            _ = versionsTask.ContinueWith(
+                task => { _ = task.Exception; },
+                CancellationToken.None,
+                TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously,
+                TaskScheduler.Default
+            );
             var info = await infoTask;
-            var versions = await versionsTask;
+            if (generation != renderVersion)
+                return;
+            request.Token.ThrowIfCancellationRequested();
             host.Children.Clear();
             var identity = new StackPanel { Spacing = 5 };
             identity.Children.Add(Text(info.Name, 21, true));
@@ -79,11 +111,22 @@ public sealed partial class MainWindow
                     HorizontalContentAlignment = HorizontalAlignment.Stretch,
                     IsExpanded = store.Config.Settings.ExpandProjectIntroduction,
                 };
-                intro.Content = new ScrollViewer
+                void LoadIntroduction()
                 {
-                    MaxHeight = 360,
-                    Content = RenderMarkdown(info.Body),
-                };
+                    if (intro.Content != null || generation != renderVersion)
+                        return;
+                    intro.Content = new ScrollViewer
+                    {
+                        MaxHeight = 360,
+                        // CurseForge 的 HTML 已在服务层转成纯文本，无需再解析 Markdown。
+                        Content = project.Source == "curseforge"
+                            ? Text(info.Body, 13)
+                            : RenderMarkdown(info.Body),
+                    };
+                }
+                intro.Expanding += (_, _) => LoadIntroduction();
+                if (intro.IsExpanded)
+                    LoadIntroduction();
                 host.Children.Add(intro);
             }
             host.Children.Add(
@@ -111,6 +154,26 @@ public sealed partial class MainWindow
             );
             var groups = new StackPanel { Spacing = 8 };
             host.Children.Add(Text("版本下载", 16, true));
+            var loadingVersions = Text("正在加载版本列表…", 13);
+            host.Children.Add(loadingVersions);
+            List<CommunityVersion> versions;
+            try
+            {
+                versions = await versionsTask;
+            }
+            catch (Exception ex)
+            {
+                if (generation != renderVersion)
+                    return;
+                loadingVersions.Text = ex is OperationCanceledException
+                    ? Ui("加载超时，请重试。")
+                    : Ui("加载失败：") + ex.Message;
+                host.Children.Add(Action("重新加载", async (_, _) => await RenderAsync()));
+                return;
+            }
+            if (generation != renderVersion || request.IsCancellationRequested)
+                return;
+            host.Children.Remove(loadingVersions);
             var categories = new[]
             {
                 Ui("All"),
@@ -180,6 +243,7 @@ public sealed partial class MainWindow
             // 一个资源版本可能支持多个 Minecraft 版本，按游戏版本展开后分别归组。
             void DrawVersions()
             {
+                var revisionAtDraw = filterRevision;
                 groups.Children.Clear();
                 bool? shaderSupport =
                     project.Type == "shader" && selected != null
@@ -204,155 +268,178 @@ public sealed partial class MainWindow
                 foreach (var group in grouped)
                 {
                     var rows = new StackPanel { Spacing = 6 };
-                    foreach (var entry in group)
+                    var entries = group.ToArray();
+                    var offset = 0;
+                    Button? more = null;
+                    void AddRows()
                     {
-                        var version = entry.Version;
-                        var reason =
-                            project.Type == "modpack"
-                                ? null
-                                : InstallationReason(
-                                    selected,
-                                    project.Type,
-                                    version,
-                                    shaderSupport
-                                );
-                        var labels = new StackPanel { Spacing = 3 };
-                        labels.Children.Add(Text(version.Name, 13, true));
-                        var channel = version.Type switch
+                        if (generation != renderVersion || revisionAtDraw != filterRevision)
+                            return;
+                        if (more != null)
+                            rows.Children.Remove(more);
+                        var end = Math.Min(offset + 30, entries.Length);
+                        for (; offset < end; offset++)
                         {
-                            "release" => "正式版",
-                            "beta" => "测试版",
-                            _ => "预览版",
-                        };
-                        var date = DateTimeOffset.TryParse(version.Published, out var published)
-                            ? published.ToLocalTime().ToString("yyyy-MM-dd")
-                            : "";
-                        var metadata = Text(
-                            string.Join(
-                                " · ",
-                                new[]
-                                {
+                            var entry = entries[offset];
+                            var version = entry.Version;
+                            var reason =
+                                project.Type == "modpack"
+                                    ? null
+                                    : InstallationReason(
+                                        selected,
+                                        project.Type,
+                                        version,
+                                        shaderSupport
+                                    );
+                            var labels = new StackPanel { Spacing = 3 };
+                            labels.Children.Add(Text(version.Name, 13, true));
+                            var channel = version.Type switch
+                            {
+                                "release" => "正式版",
+                                "beta" => "测试版",
+                                _ => "预览版",
+                            };
+                            var date = DateTimeOffset.TryParse(version.Published, out var published)
+                                ? published.ToLocalTime().ToString("yyyy-MM-dd")
+                                : "";
+                            var metadata = Text(
+                                string.Join(
+                                    " · ",
+                                    new[]
+                                    {
                                     version.Number,
                                     string.Join(" / ", version.Loaders),
                                     channel,
                                     date,
-                                }.Where(s => s.Length > 0)
-                            ),
-                            11
-                        );
-                        metadata.Opacity = .7;
-                        labels.Children.Add(metadata);
-                        if (reason != null)
-                        {
-                            var hint = Text(reason, 11);
-                            hint.Opacity = .65;
-                            labels.Children.Add(hint);
-                        }
-                        var install = Action(
-                            project.Type == "modpack" ? "安装整合包"
-                                : reason == null ? "安装"
-                                : "选择安装位置",
-                            async (_, _) =>
+                                    }.Where(s => s.Length > 0)
+                                ),
+                                11
+                            );
+                            metadata.Opacity = .7;
+                            labels.Children.Add(metadata);
+                            if (reason != null)
                             {
-                                // 整合包新建实例；其他资源先确定兼容实例，数据包还需要选定存档。
-                                var destination =
-                                    project.Type == "modpack"
-                                        ? null
-                                        : await ResolveInstallDestination(project.Type, version);
-                                if (project.Type != "modpack" && destination == null)
-                                    return;
-                                await Run(async ct =>
+                                var hint = Text(reason, 11);
+                                hint.Opacity = .65;
+                                labels.Children.Add(hint);
+                            }
+                            var install = Action(
+                                project.Type == "modpack" ? "安装整合包"
+                                    : reason == null ? "安装"
+                                    : "选择安装位置",
+                                async (_, _) =>
                                 {
-                                    if (project.Type == "modpack")
+                                    // 整合包新建实例；其他资源先确定兼容实例，数据包还需要选定存档。
+                                    var destination =
+                                        project.Type == "modpack"
+                                            ? null
+                                            : await ResolveInstallDestination(project.Type, version);
+                                    if (project.Type != "modpack" && destination == null)
+                                        return;
+                                    await Run(async ct =>
                                     {
-                                        var instance =
-                                            project.Source == "curseforge"
-                                                ? await curseforge.InstallPack(
+                                        if (project.Type == "modpack")
+                                        {
+                                            var instance =
+                                                project.Source == "curseforge"
+                                                    ? await curseforge.InstallPack(
+                                                        project.Id,
+                                                        version.Id,
+                                                        ct,
+                                                        ResolveModpackName
+                                                    )
+                                                    : await modrinth.InstallProjectPack(
+                                                        project.Id,
+                                                        ct,
+                                                        version.Id,
+                                                        ResolveModpackName
+                                                    );
+                                            store.Config.Instances.Add(instance);
+                                            selected = instance;
+                                            store.Config.SelectedInstanceId = instance.Id;
+                                            await store.Save();
+                                        }
+                                        else if (destination is { } location)
+                                        {
+                                            var failure = InstallationReason(
+                                                location.Instance,
+                                                project.Type,
+                                                version
+                                            );
+                                            if (failure != null)
+                                                throw new Exception(failure);
+                                            if (project.Source == "curseforge")
+                                                await curseforge.InstallContent(
+                                                    location.Instance,
                                                     project.Id,
                                                     version.Id,
-                                                    ct,
-                                                    ResolveModpackName
-                                                )
-                                                : await modrinth.InstallProjectPack(
-                                                    project.Id,
-                                                    ct,
-                                                    version.Id,
-                                                    ResolveModpackName
+                                                    project.Type,
+                                                    location.World,
+                                                    ct
                                                 );
-                                        store.Config.Instances.Add(instance);
-                                        selected = instance;
-                                        store.Config.SelectedInstanceId = instance.Id;
-                                        await store.Save();
-                                    }
-                                    else if (destination is { } location)
-                                    {
-                                        var failure = InstallationReason(
-                                            location.Instance,
-                                            project.Type,
-                                            version
-                                        );
-                                        if (failure != null)
-                                            throw new Exception(failure);
-                                        if (project.Source == "curseforge")
-                                            await curseforge.InstallContent(
-                                                location.Instance,
-                                                project.Id,
-                                                version.Id,
-                                                project.Type,
-                                                location.World,
-                                                ct
-                                            );
-                                        else if (project.Type == "mod")
-                                            await modrinth.InstallMod(
-                                                location.Instance,
-                                                project.Id,
-                                                ct,
-                                                info.IconUrl,
-                                                version.Id
-                                            );
-                                        else
-                                            await modrinth.InstallContent(
-                                                location.Instance,
-                                                project.Id,
-                                                project.Type,
-                                                location.World,
-                                                ct,
-                                                version.Id
-                                            );
-                                    }
-                                });
-                            },
-                            true
-                        );
-                        install.MinWidth = 56;
-                        install.MinHeight = 28;
-                        install.Padding = new Thickness(9, 4, 9, 4);
-                        var row = new Grid { ColumnSpacing = 12 };
-                        row.ColumnDefinitions.Add(
-                            new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) }
-                        );
-                        row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-                        row.Children.Add(labels);
-                        Grid.SetColumn(install, 1);
-                        row.Children.Add(install);
-                        rows.Children.Add(CompactCard(row));
-                    }
-                    groups.Children.Add(
-                        new Expander
+                                            else if (project.Type == "mod")
+                                                await modrinth.InstallMod(
+                                                    location.Instance,
+                                                    project.Id,
+                                                    ct,
+                                                    info.IconUrl,
+                                                    version.Id
+                                                );
+                                            else
+                                                await modrinth.InstallContent(
+                                                    location.Instance,
+                                                    project.Id,
+                                                    project.Type,
+                                                    location.World,
+                                                    ct,
+                                                    version.Id
+                                                );
+                                        }
+                                    });
+                                },
+                                true
+                            );
+                            install.MinWidth = 56;
+                            install.MinHeight = 28;
+                            install.Padding = new Thickness(9, 4, 9, 4);
+                            var row = new Grid { ColumnSpacing = 12 };
+                            row.ColumnDefinitions.Add(
+                                new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) }
+                            );
+                            row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+                            row.Children.Add(labels);
+                            Grid.SetColumn(install, 1);
+                            row.Children.Add(install);
+                            rows.Children.Add(CompactCard(row));
+                        }
+                        if (offset < entries.Length)
                         {
-                            Header = UiFormat(
+                            more = Action("加载更多", (_, _) => { AddRows(); return Task.CompletedTask; });
+                            rows.Children.Add(more);
+                        }
+                    }
+                    var expander = new Expander
+                    {
+                        Header = UiFormat(
                                 "Minecraft {0} · {1} versions",
                                 group.Key,
                                 group.Count()
                             ),
-                            Content = rows,
-                            IsExpanded =
+                        Content = rows,
+                        IsExpanded =
                                 group.Key == selected?.GameVersion
                                 || (selected == null && group == grouped[0]),
-                            HorizontalAlignment = HorizontalAlignment.Stretch,
-                            HorizontalContentAlignment = HorizontalAlignment.Stretch,
-                        }
-                    );
+                        HorizontalAlignment = HorizontalAlignment.Stretch,
+                        HorizontalContentAlignment = HorizontalAlignment.Stretch,
+                    };
+                    expander.Expanding += (_, _) =>
+                    {
+                        if (offset == 0)
+                            AddRows();
+                    };
+                    if (expander.IsExpanded)
+                        AddRows();
+                    groups.Children.Add(expander);
                 }
             }
             await FilterVersions();
