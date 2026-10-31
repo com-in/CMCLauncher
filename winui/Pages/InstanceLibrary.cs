@@ -48,16 +48,16 @@ public sealed partial class MainWindow
         );
         folder.Children.Add(
             Buttons(
-                Action("设置文件夹", async (_, _) => await ImportLocal()),
+                Action(Ui("Set folder"), async (_, _) => await ImportLocal()),
                 Action(
-                    "扫描版本",
+                    Ui("Scan versions"),
                     async (_, _) =>
                     {
                         await SetMinecraftFolder(store.MinecraftRoot);
                         Render();
                     }
                 ),
-                Action("打开文件夹", (_, _) => OpenFolder(store.MinecraftRoot))
+                Action(Ui("Open folder"), (_, _) => OpenFolder(store.MinecraftRoot))
             )
         );
         folder.Children.Add(
@@ -631,8 +631,8 @@ public sealed partial class MainWindow
                 throw;
             }
             Report(
-                $"已设置 .minecraft 文件夹，发现 {pending.Count} 个新版本"
-                    + (failed > 0 ? $"，{failed} 个版本读取失败，详情见日志" : "")
+                UiFormat("Minecraft folder set, found {0} new versions", pending.Count)
+                    + (failed > 0 ? UiFormat("，{0} versions failed to read, see the log for details", failed) : "")
             );
         });
     }
