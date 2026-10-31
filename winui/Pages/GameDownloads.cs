@@ -522,4 +522,50 @@ public sealed partial class MainWindow
         page = "instances";
         Render();
     }
+
+    // 从 Modrinth 应用及 MultiMC/Prism 系 fork 复制迁移实例；复制式迁移不依赖原启动器。
+    async Task MigrateForeignLauncher()
+    {
+        var folder = await PickMinecraftFolder();
+        if (folder == null)
+            return;
+        await Run(async ct =>
+        {
+            var scan = core.ScanForeignInstances(folder, ct, AddLog);
+            if (scan.Instances.Count == 0)
+            {
+                Report("未在该目录发现 Modrinth / MultiMC / Prism 实例，请选择 ModrinthApp 或对应启动器根目录");
+                return;
+            }
+            var (migrated, skipped) = await core.MigrateForeignInstances(
+                scan.Instances,
+                ct,
+                AddLog
+            );
+            var previous = store.Config.Instances.Count;
+            store.Config.Instances.AddRange(migrated);
+            try
+            {
+                await store.Save();
+            }
+            catch
+            {
+                foreach (var instance in migrated)
+                    store.Config.Instances.Remove(instance);
+                throw;
+            }
+            var discarded = migrated.Count - (store.Config.Instances.Count - previous);
+            var manual = migrated.Count(
+                instance => instance.Loader is not ("vanilla" or "fabric")
+            );
+            Report(
+                $"已迁移 {migrated.Count} 个实例"
+                    + (discarded > 0 ? $"，{discarded} 个因同名被丢弃" : "")
+                    + (skipped.Count > 0 ? $"，{skipped.Count} 个失败" : "")
+                    + (manual > 0 ? $"，其中 {manual} 个需在“下载游戏”中安装对应加载器" : "")
+            );
+        });
+        page = "instances";
+        Render();
+    }
 }

@@ -229,6 +229,10 @@ internal static class Program
         Pass("JSON theme discovery, mode overrides, embedded fallback and native preset isolation");
         await LauncherInstanceFormatTests.Run(Path.Combine(root, "launcher-instance-formats"));
         Pass("PCL and HMCL instance layouts, isolation settings, metadata and local-only discovery");
+        await ForeignLauncherMigrationTests.Run(Path.Combine(root, "foreign-launchers"));
+        Pass(
+            "Modrinth app and MultiMC/Prism instance discovery and copy-based migration"
+        );
         await LauncherUpdateTests.Run(Path.Combine(root, "launcher-updates"));
         Pass("launcher update versions, channels, pagination, hashes, cancellation and safe staging");
         await LocalizationCatalogTests.Run(Path.Combine(root, "locales"));

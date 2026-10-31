@@ -60,6 +60,23 @@ public sealed partial class MainWindow
                 Action("打开文件夹", (_, _) => OpenFolder(store.MinecraftRoot))
             )
         );
+        folder.Children.Add(
+            Text(
+                "Migrate instances from the Modrinth app or MultiMC/Prism launchers into the library.",
+                12
+            )
+        );
+        folder.Children.Add(
+            Buttons(
+                Action(
+                    "迁移其它启动器",
+                    async (_, _) =>
+                    {
+                        await MigrateForeignLauncher();
+                    }
+                )
+            )
+        );
         PageBody.Children.Add(CompactCard(folder));
         var query = new TextBox
         {
