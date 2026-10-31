@@ -3,6 +3,10 @@
   "displayName": "English",
   "strings": {
     "Community resources": "Community resources",
+    "Version downloads": "Version downloads",
+    "Fetching official version list…": "Fetching official version list…",
+    "No matching content found": "No matching content found",
+    "No tasks in progress": "No tasks in progress",
     ".minecraft folder": ".minecraft folder",
     "Minecraft folder set, found {0} new versions": "Minecraft folder set, found {0} new versions",
     "，{0} versions failed to read, see the log for details": "，{0} versions failed to read, see the log for details",

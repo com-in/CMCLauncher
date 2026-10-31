@@ -3,6 +3,10 @@
   "displayName": "Español",
   "strings": {
     "Community resources": "Recursos de la comunidad",
+    "Version downloads": "Descargar versiones",
+    "Fetching official version list…": "Obteniendo la lista de versiones oficiales…",
+    "No matching content found": "No se encontró contenido coincidente",
+    "No tasks in progress": "No hay tareas en curso.",
     ".minecraft folder": "carpeta .minecraft",
     "Minecraft folder set, found {0} new versions": "Se estableció la carpeta .minecraft; se encontraron {0} versiones nuevas",
     "，{0} versions failed to read, see the log for details": ", {0} versiones no se pudieron leer; consulta el registro",

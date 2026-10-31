@@ -165,10 +165,10 @@ public sealed partial class MainWindow
             TaskDrawerBody.Children.Add(TaskCard(panel));
         }
         else
-            TaskDrawerBody.Children.Add(Text("当前没有进行中的任务。", 14));
+            TaskDrawerBody.Children.Add(Text(Ui("No tasks in progress"), 14));
         if (recentWork.Any(w => !w.Launch))
         {
-            TaskDrawerBody.Children.Add(Text("最近任务", 15, true));
+            TaskDrawerBody.Children.Add(Text(Ui("Recent tasks"), 15, true));
             foreach (var recent in recentWork.Where(w => !w.Launch))
             {
                 var panel = new StackPanel { Spacing = 4 };

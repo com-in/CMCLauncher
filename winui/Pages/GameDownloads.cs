@@ -29,7 +29,7 @@ public sealed partial class MainWindow
     // 先展示表单，再异步拉取版本目录；失败时仍保留已有缓存列表。
     Task Downloads()
     {
-        Header("版本下载", Ui("Choose a game version to install."));
+        Header(Ui("Version downloads"), Ui("Choose a game version to install."));
         var form = new Grid
         {
             HorizontalAlignment = HorizontalAlignment.Stretch,
@@ -77,7 +77,7 @@ public sealed partial class MainWindow
         );
         ScrollViewer.SetHorizontalScrollBarVisibility(versions, ScrollBarVisibility.Disabled);
         ScrollViewer.SetVerticalScrollBarVisibility(versions, ScrollBarVisibility.Hidden);
-        var versionStatus = Text("正在获取官方版本列表…", 12);
+        var versionStatus = Text(Ui("Fetching official version list…"), 12);
         var versionDetail = Text(Ui("No version selected"), 21, true);
         versionDetail.Foreground = Brush(lightTheme ? "#69745F" : "#ACADBD");
         var emptyVersions = Text(

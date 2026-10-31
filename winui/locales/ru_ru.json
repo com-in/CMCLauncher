@@ -3,6 +3,10 @@
   "displayName": "Русский",
   "strings": {
     "Community resources": "Ресурсы сообщества",
+    "Version downloads": "Загрузка версий",
+    "Fetching official version list…": "Загрузка списка официальных версий…",
+    "No matching content found": "Соответствующий контент не найден",
+    "No tasks in progress": "Нет текущих задач.",
     ".minecraft folder": "папка .minecraft",
     "Minecraft folder set, found {0} new versions": "Папка .minecraft установлена; найдено новых версий: {0}",
     "，{0} versions failed to read, see the log for details": ", не удалось прочитать {0} версий; подробности в журнале",

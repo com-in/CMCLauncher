@@ -274,7 +274,7 @@ public sealed partial class MainWindow
                 status.Visibility =
                     response.Warning == null ? Visibility.Collapsed : Visibility.Visible;
                 if (response.Hits.Count == 0)
-                    results.Children.Add(Text("没有找到匹配的内容"));
+                    results.Children.Add(Text(Ui("No matching content found")));
                 foreach (var item in response.Hits)
                 {
                     var detail = new StackPanel

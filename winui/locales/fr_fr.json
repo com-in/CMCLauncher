@@ -3,6 +3,10 @@
   "displayName": "Français",
   "strings": {
     "Community resources": "Ressources communautaires",
+    "Version downloads": "Téléchargement des versions",
+    "Fetching official version list…": "Récupération de la liste des versions officielles…",
+    "No matching content found": "Aucun contenu correspondant trouvé",
+    "No tasks in progress": "Aucune tâche en cours.",
     ".minecraft folder": "dossier .minecraft",
     "Minecraft folder set, found {0} new versions": "Dossier .minecraft défini ; {0} nouvelles versions trouvées",
     "，{0} versions failed to read, see the log for details": ", {0} versions illisibles ; voir le journal",
