@@ -36,7 +36,10 @@ Write-Host "`n=== Stage 2: Package and validate runtime ===" -ForegroundColor Cy
 [IO.File]::WriteAllText($payloadHash, (Get-FileHash -LiteralPath $payload -Algorithm SHA256).Hash.ToLowerInvariant())
 
 Write-Host "`n=== Stage 3: Publish single executable ===" -ForegroundColor Cyan
-[xml]$projectDefinition = Get-Content -LiteralPath $projectPath -Raw
+# 用 XmlDocument.Load 按文件真实编码（UTF-8）解析，避免 PowerShel 默认 ANSI
+# 误读中文注释而损坏 XML（Get-Content -Raw + [xml] 强转会导致解压失败）。
+$projectDefinition = [System.Xml.XmlDocument]::new()
+$projectDefinition.Load((Resolve-Path -LiteralPath $projectPath))
 $version = @($projectDefinition.Project.PropertyGroup.Version | Where-Object { $_ })[0]
 if ($env:CMC_RELEASE_VERSION) { $version = $env:CMC_RELEASE_VERSION }
 & dotnet publish (Join-Path $repoRoot 'singlefile/CMCLauncher.SingleFile.csproj') -c $Configuration -r $Runtime --self-contained true "-p:Version=$version" "-p:SingleFilePayload=$payload" "-p:SingleFilePayloadHashFile=$payloadHash" -o $bundleDir --nologo
