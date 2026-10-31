@@ -35,7 +35,7 @@ public sealed class ExternalAuth : IDisposable
         {
             Timeout = TimeSpan.FromSeconds(30),
         };
-        http.DefaultRequestHeaders.UserAgent.ParseAdd("CMCLauncher/1.0.0");
+        http.DefaultRequestHeaders.UserAgent.ParseAdd("CMCLauncher/" + LauncherUpdates.CurrentVersion);
     }
 
     public static Uri ServerUri(string input)

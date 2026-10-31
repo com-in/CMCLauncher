@@ -1,7 +1,7 @@
 ﻿# 从发布目录制作 ZIP，并在压缩包生成后重新检查敏感文件和主程序。
 param(
     [string]$PublishDirectory = "dist/cmc-launcher",
-    [string]$ArchivePath = "dist/CMCLauncher-1.0.0-win-x64.zip"
+    [string]$ArchivePath = "dist/CMCLauncher-1.0.1-win-x64.zip"
 )
 
 $ErrorActionPreference = "Stop"

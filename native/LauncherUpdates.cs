@@ -107,7 +107,7 @@ public sealed class LauncherUpdates(HttpClient client)
         typeof(LauncherUpdates)
             .Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()
             ?.InformationalVersion.Split('+')[0]
-        ?? "1.0.0";
+        ?? "1.0.1";
 
     // Updates always validate TLS, even if the game downloader's SSL bypass is enabled.
     public static HttpClient CreateClient(Settings settings)

@@ -4,7 +4,7 @@
   xmlns="urn:schemas-microsoft-com:asm.v1"
 >
   <assemblyIdentity
-    version="1.0.0.0"
+    version="1.0.1.0"
     name="CMCLauncher.WinUI.app"
   />
   <!-- 沿用启动用户的权限，不申请管理员提升，便于接收资源管理器拖放文件。 -->

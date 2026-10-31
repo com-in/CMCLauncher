@@ -341,7 +341,7 @@ public sealed class CurseForgeClient : ICurseForgeClient, IDisposable
             NoCache = true,
             NoStore = true,
         };
-        request.Headers.UserAgent.ParseAdd("CMCLauncher/1.0.0");
+        request.Headers.UserAgent.ParseAdd("CMCLauncher/" + LauncherUpdates.CurrentVersion);
         using var response = await http.SendAsync(request, ct);
         if (!response.IsSuccessStatusCode)
         {

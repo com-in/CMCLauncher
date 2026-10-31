@@ -10,7 +10,7 @@
 
 一款用于 Minecraft Java 版的 Windows 原生启动器，基于 C#、.NET 8 与 WinUI 3 构建。支持管理隔离实例、下载游戏版本与加载器、安装 Modrinth 内容，以及管理 Java 与账号。
 
-当前版本：**1.0.0** · 平台：**Windows x64**
+当前版本：**1.0.1** · 平台：**Windows x64**
 
 [下载](https://github.com/com-in/CMCLauncher/releases) · [官网](https://cmcl.ctfun.top/) · [反馈问题](https://github.com/com-in/CMCLauncher/issues)
 
@@ -18,7 +18,7 @@
 
 ## 快速开始
 
-1. 从 [Releases](https://github.com/com-in/CMCLauncher/releases) 下载 `CMCLauncher-1.0.0-win-x64.zip`，解压整个压缩包，并运行 `CMCLauncher.exe`。
+1. 从 [Releases](https://github.com/com-in/CMCLauncher/releases) 下载 `CMCLauncher-1.0.1-win-x64.zip`，解压整个压缩包，并运行 `CMCLauncher.exe`。
 2. 打开 **设置 → Java**，扫描或导入已有的 Java 安装，或下载 Temurin Java。
 3. 打开 **设置 → 账号**，选择 Microsoft 设备代码登录。在浏览器中完成授权，然后等待启动器验证你的 Minecraft Java 档案。
 4. 下载游戏版本、导入已有的 `.minecraft` 文件夹，或导入整合包。在主界面选择版本与账号，然后启动。
@@ -152,7 +152,7 @@ dotnet build winui/CMCLauncher.WinUI.csproj -c Release -p:Platform=x64
 
 ```powershell
 dotnet publish winui/CMCLauncher.WinUI.csproj -c Release -p:Platform=x64 -r win-x64 --self-contained true -o dist/cmc-launcher
-./scripts/package-release.ps1 -PublishDirectory dist/cmc-launcher -ArchivePath dist/CMCLauncher-1.0.0-win-x64.zip
+./scripts/package-release.ps1 -PublishDirectory dist/cmc-launcher -ArchivePath dist/CMCLauncher-1.0.1-win-x64.zip
 ```
 
 打包脚本会排除本地配置、凭据与密钥文件，然后检查压缩包中是否包含启动器可执行文件。
