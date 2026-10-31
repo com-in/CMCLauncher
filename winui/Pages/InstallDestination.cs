@@ -19,16 +19,16 @@ public sealed partial class MainWindow
     )
     {
         if (instance == null)
-            return "主页还未选择游戏版本。";
+            return Ui("No game version selected on the home page.");
         if (!version.GameVersions.Contains(instance.GameVersion))
-            return "所选文件不支持 Minecraft " + instance.GameVersion + "。";
+            return UiFormat("The selected file does not support Minecraft {0}.", instance.GameVersion);
         if (type == "mod")
         {
             var reason = ContentManager.ModInstallUnsupportedReason(instance);
             if (reason != null)
                 return reason;
             if (!version.Loaders.Contains(instance.Loader, StringComparer.OrdinalIgnoreCase))
-                return "所选 Mod 不支持 " + LoaderCategory(instance.Loader);
+                return UiFormat("The selected mod does not support {0}.", LoaderCategory(instance.Loader));
         }
         if (
             type == "shader"
@@ -37,9 +37,9 @@ public sealed partial class MainWindow
                 ?? ContentManager.HasShaderSupport(instance, store.GameDirectory(instance))
             )
         )
-            return "当前实例未检测到已启用的 Iris、Oculus 或 OptiFine，无法使用光影。";
+            return Ui("The current instance does not have Iris, Oculus, or OptiFine enabled, so shaders cannot be used.");
         if (type == "datapack" && ContentManager.Worlds(store.GameDirectory(instance)).Count == 0)
-            return "当前实例没有可安装数据包的存档。";
+            return Ui("The current instance has no save with installable datapacks.");
         return null;
     }
 
@@ -82,13 +82,13 @@ public sealed partial class MainWindow
             }
             if (compatible.Count > 0)
             {
-                content.Children.Add(Text("要安装到哪个游戏版本？", 14, true));
+                content.Children.Add(Text(Ui("Which game version to install?"), 14, true));
                 content.Children.Add(list);
                 list.SelectedIndex = 0;
             }
             else
                 content.Children.Add(
-                    Text("没有兼容的安装位置。请先下载或配置支持此资源的游戏版本。", 13)
+                    Text(Ui("No compatible install location. Please download or configure a game version that supports this resource."), 13)
                 );
             var dialog = new ContentDialog
             {
@@ -133,7 +133,7 @@ public sealed partial class MainWindow
             var panel = new StackPanel
             {
                 Spacing = 10,
-                Children = { Text("安装到：" + target.Name, 13), list },
+                Children = { Text(Ui("Install to: ") + target.Name, 13), list },
             };
             var dialog = new ContentDialog
             {

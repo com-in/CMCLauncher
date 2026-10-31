@@ -13,12 +13,12 @@ public sealed class JavaSettingsPage : CMCPage
 
     public override void Build()
     {
-        Header("Java 管理", "");
+        Header(Ui("Java management"), "");
         var settings = Store.Config.Settings;
         PageBody.Children.Add(
             Buttons(
                 Action(
-                    "导入 Java",
+                    Ui("Import Java"),
                     async (_, _) =>
                     {
                         var picker = new FileOpenPicker();
@@ -37,15 +37,15 @@ public sealed class JavaSettingsPage : CMCPage
                                 JavaManager.Register(settings, java);
                                 await Store.Save();
                             },
-                            "导入 Java"
+                            Ui("Import Java")
                         );
                         if (PageName == "java")
                             Render();
                     }
                 ),
-                Action("扫描 Java", async (_, _) => await ScanJava(null)),
+                Action(Ui("Scan Java"), async (_, _) => await ScanJava(null)),
                 Action(
-                    "扫描文件夹",
+                    Ui("Scan folder"),
                     async (_, _) =>
                     {
                         var picker = new FolderPicker();
@@ -71,7 +71,7 @@ public sealed class JavaSettingsPage : CMCPage
         PageBody.Children.Add(versions);
         var automaticRow = Buttons(
             Action(
-                "下载 Java",
+                Ui("Download Java"),
                 async (_, _) =>
                 {
                     var major = (int)versions.SelectedItem;
@@ -97,7 +97,7 @@ public sealed class JavaSettingsPage : CMCPage
                             JavaManager.Register(settings, java);
                             await Store.Save();
                         },
-                        "下载 Java " + major
+                        UiFormat("Download Java {0}", major)
                     );
                     if (PageName == "java")
                         Render();
@@ -105,7 +105,7 @@ public sealed class JavaSettingsPage : CMCPage
                 true
             ),
             Action(
-                "使用 PATH 中的 Java",
+                Ui("Use Java from PATH"),
                 async (_, _) =>
                 {
                     var found = await Task.Run(() =>
@@ -118,7 +118,7 @@ public sealed class JavaSettingsPage : CMCPage
                             .ToList()
                     );
                     if (found.Count == 0)
-                        throw new Exception("PATH 中没有找到 Java。");
+                        throw new Exception(Ui("Java not found in PATH."));
                     await Run(
                         async ct =>
                         {
@@ -139,7 +139,7 @@ public sealed class JavaSettingsPage : CMCPage
                             }
                             await Store.Save();
                         },
-                        "导入 PATH Java"
+                        Ui("Import Java from PATH")
                     );
                     Render();
                 }
@@ -162,7 +162,7 @@ public sealed class JavaSettingsPage : CMCPage
                 )
             );
         if (settings.JavaInstallations.Count == 0)
-            PageBody.Children.Add(Text("尚未添加 Java，可导入或扫描本机安装。", 13));
+            PageBody.Children.Add(Text(Ui("No Java added yet. Import or scan local installations."), 13));
         foreach (
             var java in settings
                 .JavaInstallations.OrderByDescending(j => j.Major)
@@ -173,10 +173,10 @@ public sealed class JavaSettingsPage : CMCPage
             panel.Children.Add(Text($"Java {java.Version} · {java.Vendor}", 14, true));
             panel.Children.Add(Text(java.Architecture + " · " + java.Path, 12));
             if (!File.Exists(java.Path))
-                panel.Children.Add(Text("文件不存在，请重新导入或移除记录。", 12));
+                panel.Children.Add(Text(Ui("File does not exist. Re-import or remove the entry."), 12));
             panel.Children.Add(
                 Action(
-                    "从列表移除",
+                    Ui("Remove from list"),
                     async (sender, _) =>
                     {
                         if (
@@ -216,7 +216,7 @@ public sealed class JavaSettingsPage : CMCPage
                     var path = candidates[index];
                     if (Window.activeWork != null)
                     {
-                        Window.activeWork.Stage = $"识别 Java {index + 1}/{candidates.Count}";
+                        Window.activeWork.Stage = UiFormat("Identifying Java {0}/{1}", index + 1, candidates.Count);
                         Window.activeWork.Progress = 100.0 * index / candidates.Count;
                         Window.RefreshTaskMetrics();
                     }
@@ -240,7 +240,7 @@ public sealed class JavaSettingsPage : CMCPage
                 await Store.Save();
                 AddLog($"扫描完成，识别 {added} 个 Java。");
             },
-            "扫描 Java"
+            Ui("Scan Java")
         );
         if (PageName == "java")
             Render();
