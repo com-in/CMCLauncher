@@ -462,20 +462,8 @@ public sealed partial class MainWindow
                     : Visibility.Collapsed;
             if (syncingAppearanceControls || preset.SelectedIndex < 0)
                 return;
+            // 切换色板预设只改颜色，不再改写字号/缩放等排版，避免导航栏随预设跳变。
             store.Config.Settings.ColorPreset = ColorPresetIds[preset.SelectedIndex];
-            if (
-                store.Config.Settings.ColorPreset == "native"
-                || themeCatalog.IsBuiltIn(store.Config.Settings.ColorPreset)
-            )
-            {
-                // 原生和内置预设恢复默认排版；外部主题与自定义颜色保留用户的排版设置。
-                store.Config.Settings.UiScale = 1;
-                store.Config.Settings.UiButtonScale = 1;
-                store.Config.Settings.UiMenuScale = 1;
-                store.Config.Settings.UiFontFamily = DefaultFontFamily;
-                store.Config.Settings.UiFontSize = 14;
-                defaultsChanged?.Invoke();
-            }
             editor.Visibility =
                 preset.SelectedIndex == ColorPresetIndex("custom")
                     ? Visibility.Visible
