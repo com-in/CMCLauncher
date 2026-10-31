@@ -38,7 +38,7 @@ public sealed partial class MainWindow
             )
         );
         var folder = new StackPanel { Spacing = 7 };
-        folder.Children.Add(Text(".minecraft 文件夹", 13, true));
+        folder.Children.Add(Text(Ui(".minecraft folder"), 13, true));
         folder.Children.Add(Text(store.MinecraftRoot, 12));
         folder.Children.Add(
             Text(
@@ -192,7 +192,7 @@ public sealed partial class MainWindow
         var tileIndex = 0;
         if (instances.Count == 0)
             PageBody.Children.Add(
-                Text("没有符合条件的版本。可以下载游戏，或设置已有的 .minecraft 文件夹。", 13)
+                Text(Ui("No matching versions. Download a game or select an existing .minecraft folder."), 13)
             );
         foreach (var group in instances.GroupBy(i => LoaderCategory(i.Loader)))
         {

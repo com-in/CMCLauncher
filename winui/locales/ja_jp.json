@@ -2,6 +2,9 @@
   "code": "ja_jp",
   "displayName": "日本語",
   "strings": {
+    ".minecraft folder": ".minecraft フォルダー",
+    "Minecraft folder set, found {0} new versions": ".minecraft フォルダーを設定しました。新しいバージョン {0} 個を検出",
+    "，{0} versions failed to read, see the log for details": "、{0} 個のバージョンの読み取りに失敗しました。詳細はログを参照",
     "迁移其它启动器": "他のランチャーから移行",
     "从 Modrinth 应用或 MultiMC/Prism 启动器将实例迁移到启动器中。": "Modrinth アプリまたは MultiMC/Prism 系ランチャーからインスタンスをライブラリへ移行します。",
     "未在该目录发现可迁移的实例，请选择 ModrinthApp 或 MultiMC/Prism 启动器根目录": "このフォルダーに移行可能なインスタンスが見つかりません。ModrinthApp または MultiMC/Prism ランチャーのルートを選択してください。",

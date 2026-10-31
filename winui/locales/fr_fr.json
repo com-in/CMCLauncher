@@ -2,6 +2,9 @@
   "code": "fr_fr",
   "displayName": "Français",
   "strings": {
+    ".minecraft folder": "dossier .minecraft",
+    "Minecraft folder set, found {0} new versions": "Dossier .minecraft défini ; {0} nouvelles versions trouvées",
+    "，{0} versions failed to read, see the log for details": ", {0} versions illisibles ; voir le journal",
     "迁移其它启动器": "Migrer depuis d'autres lanceurs",
     "从 Modrinth 应用或 MultiMC/Prism 启动器将实例迁移到启动器中。": "Migrez les instances de l'application Modrinth ou des lanceurs MultiMC/Prism vers la bibliothèque.",
     "未在该目录发现可迁移的实例，请选择 ModrinthApp 或 MultiMC/Prism 启动器根目录": "Aucune instance migrable trouvée dans ce dossier ; sélectionnez la racine de ModrinthApp ou MultiMC/Prism.",

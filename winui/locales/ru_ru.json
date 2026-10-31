@@ -2,6 +2,9 @@
   "code": "ru_ru",
   "displayName": "Русский",
   "strings": {
+    ".minecraft folder": "папка .minecraft",
+    "Minecraft folder set, found {0} new versions": "Папка .minecraft установлена; найдено новых версий: {0}",
+    "，{0} versions failed to read, see the log for details": ", не удалось прочитать {0} версий; подробности в журнале",
     "迁移其它启动器": "Перенести из других лаунчеров",
     "从 Modrinth 应用或 MultiMC/Prism 启动器将实例迁移到启动器中。": "Перенесите инстансы из приложения Modrinth или лаунчеров MultiMC/Prism в библиотеку.",
     "未在该目录发现可迁移的实例，请选择 ModrinthApp 或 MultiMC/Prism 启动器根目录": "В этой папке не найдено инстансов для переноса; выберите корень ModrinthApp или MultiMC/Prism.",

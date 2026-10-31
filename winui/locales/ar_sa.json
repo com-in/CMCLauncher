@@ -2,6 +2,9 @@
   "code": "ar_sa",
   "displayName": "العربية",
   "strings": {
+    ".minecraft folder": "مجلد .minecraft",
+    "Minecraft folder set, found {0} new versions": "تم تعيين مجلد .minecraft؛ تم اكتشاف {0} إصدارات جديدة",
+    "，{0} versions failed to read, see the log for details": "، فشل قراءة {0} إصدارات؛ راجع السجل للتفاصيل",
     "迁移其它启动器": "الانتقال من مشغّلات أخرى",
     "从 Modrinth 应用或 MultiMC/Prism 启动器将实例迁移到启动器中。": "نقل الحالات من تطبيق Modrinth أو مشغّلات MultiMC/Prism إلى المكتبة.",
     "未在该目录发现可迁移的实例，请选择 ModrinthApp 或 MultiMC/Prism 启动器根目录": "لا توجد حالات قابلة للنقل في هذا المجلد؛ اختر جذر ModrinthApp أو MultiMC/Prism.",

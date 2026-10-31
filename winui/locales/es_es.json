@@ -2,6 +2,9 @@
   "code": "es_es",
   "displayName": "Español",
   "strings": {
+    ".minecraft folder": "carpeta .minecraft",
+    "Minecraft folder set, found {0} new versions": "Se estableció la carpeta .minecraft; se encontraron {0} versiones nuevas",
+    "，{0} versions failed to read, see the log for details": ", {0} versiones no se pudieron leer; consulta el registro",
     "迁移其它启动器": "Migrar desde otros lanzadores",
     "从 Modrinth 应用或 MultiMC/Prism 启动器将实例迁移到启动器中。": "Migra las instancias desde la app de Modrinth o los lanzadores MultiMC/Prism a la biblioteca.",
     "未在该目录发现可迁移的实例，请选择 ModrinthApp 或 MultiMC/Prism 启动器根目录": "No se encontraron instancias migrables en esta carpeta; selecciona la raíz de ModrinthApp o MultiMC/Prism.",

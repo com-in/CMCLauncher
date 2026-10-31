@@ -2,6 +2,9 @@
   "code": "zh_cn",
   "displayName": "简体中文",
   "strings": {
+    ".minecraft folder": ".minecraft 文件夹",
+    "Minecraft folder set, found {0} new versions": "已设置 .minecraft 文件夹，发现 {0} 个新版本",
+    "，{0} versions failed to read, see the log for details": "，{0} 个版本读取失败，详情见日志",
     "迁移其它启动器": "迁移其它启动器",
     "从 Modrinth 应用或 MultiMC/Prism 启动器将实例迁移到启动器中。": "从 Modrinth 应用或 MultiMC/Prism 启动器将实例迁移到启动器中。",
     "未在该目录发现可迁移的实例，请选择 ModrinthApp 或 MultiMC/Prism 启动器根目录": "未在该目录发现可迁移的实例，请选择 ModrinthApp 或 MultiMC/Prism 启动器根目录",

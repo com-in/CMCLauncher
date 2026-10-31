@@ -2,6 +2,9 @@
   "code": "en_us",
   "displayName": "English",
   "strings": {
+    ".minecraft folder": ".minecraft folder",
+    "Minecraft folder set, found {0} new versions": "Minecraft folder set, found {0} new versions",
+    "，{0} versions failed to read, see the log for details": "，{0} versions failed to read, see the log for details",
     "迁移其它启动器": "Migrate from other launchers",
     "从 Modrinth 应用或 MultiMC/Prism 启动器将实例迁移到启动器中。": "Migrate instances from the Modrinth app or MultiMC/Prism launchers into the library.",
     "未在该目录发现可迁移的实例，请选择 ModrinthApp 或 MultiMC/Prism 启动器根目录": "No migratable instances found in this folder; select a ModrinthApp or MultiMC/Prism launcher root.",
