@@ -2,6 +2,13 @@
   "code": "zh_cn",
   "displayName": "简体中文",
   "strings": {
+    "迁移其它启动器": "迁移其它启动器",
+    "从 Modrinth 应用或 MultiMC/Prism 启动器将实例迁移到启动器中。": "从 Modrinth 应用或 MultiMC/Prism 启动器将实例迁移到启动器中。",
+    "未在该目录发现可迁移的实例，请选择 ModrinthApp 或 MultiMC/Prism 启动器根目录": "未在该目录发现可迁移的实例，请选择 ModrinthApp 或 MultiMC/Prism 启动器根目录",
+    "已迁移 {0} 个实例": "已迁移 {0} 个实例",
+    "，{0} 个因同名被丢弃": "，{0} 个因同名被丢弃",
+    "，{0} 个失败": "，{0} 个失败",
+    "，其中 {0} 个需在下载游戏页安装对应加载器": "，其中 {0} 个需在下载游戏页安装对应加载器",
     "Import PCL/HMCL folders, .minecraft, versions, or a single version folder. Existing files stay in place.": "支持导入 PCL/HMCL 目录、.minecraft、versions 或单个版本文件夹，原文件保留在原处。",
     "This release requires a manual download. Open its release notes.": "此发行版需要手动下载，请打开对应的发行说明。",
     "Launcher updates": "启动器更新",

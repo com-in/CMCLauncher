@@ -2,6 +2,13 @@
   "code": "ja_jp",
   "displayName": "日本語",
   "strings": {
+    "迁移其它启动器": "他のランチャーから移行",
+    "从 Modrinth 应用或 MultiMC/Prism 启动器将实例迁移到启动器中。": "Modrinth アプリまたは MultiMC/Prism 系ランチャーからインスタンスをライブラリへ移行します。",
+    "未在该目录发现可迁移的实例，请选择 ModrinthApp 或 MultiMC/Prism 启动器根目录": "このフォルダーに移行可能なインスタンスが見つかりません。ModrinthApp または MultiMC/Prism ランチャーのルートを選択してください。",
+    "已迁移 {0} 个实例": "{0} 個のインスタンスを移行しました",
+    "，{0} 个因同名被丢弃": "、同名の {0} 個はスキップされました",
+    "，{0} 个失败": "、{0} 個は失敗しました",
+    "，其中 {0} 个需在下载游戏页安装对应加载器": "、うち {0} 個はダウンロードページでローダーをインストールする必要があります",
     "Import PCL/HMCL folders, .minecraft, versions, or a single version folder. Existing files stay in place.": "PCL/HMCL フォルダー、.minecraft、versions、または個別のバージョンフォルダーを読み込めます。既存のファイルは移動しません。",
     "This release requires a manual download. Open its release notes.": "このリリースは手動でダウンロードしてください。リリースノートを開いてください。",
     "Launcher updates": "ランチャーの更新",

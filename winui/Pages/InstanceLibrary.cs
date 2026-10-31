@@ -61,15 +61,12 @@ public sealed partial class MainWindow
             )
         );
         folder.Children.Add(
-            Text(
-                "Migrate instances from the Modrinth app or MultiMC/Prism launchers into the library.",
-                12
-            )
+            Text(Ui("从 Modrinth 应用或 MultiMC/Prism 启动器将实例迁移到启动器中。"), 12)
         );
         folder.Children.Add(
             Buttons(
                 Action(
-                    "迁移其它启动器",
+                    Ui("迁移其它启动器"),
                     async (_, _) =>
                     {
                         await MigrateForeignLauncher();

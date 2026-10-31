@@ -2,6 +2,13 @@
   "code": "en_us",
   "displayName": "English",
   "strings": {
+    "迁移其它启动器": "Migrate from other launchers",
+    "从 Modrinth 应用或 MultiMC/Prism 启动器将实例迁移到启动器中。": "Migrate instances from the Modrinth app or MultiMC/Prism launchers into the library.",
+    "未在该目录发现可迁移的实例，请选择 ModrinthApp 或 MultiMC/Prism 启动器根目录": "No migratable instances found in this folder; select a ModrinthApp or MultiMC/Prism launcher root.",
+    "已迁移 {0} 个实例": "Migrated {0} instances",
+    "，{0} 个因同名被丢弃": ", {0} dropped as duplicates",
+    "，{0} 个失败": ", {0} failed",
+    "，其中 {0} 个需在下载游戏页安装对应加载器": ", of which {0} need their loader installed on the downloads page",
     "Import PCL/HMCL folders, .minecraft, versions, or a single version folder. Existing files stay in place.": "Import PCL/HMCL folders, .minecraft, versions, or a single version folder. Existing files stay in place.",
     "This release requires a manual download. Open its release notes.": "This release requires a manual download. Open its release notes.",
     "Launcher updates": "Launcher updates",

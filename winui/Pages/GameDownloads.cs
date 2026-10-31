@@ -534,7 +534,7 @@ public sealed partial class MainWindow
             var scan = core.ScanForeignInstances(folder, ct, AddLog);
             if (scan.Instances.Count == 0)
             {
-                Report("未在该目录发现 Modrinth / MultiMC / Prism 实例，请选择 ModrinthApp 或对应启动器根目录");
+                Report(Ui("未在该目录发现可迁移的实例，请选择 ModrinthApp 或 MultiMC/Prism 启动器根目录"));
                 return;
             }
             var (migrated, skipped) = await core.MigrateForeignInstances(
@@ -558,12 +558,17 @@ public sealed partial class MainWindow
             var manual = migrated.Count(
                 instance => instance.Loader is not ("vanilla" or "fabric")
             );
-            Report(
-                $"已迁移 {migrated.Count} 个实例"
-                    + (discarded > 0 ? $"，{discarded} 个因同名被丢弃" : "")
-                    + (skipped.Count > 0 ? $"，{skipped.Count} 个失败" : "")
-                    + (manual > 0 ? $"，其中 {manual} 个需在“下载游戏”中安装对应加载器" : "")
-            );
+            var message = UiFormat("已迁移 {0} 个实例", migrated.Count);
+            if (discarded > 0)
+                message += UiFormat("，{0} 个因同名被丢弃", discarded);
+            if (skipped.Count > 0)
+                message += UiFormat("，{0} 个失败", skipped.Count);
+            if (manual > 0)
+                message += UiFormat(
+                    "，其中 {0} 个需在下载游戏页安装对应加载器",
+                    manual
+                );
+            Report(message);
         });
         page = "instances";
         Render();

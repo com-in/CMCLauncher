@@ -2,6 +2,13 @@
   "code": "es_es",
   "displayName": "Español",
   "strings": {
+    "迁移其它启动器": "Migrar desde otros lanzadores",
+    "从 Modrinth 应用或 MultiMC/Prism 启动器将实例迁移到启动器中。": "Migra las instancias desde la app de Modrinth o los lanzadores MultiMC/Prism a la biblioteca.",
+    "未在该目录发现可迁移的实例，请选择 ModrinthApp 或 MultiMC/Prism 启动器根目录": "No se encontraron instancias migrables en esta carpeta; selecciona la raíz de ModrinthApp o MultiMC/Prism.",
+    "已迁移 {0} 个实例": "Se migraron {0} instancias",
+    "，{0} 个因同名被丢弃": ", {0} descartadas por duplicadas",
+    "，{0} 个失败": ", {0} fallaron",
+    "，其中 {0} 个需在下载游戏页安装对应加载器": ", de las cuales {0} necesitan instalar su cargador en la página de descargas",
     "Finalizing modpack installation": "Finalizando la instalación del modpack",
     "Source": "Fuente",
     "Select a source to filter by category.": "Elige una fuente para filtrar por categoría.",
