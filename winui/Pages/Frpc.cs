@@ -18,7 +18,7 @@ public sealed partial class MainWindow
 
     void MorePage()
     {
-        Header("更多", Ui("Utilities"));
+        Header(Ui("More"), Ui("Utilities"));
         PageBody.Children.Add(
             Card(
                 new StackPanel

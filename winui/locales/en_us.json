@@ -2,6 +2,7 @@
   "code": "en_us",
   "displayName": "English",
   "strings": {
+    "Community resources": "Community resources",
     ".minecraft folder": ".minecraft folder",
     "Minecraft folder set, found {0} new versions": "Minecraft folder set, found {0} new versions",
     "，{0} versions failed to read, see the log for details": "，{0} versions failed to read, see the log for details",

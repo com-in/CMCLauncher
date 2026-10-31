@@ -128,7 +128,7 @@ public sealed partial class MainWindow
         {
             if (key == "downloads" && child.Page == "download-mod")
             {
-                var description = Text("社区资源", 11, true);
+                var description = Text(Ui("Community resources"), 11, true);
                 description.Margin = new Thickness(11, 10, 0, 4);
                 description.Foreground = Brush(lightTheme ? "#41424D" : "#D1D1DC");
                 submenu.Children.Add(description);

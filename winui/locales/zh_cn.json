@@ -2,6 +2,7 @@
   "code": "zh_cn",
   "displayName": "简体中文",
   "strings": {
+    "Community resources": "社区资源",
     ".minecraft folder": ".minecraft 文件夹",
     "Minecraft folder set, found {0} new versions": "已设置 .minecraft 文件夹，发现 {0} 个新版本",
     "，{0} versions failed to read, see the log for details": "，{0} 个版本读取失败，详情见日志",

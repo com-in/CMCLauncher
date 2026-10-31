@@ -2,6 +2,7 @@
   "code": "es_es",
   "displayName": "Español",
   "strings": {
+    "Community resources": "Recursos de la comunidad",
     ".minecraft folder": "carpeta .minecraft",
     "Minecraft folder set, found {0} new versions": "Se estableció la carpeta .minecraft; se encontraron {0} versiones nuevas",
     "，{0} versions failed to read, see the log for details": ", {0} versiones no se pudieron leer; consulta el registro",

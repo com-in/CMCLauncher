@@ -49,7 +49,7 @@ public sealed partial class MainWindow
                     true
                 ),
                 Action(Ui("Open schematics folder"), (_, _) => OpenFolder(directory)),
-                Action("刷新", (_, _) => Render())
+                Action(Ui("Refresh"), (_, _) => Render())
             )
         );
         PageBody.Children.Add(search);

@@ -34,7 +34,7 @@ public sealed partial class MainWindow
                         Render();
                     }
                 ),
-                Action("导入整合包", async (_, _) => await ImportPack())
+                Action(Ui("Import modpack"), async (_, _) => await ImportPack())
             )
         );
         var folder = new StackPanel { Spacing = 7 };

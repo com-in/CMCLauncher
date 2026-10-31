@@ -2,6 +2,7 @@
   "code": "ar_sa",
   "displayName": "العربية",
   "strings": {
+    "Community resources": "موارد المجتمع",
     ".minecraft folder": "مجلد .minecraft",
     "Minecraft folder set, found {0} new versions": "تم تعيين مجلد .minecraft؛ تم اكتشاف {0} إصدارات جديدة",
     "，{0} versions failed to read, see the log for details": "، فشل قراءة {0} إصدارات؛ راجع السجل للتفاصيل",

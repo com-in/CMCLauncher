@@ -2,6 +2,7 @@
   "code": "ja_jp",
   "displayName": "日本語",
   "strings": {
+    "Community resources": "コミュニティリソース",
     ".minecraft folder": ".minecraft フォルダー",
     "Minecraft folder set, found {0} new versions": ".minecraft フォルダーを設定しました。新しいバージョン {0} 個を検出",
     "，{0} versions failed to read, see the log for details": "、{0} 個のバージョンの読み取りに失敗しました。詳細はログを参照",

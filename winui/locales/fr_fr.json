@@ -2,6 +2,7 @@
   "code": "fr_fr",
   "displayName": "Français",
   "strings": {
+    "Community resources": "Ressources communautaires",
     ".minecraft folder": "dossier .minecraft",
     "Minecraft folder set, found {0} new versions": "Dossier .minecraft défini ; {0} nouvelles versions trouvées",
     "，{0} versions failed to read, see the log for details": ", {0} versions illisibles ; voir le journal",

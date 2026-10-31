@@ -199,7 +199,7 @@ public sealed partial class MainWindow
     {
         themeCatalog.Reload();
         ApplyTheme();
-        Header("个性化", "");
+        Header(Ui("Personalization"), "");
         var settings = store.Config.Settings;
         var theme = new BelowComboBox
         {

@@ -11,7 +11,7 @@ public sealed class SettingsPage : CMCPage
 
     public override void Build()
     {
-        Header("启动器设置", "");
+        Header(Ui("Launcher settings"), "");
         var settings = Store.Config.Settings;
         PageBody.Children.Add(Window.BuildLauncherUpdateSettings());
 

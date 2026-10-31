@@ -2,6 +2,7 @@
   "code": "ru_ru",
   "displayName": "Русский",
   "strings": {
+    "Community resources": "Ресурсы сообщества",
     ".minecraft folder": "папка .minecraft",
     "Minecraft folder set, found {0} new versions": "Папка .minecraft установлена; найдено новых версий: {0}",
     "，{0} versions failed to read, see the log for details": ", не удалось прочитать {0} версий; подробности в журнале",
