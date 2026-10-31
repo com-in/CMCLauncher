@@ -223,7 +223,12 @@ public sealed partial class MainWindow
             Background = new SolidColorBrush(Colors.Transparent),
             BorderThickness = new Thickness(0),
         };
-        button.Click += (_, _) => click();
+        button.Click += (_, _) =>
+        {
+            // DEBUG 模式下记录每次侧栏模块导航，便于追踪用户操作路径。
+            RuntimeLog.Debug("导航 · " + title + " (" + key + ")");
+            click();
+        };
         var navigationKey = key.StartsWith("root:") ? key : "page:" + key;
         var palette = new NavigationButtonPalette();
         navigationButtonPalettes[navigationKey] = palette;
