@@ -17,12 +17,14 @@ try
     }
     if ($process.ExitCode -ne 0 -or !(Test-Path -LiteralPath $report)) { throw "Single-file activation failed. Check $checkRoot" }
     if ((Get-Content -LiteralPath $report) -notcontains 'activation=success') { throw 'WinUI activation was not verified.' }
-    if (!(Test-Path -LiteralPath (Join-Path $checkRoot 'locales/en_us.json')) -or !(Test-Path -LiteralPath (Join-Path $checkRoot 'themes'))) { throw 'Editable launcher files were not seeded beside the executable.' }
+    # 可编辑资源与运行时文件现集中到可执行文件同级的 cmcl 文件夹内。
+    $cmcl = Join-Path $checkRoot 'cmcl'
+    if (!(Test-Path -LiteralPath (Join-Path $cmcl 'locales/en_us.json')) -or !(Test-Path -LiteralPath (Join-Path $cmcl 'themes'))) { throw 'Editable launcher files were not seeded in the cmcl folder.' }
     Write-Output 'Single-file cold-start WinUI activation passed.'
-    $language = Join-Path $checkRoot 'locales/en_us.json'
+    $language = Join-Path $cmcl 'locales/en_us.json'
     [IO.File]::AppendAllText($language, "`n")
     $languageHash = (Get-FileHash -LiteralPath $language).Hash
-    $configuration = Join-Path $checkRoot 'frpc/configs/preserve.toml'
+    $configuration = Join-Path $cmcl 'frpc/configs/preserve.toml'
     New-Item -ItemType Directory -Path (Split-Path -Parent $configuration) -Force | Out-Null
     [IO.File]::WriteAllText($configuration, 'serverAddr = "127.0.0.1"')
     $warm = Start-Process -FilePath $executable -ArgumentList @('--verify-singlefile-runtime', ('"' + $report + '"')) -WindowStyle Hidden -PassThru
