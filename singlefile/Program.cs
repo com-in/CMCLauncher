@@ -102,8 +102,12 @@ internal static class Program
                 extraction.ReleaseMutex();
             }
 
-            var userDirectory =
+            // 根目录保持干净：仅保留启动器主文件和一个 cmcl 文件夹，
+            // 所有可编辑资源与运行时文件都集中到该文件夹内。
+            var rootDirectory =
                 Path.GetDirectoryName(Environment.ProcessPath) ?? AppContext.BaseDirectory;
+            var userDirectory = Path.Combine(rootDirectory, "cmcl");
+            Directory.CreateDirectory(userDirectory);
             foreach (var folder in new[] { "locales", "themes" })
             {
                 var source = Path.Combine(runtime, folder);
