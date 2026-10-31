@@ -220,7 +220,7 @@ public sealed partial class MainWindow
         var label = (work.Launch ? Ui("Launch progress") : Ui("Current file progress"));
         var progressText = work.Progress is double progressValue
             ? progressValue.ToString("0") + "%"
-            : Ui("Preparing");
+            : Ui(string.IsNullOrWhiteSpace(work.Stage) ? "Preparing" : work.Stage);
         taskStage.Text = Ui(work.Stage);
         taskProgress.IsIndeterminate = !work.Progress.HasValue;
         taskProgress.Value = work.Progress ?? 0;
