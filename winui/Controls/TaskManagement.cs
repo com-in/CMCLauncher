@@ -224,13 +224,16 @@ public sealed partial class MainWindow
         taskStage.Text = Ui(work.Stage);
         taskProgress.IsIndeterminate = !work.Progress.HasValue;
         taskProgress.Value = work.Progress ?? 0;
-        taskMetrics.Text = UiFormat(
-            "{0}: {1}\nSpeed: {2}/s   ·   Received {3}",
-            label,
-            progressText,
-            ByteSize(work.Speed),
-            ByteSize(bytes)
-        );
+        taskMetrics.Text =
+            work.Progress.HasValue || work.Bytes > 0
+                ? UiFormat(
+                    "{0}: {1}\nSpeed: {2}/s   ·   Received {3}",
+                    label,
+                    progressText,
+                    ByteSize(work.Speed),
+                    ByteSize(bytes)
+                )
+                : progressText;
         taskElapsed.Text = UiFormat("Elapsed: {0}", FormatDuration(Elapsed(work)));
     }
 
