@@ -95,7 +95,12 @@ public sealed partial class MainWindow
             "更多",
             "\uE712",
             "more",
-            new[] { ("frpc", "\uE968", "frpc"), ("About", "\uE946", "about") }
+            new[]
+            {
+                ("系统状态", "\uE9F5", "stats"),
+                ("frpc", "\uE968", "frpc"),
+                ("About", "\uE946", "about"),
+            }
         );
         SyncNavigation();
     }
@@ -436,6 +441,9 @@ public sealed partial class MainWindow
                     break;
                 case "about":
                     AboutPage();
+                    break;
+                case "stats":
+                    StatsPage();
                     break;
                 case "frpc":
                     FrpcPage();

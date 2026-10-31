@@ -690,6 +690,13 @@
     "This version directory overlaps with: {0}. Only the launcher entry will be removed.": "Этот каталог версии пересекается с: {0}. Будет удалена только запись лаунчера.",
     "Cannot verify version references because a profile could not be read: {0}. Version files will be kept.": "Не удалось проверить ссылки версии, так как не удалось прочитать профиль: {0}. Файлы версии будут сохранены.",
     "The version path could not be verified safely. Version files will be kept.": "Не удалось безопасно проверить путь версии. Файлы версии будут сохранены.",
-    "This path is not an individual version folder. Shared Minecraft files will be kept.": "Этот путь - не отдельная папка версии. Общие файлы Minecraft будут сохранены."
+    "This path is not an individual version folder. Shared Minecraft files will be kept.": "Этот путь - не отдельная папка версии. Общие файлы Minecraft будут сохранены.",
+    "System status": "Состояние системы",
+    "Live CPU, memory and graphics usage": "Использование ЦП, памяти и видеокарты в реальном времени",
+    "CPU usage": "Загрузка ЦП",
+    "Memory usage": "Использование памяти",
+    "Launcher process": "Процесс запуска",
+    "Graphics": "Видеокарта",
+    "Not available": "Недоступно"
   }
 }

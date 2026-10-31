@@ -690,6 +690,13 @@
     "This version directory overlaps with: {0}. Only the launcher entry will be removed.": "يتداخل دليل هذا الإصدار مع: {0}. ستتم إزالة إدخال اللانشر فقط.",
     "Cannot verify version references because a profile could not be read: {0}. Version files will be kept.": "لا يمكن التحقق من مراجع الإصدارات لأن ملفًا تعريفيًا لا يمكن قراءته: {0}. ستُحفظ ملفات الإصدار.",
     "The version path could not be verified safely. Version files will be kept.": "تعذّر التحقق من مسار الإصدار بأمان. ستُحفظ ملفات الإصدار.",
-    "This path is not an individual version folder. Shared Minecraft files will be kept.": "هذا المسار ليس مجلد إصدار منفصل. ستُحفظ ملفات Minecraft المشتركة."
+    "This path is not an individual version folder. Shared Minecraft files will be kept.": "هذا المسار ليس مجلد إصدار منفصل. ستُحفظ ملفات Minecraft المشتركة.",
+    "System status": "حالة النظام",
+    "Live CPU, memory and graphics usage": "الاستخدام المباشر لوحدة المعالجة والذاكرة والرسومات",
+    "CPU usage": "استخدام وحدة المعالجة",
+    "Memory usage": "استخدام الذاكرة",
+    "Launcher process": "عملية المشغل",
+    "Graphics": "الرسومات",
+    "Not available": "غير متوفر"
   }
 }

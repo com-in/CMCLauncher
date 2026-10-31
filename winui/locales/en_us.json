@@ -730,7 +730,14 @@
     "This version directory overlaps with: {0}. Only the launcher entry will be removed.": "This version directory overlaps with: {0}. Only the launcher entry will be removed.",
     "Cannot verify version references because a profile could not be read: {0}. Version files will be kept.": "Cannot verify version references because a profile could not be read: {0}. Version files will be kept.",
     "The version path could not be verified safely. Version files will be kept.": "The version path could not be verified safely. Version files will be kept.",
-    "This path is not an individual version folder. Shared Minecraft files will be kept.": "This path is not an individual version folder. Shared Minecraft files will be kept."
+    "This path is not an individual version folder. Shared Minecraft files will be kept.": "This path is not an individual version folder. Shared Minecraft files will be kept.",
+    "System status": "System status",
+    "Live CPU, memory and graphics usage": "Live CPU, memory and graphics usage",
+    "CPU usage": "CPU usage",
+    "Memory usage": "Memory usage",
+    "Launcher process": "Launcher process",
+    "Graphics": "Graphics",
+    "Not available": "Not available"
   },
   "prefixes": [
     {

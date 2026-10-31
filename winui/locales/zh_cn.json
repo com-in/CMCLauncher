@@ -730,6 +730,13 @@
     "This version directory overlaps with: {0}. Only the launcher entry will be removed.": "此版本目录与以下版本共用或重叠：{0}。本次只移除启动器记录，磁盘文件保留。",
     "Cannot verify version references because a profile could not be read: {0}. Version files will be kept.": "无法读取版本配置：{0}，因此无法确认依赖关系，磁盘文件将保留。",
     "The version path could not be verified safely. Version files will be kept.": "无法安全确认版本目录，磁盘文件将保留。",
-    "This path is not an individual version folder. Shared Minecraft files will be kept.": "此路径不是单个版本文件夹，公共 Minecraft 文件将保留。"
+    "This path is not an individual version folder. Shared Minecraft files will be kept.": "此路径不是单个版本文件夹，公共 Minecraft 文件将保留。",
+    "System status": "系统状态",
+    "Live CPU, memory and graphics usage": "实时显示 CPU、内存与显卡占用",
+    "CPU usage": "CPU 占用",
+    "Memory usage": "内存占用",
+    "Launcher process": "启动器进程",
+    "Graphics": "显卡",
+    "Not available": "暂不可用"
   }
 }

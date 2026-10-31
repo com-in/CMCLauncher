@@ -690,6 +690,13 @@
     "This version directory overlaps with: {0}. Only the launcher entry will be removed.": "Este directorio de versión se solapa con: {0}. Solo se eliminará la entrada del lanzador.",
     "Cannot verify version references because a profile could not be read: {0}. Version files will be kept.": "No se pueden verificar las referencias de versión porque no se pudo leer un perfil: {0}. Los archivos de versión se conservarán.",
     "The version path could not be verified safely. Version files will be kept.": "No se pudo verificar el directorio de versión de forma segura. Los archivos de versión se conservarán.",
-    "This path is not an individual version folder. Shared Minecraft files will be kept.": "Esta ruta no es una carpeta de versión individual. Los archivos compartidos de Minecraft se conservarán."
+    "This path is not an individual version folder. Shared Minecraft files will be kept.": "Esta ruta no es una carpeta de versión individual. Los archivos compartidos de Minecraft se conservarán.",
+    "System status": "Estado del sistema",
+    "Live CPU, memory and graphics usage": "Uso en tiempo real de CPU, memoria y graficos",
+    "CPU usage": "Uso de CPU",
+    "Memory usage": "Uso de memoria",
+    "Launcher process": "Proceso del lanzador",
+    "Graphics": "Graficos",
+    "Not available": "No disponible"
   }
 }

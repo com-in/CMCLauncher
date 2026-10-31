@@ -730,6 +730,13 @@
     "This version directory overlaps with: {0}. Only the launcher entry will be removed.": "このバージョンディレクトリは以下と重複しています: {0}。ランチャーのエントリのみ削除されます。",
     "Cannot verify version references because a profile could not be read: {0}. Version files will be kept.": "プロファイルを読み込めず、バージョン参照を確認できません: {0}。バージョンファイルは保持されます。",
     "The version path could not be verified safely. Version files will be kept.": "バージョンパスを安全に確認できませんでした。バージョンファイルは保持されます。",
-    "This path is not an individual version folder. Shared Minecraft files will be kept.": "このパスは個別のバージョンフォルダではありません。共有 Minecraft ファイルは保持されます。"
+    "This path is not an individual version folder. Shared Minecraft files will be kept.": "このパスは個別のバージョンフォルダではありません。共有 Minecraft ファイルは保持されます。",
+    "System status": "システム状態",
+    "Live CPU, memory and graphics usage": "CPU・メモリ・GPUの使用状況をリアルタイム表示",
+    "CPU usage": "CPU使用率",
+    "Memory usage": "メモリ使用率",
+    "Launcher process": "ランチャープロセス",
+    "Graphics": "グラフィックス",
+    "Not available": "利用不可"
   }
 }
